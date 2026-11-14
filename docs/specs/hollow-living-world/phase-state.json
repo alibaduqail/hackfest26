@@ -1,17 +1,21 @@
 {
   "feature": "hollow-living-world",
-  "currentPhase": 1,
-  "phase": "specification",
+  "currentPhase": 3,
+  "phase": "architecture",
   "status": "complete",
-  "approvalStatus": "draft-for-team-review",
-  "nextPhase": "pseudocode",
+  "approvalStatus": "implementation-authorized-by-user",
+  "nextPhase": "refinement",
   "artifacts": [
     "SPEC.md",
-    "specification.json"
+    "specification.json",
+    "PSEUDOCODE.md",
+    "ARCHITECTURE.md",
+    "../../../hollow-world/README.md",
+    "../../../hollow-world/VALIDATION.md"
   ],
   "trackingBackend": "repository-local",
   "rufloMemoryWritten": false,
-  "implementationStatus": "not-started-by-this-specification",
+  "implementationStatus": "implemented-see-validation-report",
   "summary": {
     "functionalRequirements": 58,
     "nonFunctionalRequirements": 15,
@@ -19,5 +23,12 @@
     "constraints": 8,
     "edgeCases": 16,
     "integrationPoints": 8
+  },
+  "verification": {
+    "automatedTests": 19,
+    "build": "passed",
+    "headlessDays": 30,
+    "details": "../../../hollow-world/VALIDATION.md",
+    "fullSpecificationAccepted": false
   }
 }

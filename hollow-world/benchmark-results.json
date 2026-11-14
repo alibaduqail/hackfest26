@@ -1,0 +1,16 @@
+{
+  "date": "2026-11-14T22:52:01.335Z",
+  "platform": "darwin",
+  "arch": "arm64",
+  "cpu": "Apple M2",
+  "simulatedDays": 30,
+  "wallSeconds": 40.548021708,
+  "p95MeanTickMs": 0.016356643611111395,
+  "residents": 180,
+  "rooms": 30,
+  "delivered": 25155,
+  "finalTick": 2592000,
+  "resourceConservation": "passed",
+  "hourlySnapshotValidation": "passed",
+  "renderer": "not measured by headless benchmark"
+}
