@@ -1,0 +1,23 @@
+{
+  "feature": "hollow-living-world",
+  "currentPhase": 1,
+  "phase": "specification",
+  "status": "complete",
+  "approvalStatus": "draft-for-team-review",
+  "nextPhase": "pseudocode",
+  "artifacts": [
+    "SPEC.md",
+    "specification.json"
+  ],
+  "trackingBackend": "repository-local",
+  "rufloMemoryWritten": false,
+  "implementationStatus": "not-started-by-this-specification",
+  "summary": {
+    "functionalRequirements": 58,
+    "nonFunctionalRequirements": 15,
+    "acceptanceCriteria": 32,
+    "constraints": 8,
+    "edgeCases": 16,
+    "integrationPoints": 8
+  }
+}
