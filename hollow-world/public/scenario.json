@@ -1,0 +1,4259 @@
+{
+  "schemaVersion": 1,
+  "modelVersion": "hollow-1",
+  "id": "hollow-three-districts",
+  "seed": 2087,
+  "startHour": 7,
+  "rooms": [
+    {
+      "id": "d0-f0",
+      "name": "Surface approach",
+      "district": 0,
+      "floor": 0,
+      "kind": "gate",
+      "x": 130,
+      "y": 290,
+      "w": 490,
+      "h": 140,
+      "beds": 0,
+      "demandW": 350,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "medicine": 0,
+        "parts": 0,
+        "waste": 0
+      },
+      "capacity": 6,
+      "feederFloor": 0,
+      "condition": 100
+    },
+    {
+      "id": "d0-f1",
+      "name": "Upper clinic",
+      "district": 0,
+      "floor": 1,
+      "kind": "clinic",
+      "x": 130,
+      "y": 468,
+      "w": 490,
+      "h": 140,
+      "beds": 0,
+      "demandW": 1400,
+      "stock": {
+        "food": 0,
+        "water": 10000,
+        "medicine": 3000,
+        "parts": 0,
+        "waste": 0
+      },
+      "capacity": 3,
+      "feederFloor": 1,
+      "condition": 100
+    },
+    {
+      "id": "d0-f2",
+      "name": "Terrace homes",
+      "district": 0,
+      "floor": 2,
+      "kind": "home",
+      "x": 130,
+      "y": 646,
+      "w": 490,
+      "h": 140,
+      "beds": 18,
+      "demandW": 350,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "medicine": 0,
+        "parts": 0,
+        "waste": 0
+      },
+      "capacity": 6,
+      "feederFloor": 2,
+      "condition": 100
+    },
+    {
+      "id": "d0-f3",
+      "name": "Central stores",
+      "district": 0,
+      "floor": 3,
+      "kind": "depot",
+      "x": 130,
+      "y": 824,
+      "w": 490,
+      "h": 140,
+      "beds": 0,
+      "demandW": 350,
+      "stock": {
+        "food": 30000,
+        "water": 100000,
+        "medicine": 3000,
+        "parts": 2000,
+        "waste": 0
+      },
+      "capacity": 6,
+      "feederFloor": 3,
+      "condition": 100
+    },
+    {
+      "id": "d0-f4",
+      "name": "Transit homes",
+      "district": 0,
+      "floor": 4,
+      "kind": "home",
+      "x": 130,
+      "y": 1002,
+      "w": 490,
+      "h": 140,
+      "beds": 18,
+      "demandW": 350,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "medicine": 0,
+        "parts": 0,
+        "waste": 0
+      },
+      "capacity": 6,
+      "feederFloor": 4,
+      "condition": 100
+    },
+    {
+      "id": "d0-f5",
+      "name": "Directorate crossing",
+      "district": 0,
+      "floor": 5,
+      "kind": "checkpoint",
+      "x": 130,
+      "y": 1180,
+      "w": 490,
+      "h": 140,
+      "beds": 0,
+      "demandW": 350,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "medicine": 0,
+        "parts": 0,
+        "waste": 0
+      },
+      "capacity": 6,
+      "feederFloor": 5,
+      "condition": 100
+    },
+    {
+      "id": "d0-f6",
+      "name": "Shift housing",
+      "district": 0,
+      "floor": 6,
+      "kind": "home",
+      "x": 130,
+      "y": 1358,
+      "w": 490,
+      "h": 140,
+      "beds": 18,
+      "demandW": 350,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "medicine": 0,
+        "parts": 0,
+        "waste": 0
+      },
+      "capacity": 6,
+      "feederFloor": 6,
+      "condition": 100
+    },
+    {
+      "id": "d0-f7",
+      "name": "Communal kitchen",
+      "district": 0,
+      "floor": 7,
+      "kind": "mess",
+      "x": 130,
+      "y": 1536,
+      "w": 490,
+      "h": 140,
+      "beds": 0,
+      "demandW": 350,
+      "stock": {
+        "food": 1000,
+        "water": 0,
+        "medicine": 0,
+        "parts": 0,
+        "waste": 0
+      },
+      "capacity": 6,
+      "feederFloor": 7,
+      "condition": 100
+    },
+    {
+      "id": "d0-f2-annex",
+      "name": "Network exchange",
+      "district": 0,
+      "floor": 2,
+      "kind": "relay",
+      "x": 646,
+      "y": 646,
+      "w": 260,
+      "h": 140,
+      "beds": 0,
+      "demandW": 300,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "medicine": 0,
+        "parts": 0,
+        "waste": 0
+      },
+      "capacity": 2,
+      "feederFloor": 2,
+      "condition": 100
+    },
+    {
+      "id": "d0-f5-annex",
+      "name": "Gallery homes",
+      "district": 0,
+      "floor": 5,
+      "kind": "home",
+      "x": 646,
+      "y": 1180,
+      "w": 260,
+      "h": 140,
+      "beds": 18,
+      "demandW": 300,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "medicine": 0,
+        "parts": 0,
+        "waste": 0
+      },
+      "capacity": 2,
+      "feederFloor": 5,
+      "condition": 100
+    },
+    {
+      "id": "d1-f0",
+      "name": "Geothermal hall",
+      "district": 1,
+      "floor": 0,
+      "kind": "plant",
+      "x": 970,
+      "y": 290,
+      "w": 490,
+      "h": 140,
+      "beds": 0,
+      "demandW": 1500,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "medicine": 0,
+        "parts": 0,
+        "waste": 0
+      },
+      "capacity": 6,
+      "feederFloor": 0,
+      "condition": 100
+    },
+    {
+      "id": "d1-f1",
+      "name": "Feeder control",
+      "district": 1,
+      "floor": 1,
+      "kind": "switchgear",
+      "x": 970,
+      "y": 468,
+      "w": 490,
+      "h": 140,
+      "beds": 0,
+      "demandW": 350,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "medicine": 0,
+        "parts": 0,
+        "waste": 0
+      },
+      "capacity": 6,
+      "feederFloor": 1,
+      "condition": 100
+    },
+    {
+      "id": "d1-f2",
+      "name": "Water reclamation",
+      "district": 1,
+      "floor": 2,
+      "kind": "recycler",
+      "x": 970,
+      "y": 646,
+      "w": 490,
+      "h": 140,
+      "beds": 0,
+      "demandW": 2400,
+      "stock": {
+        "food": 0,
+        "water": 100000,
+        "medicine": 0,
+        "parts": 0,
+        "waste": 200000
+      },
+      "capacity": 6,
+      "feederFloor": 2,
+      "condition": 95
+    },
+    {
+      "id": "d1-f3",
+      "name": "Lamp gardens",
+      "district": 1,
+      "floor": 3,
+      "kind": "farm",
+      "x": 970,
+      "y": 824,
+      "w": 490,
+      "h": 140,
+      "beds": 0,
+      "demandW": 3500,
+      "stock": {
+        "food": 5000,
+        "water": 10000,
+        "medicine": 0,
+        "parts": 0,
+        "waste": 0
+      },
+      "capacity": 6,
+      "feederFloor": 3,
+      "condition": 100
+    },
+    {
+      "id": "d1-f4",
+      "name": "Repair workshop",
+      "district": 1,
+      "floor": 4,
+      "kind": "workshop",
+      "x": 970,
+      "y": 1002,
+      "w": 490,
+      "h": 140,
+      "beds": 0,
+      "demandW": 350,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "medicine": 0,
+        "parts": 2000,
+        "waste": 0
+      },
+      "capacity": 6,
+      "feederFloor": 4,
+      "condition": 100
+    },
+    {
+      "id": "d1-f5",
+      "name": "Air handling",
+      "district": 1,
+      "floor": 5,
+      "kind": "fan",
+      "x": 970,
+      "y": 1180,
+      "w": 490,
+      "h": 140,
+      "beds": 0,
+      "demandW": 1700,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "medicine": 0,
+        "parts": 0,
+        "waste": 0
+      },
+      "capacity": 6,
+      "feederFloor": 5,
+      "condition": 100
+    },
+    {
+      "id": "d1-f6",
+      "name": "Service housing",
+      "district": 1,
+      "floor": 6,
+      "kind": "home",
+      "x": 970,
+      "y": 1358,
+      "w": 490,
+      "h": 140,
+      "beds": 18,
+      "demandW": 350,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "medicine": 0,
+        "parts": 0,
+        "waste": 0
+      },
+      "capacity": 6,
+      "feederFloor": 6,
+      "condition": 100
+    },
+    {
+      "id": "d1-f7",
+      "name": "Freight depot",
+      "district": 1,
+      "floor": 7,
+      "kind": "depot",
+      "x": 970,
+      "y": 1536,
+      "w": 490,
+      "h": 140,
+      "beds": 0,
+      "demandW": 350,
+      "stock": {
+        "food": 30000,
+        "water": 100000,
+        "medicine": 3000,
+        "parts": 2000,
+        "waste": 0
+      },
+      "capacity": 6,
+      "feederFloor": 7,
+      "condition": 100
+    },
+    {
+      "id": "d1-f2-annex",
+      "name": "Service water point",
+      "district": 1,
+      "floor": 2,
+      "kind": "tap",
+      "x": 1486,
+      "y": 646,
+      "w": 260,
+      "h": 140,
+      "beds": 0,
+      "demandW": 300,
+      "stock": {
+        "food": 0,
+        "water": 20000,
+        "medicine": 0,
+        "parts": 0,
+        "waste": 0
+      },
+      "capacity": 2,
+      "feederFloor": 2,
+      "condition": 100
+    },
+    {
+      "id": "d1-f5-annex",
+      "name": "Mechanics homes",
+      "district": 1,
+      "floor": 5,
+      "kind": "home",
+      "x": 1486,
+      "y": 1180,
+      "w": 260,
+      "h": 140,
+      "beds": 18,
+      "demandW": 300,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "medicine": 0,
+        "parts": 0,
+        "waste": 0
+      },
+      "capacity": 2,
+      "feederFloor": 5,
+      "condition": 100
+    },
+    {
+      "id": "d2-f0",
+      "name": "Old platform homes",
+      "district": 2,
+      "floor": 0,
+      "kind": "home",
+      "x": 1810,
+      "y": 290,
+      "w": 490,
+      "h": 140,
+      "beds": 18,
+      "demandW": 350,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "medicine": 0,
+        "parts": 0,
+        "waste": 0
+      },
+      "capacity": 6,
+      "feederFloor": 0,
+      "condition": 100
+    },
+    {
+      "id": "d2-f1",
+      "name": "East ventilation",
+      "district": 2,
+      "floor": 1,
+      "kind": "fan",
+      "x": 1810,
+      "y": 468,
+      "w": 490,
+      "h": 140,
+      "beds": 0,
+      "demandW": 1700,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "medicine": 0,
+        "parts": 0,
+        "waste": 0
+      },
+      "capacity": 6,
+      "feederFloor": 5,
+      "condition": 100
+    },
+    {
+      "id": "d2-f2",
+      "name": "Commons",
+      "district": 2,
+      "floor": 2,
+      "kind": "mess",
+      "x": 1810,
+      "y": 646,
+      "w": 490,
+      "h": 140,
+      "beds": 0,
+      "demandW": 350,
+      "stock": {
+        "food": 1000,
+        "water": 0,
+        "medicine": 0,
+        "parts": 0,
+        "waste": 0
+      },
+      "capacity": 6,
+      "feederFloor": 2,
+      "condition": 100
+    },
+    {
+      "id": "d2-f3",
+      "name": "Water point",
+      "district": 2,
+      "floor": 3,
+      "kind": "tap",
+      "x": 1810,
+      "y": 824,
+      "w": 490,
+      "h": 140,
+      "beds": 0,
+      "demandW": 350,
+      "stock": {
+        "food": 0,
+        "water": 100000,
+        "medicine": 0,
+        "parts": 0,
+        "waste": 0
+      },
+      "capacity": 3,
+      "feederFloor": 3,
+      "condition": 100
+    },
+    {
+      "id": "d2-f4",
+      "name": "Mason homes",
+      "district": 2,
+      "floor": 4,
+      "kind": "home",
+      "x": 1810,
+      "y": 1002,
+      "w": 490,
+      "h": 140,
+      "beds": 18,
+      "demandW": 350,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "medicine": 0,
+        "parts": 0,
+        "waste": 0
+      },
+      "capacity": 6,
+      "feederFloor": 4,
+      "condition": 100
+    },
+    {
+      "id": "d2-f5",
+      "name": "Drainage hall",
+      "district": 2,
+      "floor": 5,
+      "kind": "pump",
+      "x": 1810,
+      "y": 1180,
+      "w": 490,
+      "h": 140,
+      "beds": 0,
+      "demandW": 2000,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "medicine": 0,
+        "parts": 0,
+        "waste": 0
+      },
+      "capacity": 6,
+      "feederFloor": 5,
+      "condition": 100
+    },
+    {
+      "id": "d2-f6",
+      "name": "Sump homes",
+      "district": 2,
+      "floor": 6,
+      "kind": "home",
+      "x": 1810,
+      "y": 1358,
+      "w": 490,
+      "h": 140,
+      "beds": 18,
+      "demandW": 350,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "medicine": 0,
+        "parts": 0,
+        "waste": 0
+      },
+      "capacity": 6,
+      "feederFloor": 6,
+      "condition": 100
+    },
+    {
+      "id": "d2-f7",
+      "name": "Deep refuge homes",
+      "district": 2,
+      "floor": 7,
+      "kind": "home",
+      "x": 1810,
+      "y": 1536,
+      "w": 490,
+      "h": 140,
+      "beds": 18,
+      "demandW": 350,
+      "stock": {
+        "food": 0,
+        "water": 0,
+        "medicine": 0,
+        "parts": 0,
+        "waste": 0
+      },
+      "capacity": 6,
+      "feederFloor": 7,
+      "condition": 100
+    },
+    {
+      "id": "d2-f2-annex",
+      "name": "Lower aid station",
+      "district": 2,
+      "floor": 2,
+      "kind": "clinic",
+      "x": 2326,
+      "y": 646,
+      "w": 260,
+      "h": 140,
+      "beds": 0,
+      "demandW": 300,
+      "stock": {
+        "food": 0,
+        "water": 20000,
+        "medicine": 1000,
+        "parts": 0,
+        "waste": 0
+      },
+      "capacity": 2,
+      "feederFloor": 2,
+      "condition": 100
+    },
+    {
+      "id": "d2-f5-annex",
+      "name": "Neighborhood grow room",
+      "district": 2,
+      "floor": 5,
+      "kind": "farm",
+      "x": 2326,
+      "y": 1180,
+      "w": 260,
+      "h": 140,
+      "beds": 0,
+      "demandW": 1000,
+      "stock": {
+        "food": 2000,
+        "water": 20000,
+        "medicine": 0,
+        "parts": 0,
+        "waste": 0
+      },
+      "capacity": 2,
+      "feederFloor": 5,
+      "condition": 100
+    }
+  ],
+  "links": [
+    {
+      "id": "stairs-0-0",
+      "a": "d0-f0",
+      "b": "d0-f1",
+      "kind": "stairs",
+      "seconds": 30,
+      "capacity": 12
+    },
+    {
+      "id": "stairs-0-1",
+      "a": "d0-f1",
+      "b": "d0-f2",
+      "kind": "stairs",
+      "seconds": 30,
+      "capacity": 12
+    },
+    {
+      "id": "stairs-0-2",
+      "a": "d0-f2",
+      "b": "d0-f3",
+      "kind": "stairs",
+      "seconds": 30,
+      "capacity": 12
+    },
+    {
+      "id": "stairs-0-3",
+      "a": "d0-f3",
+      "b": "d0-f4",
+      "kind": "stairs",
+      "seconds": 30,
+      "capacity": 12
+    },
+    {
+      "id": "stairs-0-4",
+      "a": "d0-f4",
+      "b": "d0-f5",
+      "kind": "stairs",
+      "seconds": 30,
+      "capacity": 12
+    },
+    {
+      "id": "stairs-0-5",
+      "a": "d0-f5",
+      "b": "d0-f6",
+      "kind": "stairs",
+      "seconds": 30,
+      "capacity": 12
+    },
+    {
+      "id": "stairs-0-6",
+      "a": "d0-f6",
+      "b": "d0-f7",
+      "kind": "stairs",
+      "seconds": 30,
+      "capacity": 12
+    },
+    {
+      "id": "stairs-1-0",
+      "a": "d1-f0",
+      "b": "d1-f1",
+      "kind": "stairs",
+      "seconds": 30,
+      "capacity": 12
+    },
+    {
+      "id": "stairs-1-1",
+      "a": "d1-f1",
+      "b": "d1-f2",
+      "kind": "stairs",
+      "seconds": 30,
+      "capacity": 12
+    },
+    {
+      "id": "stairs-1-2",
+      "a": "d1-f2",
+      "b": "d1-f3",
+      "kind": "stairs",
+      "seconds": 30,
+      "capacity": 12
+    },
+    {
+      "id": "stairs-1-3",
+      "a": "d1-f3",
+      "b": "d1-f4",
+      "kind": "stairs",
+      "seconds": 30,
+      "capacity": 12
+    },
+    {
+      "id": "stairs-1-4",
+      "a": "d1-f4",
+      "b": "d1-f5",
+      "kind": "stairs",
+      "seconds": 30,
+      "capacity": 12
+    },
+    {
+      "id": "stairs-1-5",
+      "a": "d1-f5",
+      "b": "d1-f6",
+      "kind": "stairs",
+      "seconds": 30,
+      "capacity": 12
+    },
+    {
+      "id": "stairs-1-6",
+      "a": "d1-f6",
+      "b": "d1-f7",
+      "kind": "stairs",
+      "seconds": 30,
+      "capacity": 12
+    },
+    {
+      "id": "stairs-2-0",
+      "a": "d2-f0",
+      "b": "d2-f1",
+      "kind": "stairs",
+      "seconds": 30,
+      "capacity": 12
+    },
+    {
+      "id": "stairs-2-1",
+      "a": "d2-f1",
+      "b": "d2-f2",
+      "kind": "stairs",
+      "seconds": 30,
+      "capacity": 12
+    },
+    {
+      "id": "stairs-2-2",
+      "a": "d2-f2",
+      "b": "d2-f3",
+      "kind": "stairs",
+      "seconds": 30,
+      "capacity": 12
+    },
+    {
+      "id": "stairs-2-3",
+      "a": "d2-f3",
+      "b": "d2-f4",
+      "kind": "stairs",
+      "seconds": 30,
+      "capacity": 12
+    },
+    {
+      "id": "stairs-2-4",
+      "a": "d2-f4",
+      "b": "d2-f5",
+      "kind": "stairs",
+      "seconds": 30,
+      "capacity": 12
+    },
+    {
+      "id": "stairs-2-5",
+      "a": "d2-f5",
+      "b": "d2-f6",
+      "kind": "sump",
+      "seconds": 30,
+      "capacity": 12
+    },
+    {
+      "id": "stairs-2-6",
+      "a": "d2-f6",
+      "b": "d2-f7",
+      "kind": "stairs",
+      "seconds": 30,
+      "capacity": 12
+    },
+    {
+      "id": "cross-0-0",
+      "a": "d0-f0",
+      "b": "d1-f0",
+      "kind": "corridor",
+      "seconds": 45,
+      "capacity": 20
+    },
+    {
+      "id": "cross-1-0",
+      "a": "d1-f0",
+      "b": "d2-f0",
+      "kind": "corridor",
+      "seconds": 45,
+      "capacity": 20
+    },
+    {
+      "id": "cross-0-1",
+      "a": "d0-f1",
+      "b": "d1-f1",
+      "kind": "corridor",
+      "seconds": 45,
+      "capacity": 20
+    },
+    {
+      "id": "cross-1-1",
+      "a": "d1-f1",
+      "b": "d2-f1",
+      "kind": "corridor",
+      "seconds": 45,
+      "capacity": 20
+    },
+    {
+      "id": "cross-0-2",
+      "a": "d0-f2",
+      "b": "d1-f2",
+      "kind": "corridor",
+      "seconds": 45,
+      "capacity": 20
+    },
+    {
+      "id": "cross-1-2",
+      "a": "d1-f2",
+      "b": "d2-f2",
+      "kind": "corridor",
+      "seconds": 45,
+      "capacity": 20
+    },
+    {
+      "id": "cross-0-3",
+      "a": "d0-f3",
+      "b": "d1-f3",
+      "kind": "corridor",
+      "seconds": 45,
+      "capacity": 20
+    },
+    {
+      "id": "cross-1-3",
+      "a": "d1-f3",
+      "b": "d2-f3",
+      "kind": "corridor",
+      "seconds": 45,
+      "capacity": 20
+    },
+    {
+      "id": "cross-0-4",
+      "a": "d0-f4",
+      "b": "d1-f4",
+      "kind": "corridor",
+      "seconds": 45,
+      "capacity": 20
+    },
+    {
+      "id": "cross-1-4",
+      "a": "d1-f4",
+      "b": "d2-f4",
+      "kind": "corridor",
+      "seconds": 45,
+      "capacity": 20
+    },
+    {
+      "id": "cross-0-5",
+      "a": "d0-f5",
+      "b": "d1-f5",
+      "kind": "checkpoint",
+      "seconds": 45,
+      "capacity": 20,
+      "permit": "service"
+    },
+    {
+      "id": "cross-1-5",
+      "a": "d1-f5",
+      "b": "d2-f5",
+      "kind": "corridor",
+      "seconds": 45,
+      "capacity": 20
+    },
+    {
+      "id": "cross-0-6",
+      "a": "d0-f6",
+      "b": "d1-f6",
+      "kind": "corridor",
+      "seconds": 45,
+      "capacity": 20
+    },
+    {
+      "id": "cross-0-7",
+      "a": "d0-f7",
+      "b": "d1-f7",
+      "kind": "corridor",
+      "seconds": 45,
+      "capacity": 20
+    },
+    {
+      "id": "join-d0-f2-annex",
+      "a": "d0-f2",
+      "b": "d0-f2-annex",
+      "kind": "corridor",
+      "seconds": 15,
+      "capacity": 10
+    },
+    {
+      "id": "join-d0-f5-annex",
+      "a": "d0-f5",
+      "b": "d0-f5-annex",
+      "kind": "corridor",
+      "seconds": 15,
+      "capacity": 10
+    },
+    {
+      "id": "join-d1-f2-annex",
+      "a": "d1-f2",
+      "b": "d1-f2-annex",
+      "kind": "corridor",
+      "seconds": 15,
+      "capacity": 10
+    },
+    {
+      "id": "join-d1-f5-annex",
+      "a": "d1-f5",
+      "b": "d1-f5-annex",
+      "kind": "corridor",
+      "seconds": 15,
+      "capacity": 10
+    },
+    {
+      "id": "join-d2-f2-annex",
+      "a": "d2-f2",
+      "b": "d2-f2-annex",
+      "kind": "corridor",
+      "seconds": 15,
+      "capacity": 10
+    },
+    {
+      "id": "join-d2-f5-annex",
+      "a": "d2-f5",
+      "b": "d2-f5-annex",
+      "kind": "corridor",
+      "seconds": 15,
+      "capacity": 10
+    },
+    {
+      "id": "lift-0",
+      "a": "d1-f0",
+      "b": "d1-f1",
+      "kind": "lift",
+      "seconds": 10,
+      "capacity": 3,
+      "feederFloor": 1
+    },
+    {
+      "id": "lift-1",
+      "a": "d1-f1",
+      "b": "d1-f2",
+      "kind": "lift",
+      "seconds": 10,
+      "capacity": 3,
+      "feederFloor": 2
+    },
+    {
+      "id": "lift-2",
+      "a": "d1-f2",
+      "b": "d1-f3",
+      "kind": "lift",
+      "seconds": 10,
+      "capacity": 3,
+      "feederFloor": 3
+    },
+    {
+      "id": "lift-3",
+      "a": "d1-f3",
+      "b": "d1-f4",
+      "kind": "lift",
+      "seconds": 10,
+      "capacity": 3,
+      "feederFloor": 4
+    },
+    {
+      "id": "lift-4",
+      "a": "d1-f4",
+      "b": "d1-f5",
+      "kind": "lift",
+      "seconds": 10,
+      "capacity": 3,
+      "feederFloor": 5
+    },
+    {
+      "id": "lift-5",
+      "a": "d1-f5",
+      "b": "d1-f6",
+      "kind": "lift",
+      "seconds": 10,
+      "capacity": 3,
+      "feederFloor": 6
+    },
+    {
+      "id": "lift-6",
+      "a": "d1-f6",
+      "b": "d1-f7",
+      "kind": "lift",
+      "seconds": 10,
+      "capacity": 3,
+      "feederFloor": 7
+    }
+  ],
+  "households": [
+    {
+      "id": "household-00",
+      "name": "Vale household 1",
+      "homeId": "d0-f2",
+      "depotId": "d0-f3",
+      "members": [
+        "person-000",
+        "person-001",
+        "person-002"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-01",
+      "name": "Okafor household 2",
+      "homeId": "d0-f4",
+      "depotId": "d0-f3",
+      "members": [
+        "person-003",
+        "person-004",
+        "person-005"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-02",
+      "name": "Chen household 3",
+      "homeId": "d0-f6",
+      "depotId": "d0-f3",
+      "members": [
+        "person-006",
+        "person-007",
+        "person-008"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-03",
+      "name": "Reyes household 4",
+      "homeId": "d0-f5-annex",
+      "depotId": "d0-f3",
+      "members": [
+        "person-009",
+        "person-010",
+        "person-011"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-04",
+      "name": "Khan household 5",
+      "homeId": "d1-f6",
+      "depotId": "d0-f3",
+      "members": [
+        "person-012",
+        "person-013",
+        "person-014"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-05",
+      "name": "Moss household 6",
+      "homeId": "d1-f5-annex",
+      "depotId": "d0-f3",
+      "members": [
+        "person-015",
+        "person-016",
+        "person-017"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-06",
+      "name": "Park household 7",
+      "homeId": "d2-f0",
+      "depotId": "d0-f3",
+      "members": [
+        "person-018",
+        "person-019",
+        "person-020"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-07",
+      "name": "Silva household 8",
+      "homeId": "d2-f4",
+      "depotId": "d0-f3",
+      "members": [
+        "person-021",
+        "person-022",
+        "person-023"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-08",
+      "name": "Amari household 9",
+      "homeId": "d2-f6",
+      "depotId": "d0-f3",
+      "members": [
+        "person-024",
+        "person-025",
+        "person-026"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-09",
+      "name": "Cole household 10",
+      "homeId": "d2-f7",
+      "depotId": "d0-f3",
+      "members": [
+        "person-027",
+        "person-028",
+        "person-029"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-10",
+      "name": "Das household 11",
+      "homeId": "d0-f2",
+      "depotId": "d0-f3",
+      "members": [
+        "person-030",
+        "person-031",
+        "person-032"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-11",
+      "name": "Sato household 12",
+      "homeId": "d0-f4",
+      "depotId": "d0-f3",
+      "members": [
+        "person-033",
+        "person-034",
+        "person-035"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-12",
+      "name": "Vale household 13",
+      "homeId": "d0-f6",
+      "depotId": "d0-f3",
+      "members": [
+        "person-036",
+        "person-037",
+        "person-038"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-13",
+      "name": "Okafor household 14",
+      "homeId": "d0-f5-annex",
+      "depotId": "d0-f3",
+      "members": [
+        "person-039",
+        "person-040",
+        "person-041"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-14",
+      "name": "Chen household 15",
+      "homeId": "d1-f6",
+      "depotId": "d0-f3",
+      "members": [
+        "person-042",
+        "person-043",
+        "person-044"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-15",
+      "name": "Reyes household 16",
+      "homeId": "d1-f5-annex",
+      "depotId": "d0-f3",
+      "members": [
+        "person-045",
+        "person-046",
+        "person-047"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-16",
+      "name": "Khan household 17",
+      "homeId": "d2-f0",
+      "depotId": "d0-f3",
+      "members": [
+        "person-048",
+        "person-049",
+        "person-050"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-17",
+      "name": "Moss household 18",
+      "homeId": "d2-f4",
+      "depotId": "d0-f3",
+      "members": [
+        "person-051",
+        "person-052",
+        "person-053"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-18",
+      "name": "Park household 19",
+      "homeId": "d2-f6",
+      "depotId": "d0-f3",
+      "members": [
+        "person-054",
+        "person-055",
+        "person-056"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-19",
+      "name": "Silva household 20",
+      "homeId": "d2-f7",
+      "depotId": "d0-f3",
+      "members": [
+        "person-057",
+        "person-058",
+        "person-059"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-20",
+      "name": "Amari household 21",
+      "homeId": "d0-f2",
+      "depotId": "d0-f3",
+      "members": [
+        "person-060",
+        "person-061",
+        "person-062"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-21",
+      "name": "Cole household 22",
+      "homeId": "d0-f4",
+      "depotId": "d0-f3",
+      "members": [
+        "person-063",
+        "person-064",
+        "person-065"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-22",
+      "name": "Das household 23",
+      "homeId": "d0-f6",
+      "depotId": "d0-f3",
+      "members": [
+        "person-066",
+        "person-067",
+        "person-068"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-23",
+      "name": "Sato household 24",
+      "homeId": "d0-f5-annex",
+      "depotId": "d0-f3",
+      "members": [
+        "person-069",
+        "person-070",
+        "person-071"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-24",
+      "name": "Vale household 25",
+      "homeId": "d1-f6",
+      "depotId": "d0-f3",
+      "members": [
+        "person-072",
+        "person-073",
+        "person-074"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-25",
+      "name": "Okafor household 26",
+      "homeId": "d1-f5-annex",
+      "depotId": "d0-f3",
+      "members": [
+        "person-075",
+        "person-076",
+        "person-077"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-26",
+      "name": "Chen household 27",
+      "homeId": "d2-f0",
+      "depotId": "d0-f3",
+      "members": [
+        "person-078",
+        "person-079",
+        "person-080"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-27",
+      "name": "Reyes household 28",
+      "homeId": "d2-f4",
+      "depotId": "d0-f3",
+      "members": [
+        "person-081",
+        "person-082",
+        "person-083"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-28",
+      "name": "Khan household 29",
+      "homeId": "d2-f6",
+      "depotId": "d0-f3",
+      "members": [
+        "person-084",
+        "person-085",
+        "person-086"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-29",
+      "name": "Moss household 30",
+      "homeId": "d2-f7",
+      "depotId": "d0-f3",
+      "members": [
+        "person-087",
+        "person-088",
+        "person-089"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-30",
+      "name": "Park household 31",
+      "homeId": "d0-f2",
+      "depotId": "d0-f3",
+      "members": [
+        "person-090",
+        "person-091",
+        "person-092"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-31",
+      "name": "Silva household 32",
+      "homeId": "d0-f4",
+      "depotId": "d0-f3",
+      "members": [
+        "person-093",
+        "person-094",
+        "person-095"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-32",
+      "name": "Amari household 33",
+      "homeId": "d0-f6",
+      "depotId": "d0-f3",
+      "members": [
+        "person-096",
+        "person-097",
+        "person-098"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-33",
+      "name": "Cole household 34",
+      "homeId": "d0-f5-annex",
+      "depotId": "d0-f3",
+      "members": [
+        "person-099",
+        "person-100",
+        "person-101"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-34",
+      "name": "Das household 35",
+      "homeId": "d1-f6",
+      "depotId": "d0-f3",
+      "members": [
+        "person-102",
+        "person-103",
+        "person-104"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-35",
+      "name": "Sato household 36",
+      "homeId": "d1-f5-annex",
+      "depotId": "d0-f3",
+      "members": [
+        "person-105",
+        "person-106",
+        "person-107"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-36",
+      "name": "Vale household 37",
+      "homeId": "d2-f0",
+      "depotId": "d0-f3",
+      "members": [
+        "person-108",
+        "person-109",
+        "person-110"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-37",
+      "name": "Okafor household 38",
+      "homeId": "d2-f4",
+      "depotId": "d0-f3",
+      "members": [
+        "person-111",
+        "person-112",
+        "person-113"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-38",
+      "name": "Chen household 39",
+      "homeId": "d2-f6",
+      "depotId": "d0-f3",
+      "members": [
+        "person-114",
+        "person-115",
+        "person-116"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-39",
+      "name": "Reyes household 40",
+      "homeId": "d2-f7",
+      "depotId": "d0-f3",
+      "members": [
+        "person-117",
+        "person-118",
+        "person-119"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-40",
+      "name": "Khan household 41",
+      "homeId": "d0-f2",
+      "depotId": "d0-f3",
+      "members": [
+        "person-120",
+        "person-121",
+        "person-122"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-41",
+      "name": "Moss household 42",
+      "homeId": "d0-f4",
+      "depotId": "d0-f3",
+      "members": [
+        "person-123",
+        "person-124",
+        "person-125"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-42",
+      "name": "Park household 43",
+      "homeId": "d0-f6",
+      "depotId": "d0-f3",
+      "members": [
+        "person-126",
+        "person-127",
+        "person-128"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-43",
+      "name": "Silva household 44",
+      "homeId": "d0-f5-annex",
+      "depotId": "d0-f3",
+      "members": [
+        "person-129",
+        "person-130",
+        "person-131"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-44",
+      "name": "Amari household 45",
+      "homeId": "d1-f6",
+      "depotId": "d0-f3",
+      "members": [
+        "person-132",
+        "person-133",
+        "person-134"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-45",
+      "name": "Cole household 46",
+      "homeId": "d1-f5-annex",
+      "depotId": "d0-f3",
+      "members": [
+        "person-135",
+        "person-136",
+        "person-137"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-46",
+      "name": "Das household 47",
+      "homeId": "d2-f0",
+      "depotId": "d0-f3",
+      "members": [
+        "person-138",
+        "person-139",
+        "person-140"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-47",
+      "name": "Sato household 48",
+      "homeId": "d2-f4",
+      "depotId": "d0-f3",
+      "members": [
+        "person-141",
+        "person-142",
+        "person-143"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-48",
+      "name": "Vale household 49",
+      "homeId": "d2-f6",
+      "depotId": "d0-f3",
+      "members": [
+        "person-144",
+        "person-145",
+        "person-146"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-49",
+      "name": "Okafor household 50",
+      "homeId": "d2-f7",
+      "depotId": "d0-f3",
+      "members": [
+        "person-147",
+        "person-148",
+        "person-149"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-50",
+      "name": "Chen household 51",
+      "homeId": "d0-f2",
+      "depotId": "d0-f3",
+      "members": [
+        "person-150",
+        "person-151",
+        "person-152"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-51",
+      "name": "Reyes household 52",
+      "homeId": "d0-f4",
+      "depotId": "d0-f3",
+      "members": [
+        "person-153",
+        "person-154",
+        "person-155"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-52",
+      "name": "Khan household 53",
+      "homeId": "d0-f6",
+      "depotId": "d0-f3",
+      "members": [
+        "person-156",
+        "person-157",
+        "person-158"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-53",
+      "name": "Moss household 54",
+      "homeId": "d0-f5-annex",
+      "depotId": "d0-f3",
+      "members": [
+        "person-159",
+        "person-160",
+        "person-161"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-54",
+      "name": "Park household 55",
+      "homeId": "d1-f6",
+      "depotId": "d0-f3",
+      "members": [
+        "person-162",
+        "person-163",
+        "person-164"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-55",
+      "name": "Silva household 56",
+      "homeId": "d1-f5-annex",
+      "depotId": "d0-f3",
+      "members": [
+        "person-165",
+        "person-166",
+        "person-167"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-56",
+      "name": "Amari household 57",
+      "homeId": "d2-f0",
+      "depotId": "d0-f3",
+      "members": [
+        "person-168",
+        "person-169",
+        "person-170"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-57",
+      "name": "Cole household 58",
+      "homeId": "d2-f4",
+      "depotId": "d0-f3",
+      "members": [
+        "person-171",
+        "person-172",
+        "person-173"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-58",
+      "name": "Das household 59",
+      "homeId": "d2-f6",
+      "depotId": "d0-f3",
+      "members": [
+        "person-174",
+        "person-175",
+        "person-176"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    },
+    {
+      "id": "household-59",
+      "name": "Sato household 60",
+      "homeId": "d2-f7",
+      "depotId": "d0-f3",
+      "members": [
+        "person-177",
+        "person-178",
+        "person-179"
+      ],
+      "stock": {
+        "food": 90,
+        "water": 180,
+        "medicine": 3,
+        "parts": 0,
+        "waste": 0
+      }
+    }
+  ],
+  "residents": [
+    {
+      "id": "person-000",
+      "name": "Mara Vale",
+      "householdId": "household-00",
+      "homeId": "d0-f2",
+      "workId": "d0-f1",
+      "role": "Nurse",
+      "shift": 0,
+      "appearance": 0,
+      "permit": true
+    },
+    {
+      "id": "person-001",
+      "name": "Elias Vale",
+      "householdId": "household-00",
+      "homeId": "d0-f2",
+      "workId": "d0-f3",
+      "role": "Stores worker",
+      "shift": 0,
+      "appearance": 1,
+      "permit": true
+    },
+    {
+      "id": "person-002",
+      "name": "Noor Vale",
+      "householdId": "household-00",
+      "homeId": "d0-f2",
+      "workId": null,
+      "role": "Resident",
+      "shift": 0,
+      "appearance": 2,
+      "permit": false
+    },
+    {
+      "id": "person-003",
+      "name": "Jun Okafor",
+      "householdId": "household-01",
+      "homeId": "d0-f4",
+      "workId": "d0-f5",
+      "role": "Checkpoint officer",
+      "shift": 300,
+      "appearance": 3,
+      "permit": true
+    },
+    {
+      "id": "person-004",
+      "name": "Ada Okafor",
+      "householdId": "household-01",
+      "homeId": "d0-f4",
+      "workId": "d0-f2-annex",
+      "role": "Relay operator",
+      "shift": 300,
+      "appearance": 4,
+      "permit": true
+    },
+    {
+      "id": "person-005",
+      "name": "Tomas Okafor",
+      "householdId": "household-01",
+      "homeId": "d0-f4",
+      "workId": null,
+      "role": "Student",
+      "shift": 300,
+      "appearance": 5,
+      "permit": false
+    },
+    {
+      "id": "person-006",
+      "name": "Inez Chen",
+      "householdId": "household-02",
+      "homeId": "d0-f6",
+      "workId": "d1-f0",
+      "role": "Plant engineer",
+      "shift": 600,
+      "appearance": 6,
+      "permit": true
+    },
+    {
+      "id": "person-007",
+      "name": "Kai Chen",
+      "householdId": "household-02",
+      "homeId": "d0-f6",
+      "workId": "d1-f2",
+      "role": "Recycler operator",
+      "shift": 600,
+      "appearance": 7,
+      "permit": true
+    },
+    {
+      "id": "person-008",
+      "name": "Leila Chen",
+      "householdId": "household-02",
+      "homeId": "d0-f6",
+      "workId": null,
+      "role": "Resident",
+      "shift": 600,
+      "appearance": 8,
+      "permit": false
+    },
+    {
+      "id": "person-009",
+      "name": "Owen Reyes",
+      "householdId": "household-03",
+      "homeId": "d0-f5-annex",
+      "workId": "d1-f3",
+      "role": "Grower",
+      "shift": 900,
+      "appearance": 9,
+      "permit": true
+    },
+    {
+      "id": "person-010",
+      "name": "Nia Reyes",
+      "householdId": "household-03",
+      "homeId": "d0-f5-annex",
+      "workId": "d1-f4",
+      "role": "Technician",
+      "shift": 900,
+      "appearance": 10,
+      "permit": true
+    },
+    {
+      "id": "person-011",
+      "name": "Arun Reyes",
+      "householdId": "household-03",
+      "homeId": "d0-f5-annex",
+      "workId": null,
+      "role": "Student",
+      "shift": 900,
+      "appearance": 11,
+      "permit": false
+    },
+    {
+      "id": "person-012",
+      "name": "Sol Khan",
+      "householdId": "household-04",
+      "homeId": "d1-f6",
+      "workId": "d1-f5",
+      "role": "Ventilation operator",
+      "shift": 0,
+      "appearance": 12,
+      "permit": true
+    },
+    {
+      "id": "person-013",
+      "name": "Ren Khan",
+      "householdId": "household-04",
+      "homeId": "d1-f6",
+      "workId": "d1-f7",
+      "role": "Stores worker",
+      "shift": 0,
+      "appearance": 13,
+      "permit": true
+    },
+    {
+      "id": "person-014",
+      "name": "Esme Khan",
+      "householdId": "household-04",
+      "homeId": "d1-f6",
+      "workId": null,
+      "role": "Resident",
+      "shift": 0,
+      "appearance": 14,
+      "permit": false
+    },
+    {
+      "id": "person-015",
+      "name": "Yara Moss",
+      "householdId": "household-05",
+      "homeId": "d1-f5-annex",
+      "workId": "d1-f2-annex",
+      "role": "Water steward",
+      "shift": 300,
+      "appearance": 15,
+      "permit": true
+    },
+    {
+      "id": "person-016",
+      "name": "Milo Moss",
+      "householdId": "household-05",
+      "homeId": "d1-f5-annex",
+      "workId": "d2-f1",
+      "role": "Ventilation operator",
+      "shift": 300,
+      "appearance": 16,
+      "permit": true
+    },
+    {
+      "id": "person-017",
+      "name": "Sana Moss",
+      "householdId": "household-05",
+      "homeId": "d1-f5-annex",
+      "workId": null,
+      "role": "Student",
+      "shift": 300,
+      "appearance": 17,
+      "permit": false
+    },
+    {
+      "id": "person-018",
+      "name": "Theo Park",
+      "householdId": "household-06",
+      "homeId": "d2-f0",
+      "workId": "d2-f3",
+      "role": "Water steward",
+      "shift": 600,
+      "appearance": 18,
+      "permit": true
+    },
+    {
+      "id": "person-019",
+      "name": "Ari Park",
+      "householdId": "household-06",
+      "homeId": "d2-f0",
+      "workId": "d2-f5",
+      "role": "Drainage operator",
+      "shift": 600,
+      "appearance": 19,
+      "permit": true
+    },
+    {
+      "id": "person-020",
+      "name": "Mara Silva",
+      "householdId": "household-06",
+      "homeId": "d2-f0",
+      "workId": null,
+      "role": "Resident",
+      "shift": 600,
+      "appearance": 20,
+      "permit": false
+    },
+    {
+      "id": "person-021",
+      "name": "Elias Amari",
+      "householdId": "household-07",
+      "homeId": "d2-f4",
+      "workId": "d2-f2-annex",
+      "role": "Nurse",
+      "shift": 900,
+      "appearance": 21,
+      "permit": true
+    },
+    {
+      "id": "person-022",
+      "name": "Noor Amari",
+      "householdId": "household-07",
+      "homeId": "d2-f4",
+      "workId": "d2-f5-annex",
+      "role": "Grower",
+      "shift": 900,
+      "appearance": 22,
+      "permit": true
+    },
+    {
+      "id": "person-023",
+      "name": "Jun Amari",
+      "householdId": "household-07",
+      "homeId": "d2-f4",
+      "workId": null,
+      "role": "Student",
+      "shift": 900,
+      "appearance": 23,
+      "permit": false
+    },
+    {
+      "id": "person-024",
+      "name": "Ada Cole",
+      "householdId": "household-08",
+      "homeId": "d2-f6",
+      "workId": "d0-f1",
+      "role": "Nurse",
+      "shift": 0,
+      "appearance": 24,
+      "permit": true
+    },
+    {
+      "id": "person-025",
+      "name": "Tomas Cole",
+      "householdId": "household-08",
+      "homeId": "d2-f6",
+      "workId": "d0-f3",
+      "role": "Stores worker",
+      "shift": 0,
+      "appearance": 25,
+      "permit": true
+    },
+    {
+      "id": "person-026",
+      "name": "Inez Cole",
+      "householdId": "household-08",
+      "homeId": "d2-f6",
+      "workId": null,
+      "role": "Resident",
+      "shift": 0,
+      "appearance": 26,
+      "permit": false
+    },
+    {
+      "id": "person-027",
+      "name": "Kai Das",
+      "householdId": "household-09",
+      "homeId": "d2-f7",
+      "workId": "d0-f5",
+      "role": "Checkpoint officer",
+      "shift": 300,
+      "appearance": 27,
+      "permit": true
+    },
+    {
+      "id": "person-028",
+      "name": "Leila Das",
+      "householdId": "household-09",
+      "homeId": "d2-f7",
+      "workId": "d0-f2-annex",
+      "role": "Relay operator",
+      "shift": 300,
+      "appearance": 28,
+      "permit": true
+    },
+    {
+      "id": "person-029",
+      "name": "Owen Das",
+      "householdId": "household-09",
+      "homeId": "d2-f7",
+      "workId": null,
+      "role": "Student",
+      "shift": 300,
+      "appearance": 29,
+      "permit": false
+    },
+    {
+      "id": "person-030",
+      "name": "Nia Sato",
+      "householdId": "household-10",
+      "homeId": "d0-f2",
+      "workId": "d1-f0",
+      "role": "Plant engineer",
+      "shift": 600,
+      "appearance": 30,
+      "permit": true
+    },
+    {
+      "id": "person-031",
+      "name": "Arun Sato",
+      "householdId": "household-10",
+      "homeId": "d0-f2",
+      "workId": "d1-f2",
+      "role": "Recycler operator",
+      "shift": 600,
+      "appearance": 31,
+      "permit": true
+    },
+    {
+      "id": "person-032",
+      "name": "Sol Sato",
+      "householdId": "household-10",
+      "homeId": "d0-f2",
+      "workId": null,
+      "role": "Resident",
+      "shift": 600,
+      "appearance": 32,
+      "permit": false
+    },
+    {
+      "id": "person-033",
+      "name": "Ren Vale",
+      "householdId": "household-11",
+      "homeId": "d0-f4",
+      "workId": "d1-f3",
+      "role": "Grower",
+      "shift": 900,
+      "appearance": 33,
+      "permit": true
+    },
+    {
+      "id": "person-034",
+      "name": "Esme Vale",
+      "householdId": "household-11",
+      "homeId": "d0-f4",
+      "workId": "d1-f4",
+      "role": "Technician",
+      "shift": 900,
+      "appearance": 34,
+      "permit": true
+    },
+    {
+      "id": "person-035",
+      "name": "Yara Vale",
+      "householdId": "household-11",
+      "homeId": "d0-f4",
+      "workId": null,
+      "role": "Student",
+      "shift": 900,
+      "appearance": 35,
+      "permit": false
+    },
+    {
+      "id": "person-036",
+      "name": "Milo Okafor",
+      "householdId": "household-12",
+      "homeId": "d0-f6",
+      "workId": "d1-f5",
+      "role": "Ventilation operator",
+      "shift": 0,
+      "appearance": 36,
+      "permit": true
+    },
+    {
+      "id": "person-037",
+      "name": "Sana Okafor",
+      "householdId": "household-12",
+      "homeId": "d0-f6",
+      "workId": "d1-f7",
+      "role": "Stores worker",
+      "shift": 0,
+      "appearance": 37,
+      "permit": true
+    },
+    {
+      "id": "person-038",
+      "name": "Theo Okafor",
+      "householdId": "household-12",
+      "homeId": "d0-f6",
+      "workId": null,
+      "role": "Resident",
+      "shift": 0,
+      "appearance": 38,
+      "permit": false
+    },
+    {
+      "id": "person-039",
+      "name": "Ari Chen",
+      "householdId": "household-13",
+      "homeId": "d0-f5-annex",
+      "workId": "d1-f2-annex",
+      "role": "Water steward",
+      "shift": 300,
+      "appearance": 39,
+      "permit": true
+    },
+    {
+      "id": "person-040",
+      "name": "Mara Reyes",
+      "householdId": "household-13",
+      "homeId": "d0-f5-annex",
+      "workId": "d2-f1",
+      "role": "Ventilation operator",
+      "shift": 300,
+      "appearance": 40,
+      "permit": true
+    },
+    {
+      "id": "person-041",
+      "name": "Elias Reyes",
+      "householdId": "household-13",
+      "homeId": "d0-f5-annex",
+      "workId": null,
+      "role": "Student",
+      "shift": 300,
+      "appearance": 41,
+      "permit": false
+    },
+    {
+      "id": "person-042",
+      "name": "Noor Khan",
+      "householdId": "household-14",
+      "homeId": "d1-f6",
+      "workId": "d2-f3",
+      "role": "Water steward",
+      "shift": 600,
+      "appearance": 42,
+      "permit": true
+    },
+    {
+      "id": "person-043",
+      "name": "Jun Khan",
+      "householdId": "household-14",
+      "homeId": "d1-f6",
+      "workId": "d2-f5",
+      "role": "Drainage operator",
+      "shift": 600,
+      "appearance": 43,
+      "permit": true
+    },
+    {
+      "id": "person-044",
+      "name": "Ada Khan",
+      "householdId": "household-14",
+      "homeId": "d1-f6",
+      "workId": null,
+      "role": "Resident",
+      "shift": 600,
+      "appearance": 44,
+      "permit": false
+    },
+    {
+      "id": "person-045",
+      "name": "Tomas Moss",
+      "householdId": "household-15",
+      "homeId": "d1-f5-annex",
+      "workId": "d2-f2-annex",
+      "role": "Nurse",
+      "shift": 900,
+      "appearance": 45,
+      "permit": true
+    },
+    {
+      "id": "person-046",
+      "name": "Inez Moss",
+      "householdId": "household-15",
+      "homeId": "d1-f5-annex",
+      "workId": "d2-f5-annex",
+      "role": "Grower",
+      "shift": 900,
+      "appearance": 46,
+      "permit": true
+    },
+    {
+      "id": "person-047",
+      "name": "Kai Moss",
+      "householdId": "household-15",
+      "homeId": "d1-f5-annex",
+      "workId": null,
+      "role": "Student",
+      "shift": 900,
+      "appearance": 47,
+      "permit": false
+    },
+    {
+      "id": "person-048",
+      "name": "Leila Park",
+      "householdId": "household-16",
+      "homeId": "d2-f0",
+      "workId": "d0-f1",
+      "role": "Nurse",
+      "shift": 0,
+      "appearance": 48,
+      "permit": true
+    },
+    {
+      "id": "person-049",
+      "name": "Owen Park",
+      "householdId": "household-16",
+      "homeId": "d2-f0",
+      "workId": "d0-f3",
+      "role": "Stores worker",
+      "shift": 0,
+      "appearance": 49,
+      "permit": true
+    },
+    {
+      "id": "person-050",
+      "name": "Nia Park",
+      "householdId": "household-16",
+      "homeId": "d2-f0",
+      "workId": null,
+      "role": "Resident",
+      "shift": 0,
+      "appearance": 50,
+      "permit": false
+    },
+    {
+      "id": "person-051",
+      "name": "Arun Silva",
+      "householdId": "household-17",
+      "homeId": "d2-f4",
+      "workId": "d0-f5",
+      "role": "Checkpoint officer",
+      "shift": 300,
+      "appearance": 51,
+      "permit": true
+    },
+    {
+      "id": "person-052",
+      "name": "Sol Silva",
+      "householdId": "household-17",
+      "homeId": "d2-f4",
+      "workId": "d0-f2-annex",
+      "role": "Relay operator",
+      "shift": 300,
+      "appearance": 52,
+      "permit": true
+    },
+    {
+      "id": "person-053",
+      "name": "Ren Silva",
+      "householdId": "household-17",
+      "homeId": "d2-f4",
+      "workId": null,
+      "role": "Student",
+      "shift": 300,
+      "appearance": 53,
+      "permit": false
+    },
+    {
+      "id": "person-054",
+      "name": "Esme Amari",
+      "householdId": "household-18",
+      "homeId": "d2-f6",
+      "workId": "d1-f0",
+      "role": "Plant engineer",
+      "shift": 600,
+      "appearance": 54,
+      "permit": true
+    },
+    {
+      "id": "person-055",
+      "name": "Yara Amari",
+      "householdId": "household-18",
+      "homeId": "d2-f6",
+      "workId": "d1-f2",
+      "role": "Recycler operator",
+      "shift": 600,
+      "appearance": 55,
+      "permit": true
+    },
+    {
+      "id": "person-056",
+      "name": "Milo Amari",
+      "householdId": "household-18",
+      "homeId": "d2-f6",
+      "workId": null,
+      "role": "Resident",
+      "shift": 600,
+      "appearance": 56,
+      "permit": false
+    },
+    {
+      "id": "person-057",
+      "name": "Sana Cole",
+      "householdId": "household-19",
+      "homeId": "d2-f7",
+      "workId": "d1-f3",
+      "role": "Grower",
+      "shift": 900,
+      "appearance": 57,
+      "permit": true
+    },
+    {
+      "id": "person-058",
+      "name": "Theo Cole",
+      "householdId": "household-19",
+      "homeId": "d2-f7",
+      "workId": "d1-f4",
+      "role": "Technician",
+      "shift": 900,
+      "appearance": 58,
+      "permit": true
+    },
+    {
+      "id": "person-059",
+      "name": "Ari Cole",
+      "householdId": "household-19",
+      "homeId": "d2-f7",
+      "workId": null,
+      "role": "Student",
+      "shift": 900,
+      "appearance": 59,
+      "permit": false
+    },
+    {
+      "id": "person-060",
+      "name": "Mara Sato",
+      "householdId": "household-20",
+      "homeId": "d0-f2",
+      "workId": "d1-f5",
+      "role": "Ventilation operator",
+      "shift": 0,
+      "appearance": 60,
+      "permit": true
+    },
+    {
+      "id": "person-061",
+      "name": "Elias Sato",
+      "householdId": "household-20",
+      "homeId": "d0-f2",
+      "workId": "d1-f7",
+      "role": "Stores worker",
+      "shift": 0,
+      "appearance": 61,
+      "permit": true
+    },
+    {
+      "id": "person-062",
+      "name": "Noor Sato",
+      "householdId": "household-20",
+      "homeId": "d0-f2",
+      "workId": null,
+      "role": "Resident",
+      "shift": 0,
+      "appearance": 62,
+      "permit": false
+    },
+    {
+      "id": "person-063",
+      "name": "Jun Vale",
+      "householdId": "household-21",
+      "homeId": "d0-f4",
+      "workId": "d1-f2-annex",
+      "role": "Water steward",
+      "shift": 300,
+      "appearance": 63,
+      "permit": true
+    },
+    {
+      "id": "person-064",
+      "name": "Ada Vale",
+      "householdId": "household-21",
+      "homeId": "d0-f4",
+      "workId": "d2-f1",
+      "role": "Ventilation operator",
+      "shift": 300,
+      "appearance": 64,
+      "permit": true
+    },
+    {
+      "id": "person-065",
+      "name": "Tomas Vale",
+      "householdId": "household-21",
+      "homeId": "d0-f4",
+      "workId": null,
+      "role": "Student",
+      "shift": 300,
+      "appearance": 65,
+      "permit": false
+    },
+    {
+      "id": "person-066",
+      "name": "Inez Okafor",
+      "householdId": "household-22",
+      "homeId": "d0-f6",
+      "workId": "d2-f3",
+      "role": "Water steward",
+      "shift": 600,
+      "appearance": 66,
+      "permit": true
+    },
+    {
+      "id": "person-067",
+      "name": "Kai Okafor",
+      "householdId": "household-22",
+      "homeId": "d0-f6",
+      "workId": "d2-f5",
+      "role": "Drainage operator",
+      "shift": 600,
+      "appearance": 67,
+      "permit": true
+    },
+    {
+      "id": "person-068",
+      "name": "Leila Okafor",
+      "householdId": "household-22",
+      "homeId": "d0-f6",
+      "workId": null,
+      "role": "Resident",
+      "shift": 600,
+      "appearance": 68,
+      "permit": false
+    },
+    {
+      "id": "person-069",
+      "name": "Owen Chen",
+      "householdId": "household-23",
+      "homeId": "d0-f5-annex",
+      "workId": "d2-f2-annex",
+      "role": "Nurse",
+      "shift": 900,
+      "appearance": 69,
+      "permit": true
+    },
+    {
+      "id": "person-070",
+      "name": "Nia Chen",
+      "householdId": "household-23",
+      "homeId": "d0-f5-annex",
+      "workId": "d2-f5-annex",
+      "role": "Grower",
+      "shift": 900,
+      "appearance": 70,
+      "permit": true
+    },
+    {
+      "id": "person-071",
+      "name": "Arun Chen",
+      "householdId": "household-23",
+      "homeId": "d0-f5-annex",
+      "workId": null,
+      "role": "Student",
+      "shift": 900,
+      "appearance": 71,
+      "permit": false
+    },
+    {
+      "id": "person-072",
+      "name": "Sol Reyes",
+      "householdId": "household-24",
+      "homeId": "d1-f6",
+      "workId": "d0-f1",
+      "role": "Nurse",
+      "shift": 0,
+      "appearance": 72,
+      "permit": true
+    },
+    {
+      "id": "person-073",
+      "name": "Ren Reyes",
+      "householdId": "household-24",
+      "homeId": "d1-f6",
+      "workId": "d0-f3",
+      "role": "Stores worker",
+      "shift": 0,
+      "appearance": 73,
+      "permit": true
+    },
+    {
+      "id": "person-074",
+      "name": "Esme Reyes",
+      "householdId": "household-24",
+      "homeId": "d1-f6",
+      "workId": null,
+      "role": "Resident",
+      "shift": 0,
+      "appearance": 74,
+      "permit": false
+    },
+    {
+      "id": "person-075",
+      "name": "Yara Khan",
+      "householdId": "household-25",
+      "homeId": "d1-f5-annex",
+      "workId": "d0-f5",
+      "role": "Checkpoint officer",
+      "shift": 300,
+      "appearance": 75,
+      "permit": true
+    },
+    {
+      "id": "person-076",
+      "name": "Milo Khan",
+      "householdId": "household-25",
+      "homeId": "d1-f5-annex",
+      "workId": "d0-f2-annex",
+      "role": "Relay operator",
+      "shift": 300,
+      "appearance": 76,
+      "permit": true
+    },
+    {
+      "id": "person-077",
+      "name": "Sana Khan",
+      "householdId": "household-25",
+      "homeId": "d1-f5-annex",
+      "workId": null,
+      "role": "Student",
+      "shift": 300,
+      "appearance": 77,
+      "permit": false
+    },
+    {
+      "id": "person-078",
+      "name": "Theo Moss",
+      "householdId": "household-26",
+      "homeId": "d2-f0",
+      "workId": "d1-f0",
+      "role": "Plant engineer",
+      "shift": 600,
+      "appearance": 78,
+      "permit": true
+    },
+    {
+      "id": "person-079",
+      "name": "Ari Moss",
+      "householdId": "household-26",
+      "homeId": "d2-f0",
+      "workId": "d1-f2",
+      "role": "Recycler operator",
+      "shift": 600,
+      "appearance": 79,
+      "permit": true
+    },
+    {
+      "id": "person-080",
+      "name": "Mara Park",
+      "householdId": "household-26",
+      "homeId": "d2-f0",
+      "workId": null,
+      "role": "Resident",
+      "shift": 600,
+      "appearance": 80,
+      "permit": false
+    },
+    {
+      "id": "person-081",
+      "name": "Elias Silva",
+      "householdId": "household-27",
+      "homeId": "d2-f4",
+      "workId": "d1-f3",
+      "role": "Grower",
+      "shift": 900,
+      "appearance": 81,
+      "permit": true
+    },
+    {
+      "id": "person-082",
+      "name": "Noor Silva",
+      "householdId": "household-27",
+      "homeId": "d2-f4",
+      "workId": "d1-f4",
+      "role": "Technician",
+      "shift": 900,
+      "appearance": 82,
+      "permit": true
+    },
+    {
+      "id": "person-083",
+      "name": "Jun Silva",
+      "householdId": "household-27",
+      "homeId": "d2-f4",
+      "workId": null,
+      "role": "Student",
+      "shift": 900,
+      "appearance": 83,
+      "permit": false
+    },
+    {
+      "id": "person-084",
+      "name": "Ada Amari",
+      "householdId": "household-28",
+      "homeId": "d2-f6",
+      "workId": "d1-f5",
+      "role": "Ventilation operator",
+      "shift": 0,
+      "appearance": 84,
+      "permit": true
+    },
+    {
+      "id": "person-085",
+      "name": "Tomas Amari",
+      "householdId": "household-28",
+      "homeId": "d2-f6",
+      "workId": "d1-f7",
+      "role": "Stores worker",
+      "shift": 0,
+      "appearance": 85,
+      "permit": true
+    },
+    {
+      "id": "person-086",
+      "name": "Inez Amari",
+      "householdId": "household-28",
+      "homeId": "d2-f6",
+      "workId": null,
+      "role": "Resident",
+      "shift": 0,
+      "appearance": 86,
+      "permit": false
+    },
+    {
+      "id": "person-087",
+      "name": "Kai Cole",
+      "householdId": "household-29",
+      "homeId": "d2-f7",
+      "workId": "d1-f2-annex",
+      "role": "Water steward",
+      "shift": 300,
+      "appearance": 87,
+      "permit": true
+    },
+    {
+      "id": "person-088",
+      "name": "Leila Cole",
+      "householdId": "household-29",
+      "homeId": "d2-f7",
+      "workId": "d2-f1",
+      "role": "Ventilation operator",
+      "shift": 300,
+      "appearance": 88,
+      "permit": true
+    },
+    {
+      "id": "person-089",
+      "name": "Owen Cole",
+      "householdId": "household-29",
+      "homeId": "d2-f7",
+      "workId": null,
+      "role": "Student",
+      "shift": 300,
+      "appearance": 89,
+      "permit": false
+    },
+    {
+      "id": "person-090",
+      "name": "Nia Das",
+      "householdId": "household-30",
+      "homeId": "d0-f2",
+      "workId": "d2-f3",
+      "role": "Water steward",
+      "shift": 600,
+      "appearance": 90,
+      "permit": true
+    },
+    {
+      "id": "person-091",
+      "name": "Arun Das",
+      "householdId": "household-30",
+      "homeId": "d0-f2",
+      "workId": "d2-f5",
+      "role": "Drainage operator",
+      "shift": 600,
+      "appearance": 91,
+      "permit": true
+    },
+    {
+      "id": "person-092",
+      "name": "Sol Das",
+      "householdId": "household-30",
+      "homeId": "d0-f2",
+      "workId": null,
+      "role": "Resident",
+      "shift": 600,
+      "appearance": 92,
+      "permit": false
+    },
+    {
+      "id": "person-093",
+      "name": "Ren Sato",
+      "householdId": "household-31",
+      "homeId": "d0-f4",
+      "workId": "d2-f2-annex",
+      "role": "Nurse",
+      "shift": 900,
+      "appearance": 93,
+      "permit": true
+    },
+    {
+      "id": "person-094",
+      "name": "Esme Sato",
+      "householdId": "household-31",
+      "homeId": "d0-f4",
+      "workId": "d2-f5-annex",
+      "role": "Grower",
+      "shift": 900,
+      "appearance": 94,
+      "permit": true
+    },
+    {
+      "id": "person-095",
+      "name": "Yara Sato",
+      "householdId": "household-31",
+      "homeId": "d0-f4",
+      "workId": null,
+      "role": "Student",
+      "shift": 900,
+      "appearance": 95,
+      "permit": false
+    },
+    {
+      "id": "person-096",
+      "name": "Milo Vale",
+      "householdId": "household-32",
+      "homeId": "d0-f6",
+      "workId": "d0-f1",
+      "role": "Nurse",
+      "shift": 0,
+      "appearance": 96,
+      "permit": true
+    },
+    {
+      "id": "person-097",
+      "name": "Sana Vale",
+      "householdId": "household-32",
+      "homeId": "d0-f6",
+      "workId": "d0-f3",
+      "role": "Stores worker",
+      "shift": 0,
+      "appearance": 97,
+      "permit": true
+    },
+    {
+      "id": "person-098",
+      "name": "Theo Vale",
+      "householdId": "household-32",
+      "homeId": "d0-f6",
+      "workId": null,
+      "role": "Resident",
+      "shift": 0,
+      "appearance": 98,
+      "permit": false
+    },
+    {
+      "id": "person-099",
+      "name": "Ari Okafor",
+      "householdId": "household-33",
+      "homeId": "d0-f5-annex",
+      "workId": "d0-f5",
+      "role": "Checkpoint officer",
+      "shift": 300,
+      "appearance": 99,
+      "permit": true
+    },
+    {
+      "id": "person-100",
+      "name": "Mara Chen",
+      "householdId": "household-33",
+      "homeId": "d0-f5-annex",
+      "workId": "d0-f2-annex",
+      "role": "Relay operator",
+      "shift": 300,
+      "appearance": 100,
+      "permit": true
+    },
+    {
+      "id": "person-101",
+      "name": "Elias Chen",
+      "householdId": "household-33",
+      "homeId": "d0-f5-annex",
+      "workId": null,
+      "role": "Student",
+      "shift": 300,
+      "appearance": 101,
+      "permit": false
+    },
+    {
+      "id": "person-102",
+      "name": "Noor Reyes",
+      "householdId": "household-34",
+      "homeId": "d1-f6",
+      "workId": "d1-f0",
+      "role": "Plant engineer",
+      "shift": 600,
+      "appearance": 102,
+      "permit": true
+    },
+    {
+      "id": "person-103",
+      "name": "Jun Reyes",
+      "householdId": "household-34",
+      "homeId": "d1-f6",
+      "workId": "d1-f2",
+      "role": "Recycler operator",
+      "shift": 600,
+      "appearance": 103,
+      "permit": true
+    },
+    {
+      "id": "person-104",
+      "name": "Ada Reyes",
+      "householdId": "household-34",
+      "homeId": "d1-f6",
+      "workId": null,
+      "role": "Resident",
+      "shift": 600,
+      "appearance": 104,
+      "permit": false
+    },
+    {
+      "id": "person-105",
+      "name": "Tomas Khan",
+      "householdId": "household-35",
+      "homeId": "d1-f5-annex",
+      "workId": "d1-f3",
+      "role": "Grower",
+      "shift": 900,
+      "appearance": 105,
+      "permit": true
+    },
+    {
+      "id": "person-106",
+      "name": "Inez Khan",
+      "householdId": "household-35",
+      "homeId": "d1-f5-annex",
+      "workId": "d1-f4",
+      "role": "Technician",
+      "shift": 900,
+      "appearance": 106,
+      "permit": true
+    },
+    {
+      "id": "person-107",
+      "name": "Kai Khan",
+      "householdId": "household-35",
+      "homeId": "d1-f5-annex",
+      "workId": null,
+      "role": "Student",
+      "shift": 900,
+      "appearance": 107,
+      "permit": false
+    },
+    {
+      "id": "person-108",
+      "name": "Leila Moss",
+      "householdId": "household-36",
+      "homeId": "d2-f0",
+      "workId": "d1-f5",
+      "role": "Ventilation operator",
+      "shift": 0,
+      "appearance": 108,
+      "permit": true
+    },
+    {
+      "id": "person-109",
+      "name": "Owen Moss",
+      "householdId": "household-36",
+      "homeId": "d2-f0",
+      "workId": "d1-f7",
+      "role": "Stores worker",
+      "shift": 0,
+      "appearance": 109,
+      "permit": true
+    },
+    {
+      "id": "person-110",
+      "name": "Nia Moss",
+      "householdId": "household-36",
+      "homeId": "d2-f0",
+      "workId": null,
+      "role": "Resident",
+      "shift": 0,
+      "appearance": 110,
+      "permit": false
+    },
+    {
+      "id": "person-111",
+      "name": "Arun Park",
+      "householdId": "household-37",
+      "homeId": "d2-f4",
+      "workId": "d1-f2-annex",
+      "role": "Water steward",
+      "shift": 300,
+      "appearance": 111,
+      "permit": true
+    },
+    {
+      "id": "person-112",
+      "name": "Sol Park",
+      "householdId": "household-37",
+      "homeId": "d2-f4",
+      "workId": "d2-f1",
+      "role": "Ventilation operator",
+      "shift": 300,
+      "appearance": 112,
+      "permit": true
+    },
+    {
+      "id": "person-113",
+      "name": "Ren Park",
+      "householdId": "household-37",
+      "homeId": "d2-f4",
+      "workId": null,
+      "role": "Student",
+      "shift": 300,
+      "appearance": 113,
+      "permit": false
+    },
+    {
+      "id": "person-114",
+      "name": "Esme Silva",
+      "householdId": "household-38",
+      "homeId": "d2-f6",
+      "workId": "d2-f3",
+      "role": "Water steward",
+      "shift": 600,
+      "appearance": 114,
+      "permit": true
+    },
+    {
+      "id": "person-115",
+      "name": "Yara Silva",
+      "householdId": "household-38",
+      "homeId": "d2-f6",
+      "workId": "d2-f5",
+      "role": "Drainage operator",
+      "shift": 600,
+      "appearance": 115,
+      "permit": true
+    },
+    {
+      "id": "person-116",
+      "name": "Milo Silva",
+      "householdId": "household-38",
+      "homeId": "d2-f6",
+      "workId": null,
+      "role": "Resident",
+      "shift": 600,
+      "appearance": 116,
+      "permit": false
+    },
+    {
+      "id": "person-117",
+      "name": "Sana Amari",
+      "householdId": "household-39",
+      "homeId": "d2-f7",
+      "workId": "d2-f2-annex",
+      "role": "Nurse",
+      "shift": 900,
+      "appearance": 117,
+      "permit": true
+    },
+    {
+      "id": "person-118",
+      "name": "Theo Amari",
+      "householdId": "household-39",
+      "homeId": "d2-f7",
+      "workId": "d2-f5-annex",
+      "role": "Grower",
+      "shift": 900,
+      "appearance": 118,
+      "permit": true
+    },
+    {
+      "id": "person-119",
+      "name": "Ari Amari",
+      "householdId": "household-39",
+      "homeId": "d2-f7",
+      "workId": null,
+      "role": "Student",
+      "shift": 900,
+      "appearance": 119,
+      "permit": false
+    },
+    {
+      "id": "person-120",
+      "name": "Mara Das",
+      "householdId": "household-40",
+      "homeId": "d0-f2",
+      "workId": "d0-f1",
+      "role": "Nurse",
+      "shift": 0,
+      "appearance": 120,
+      "permit": true
+    },
+    {
+      "id": "person-121",
+      "name": "Elias Das",
+      "householdId": "household-40",
+      "homeId": "d0-f2",
+      "workId": "d0-f3",
+      "role": "Stores worker",
+      "shift": 0,
+      "appearance": 121,
+      "permit": true
+    },
+    {
+      "id": "person-122",
+      "name": "Noor Das",
+      "householdId": "household-40",
+      "homeId": "d0-f2",
+      "workId": null,
+      "role": "Resident",
+      "shift": 0,
+      "appearance": 122,
+      "permit": false
+    },
+    {
+      "id": "person-123",
+      "name": "Jun Sato",
+      "householdId": "household-41",
+      "homeId": "d0-f4",
+      "workId": "d0-f5",
+      "role": "Checkpoint officer",
+      "shift": 300,
+      "appearance": 123,
+      "permit": true
+    },
+    {
+      "id": "person-124",
+      "name": "Ada Sato",
+      "householdId": "household-41",
+      "homeId": "d0-f4",
+      "workId": "d0-f2-annex",
+      "role": "Relay operator",
+      "shift": 300,
+      "appearance": 124,
+      "permit": true
+    },
+    {
+      "id": "person-125",
+      "name": "Tomas Sato",
+      "householdId": "household-41",
+      "homeId": "d0-f4",
+      "workId": null,
+      "role": "Student",
+      "shift": 300,
+      "appearance": 125,
+      "permit": false
+    },
+    {
+      "id": "person-126",
+      "name": "Inez Vale",
+      "householdId": "household-42",
+      "homeId": "d0-f6",
+      "workId": "d1-f0",
+      "role": "Plant engineer",
+      "shift": 600,
+      "appearance": 126,
+      "permit": true
+    },
+    {
+      "id": "person-127",
+      "name": "Kai Vale",
+      "householdId": "household-42",
+      "homeId": "d0-f6",
+      "workId": "d1-f2",
+      "role": "Recycler operator",
+      "shift": 600,
+      "appearance": 127,
+      "permit": true
+    },
+    {
+      "id": "person-128",
+      "name": "Leila Vale",
+      "householdId": "household-42",
+      "homeId": "d0-f6",
+      "workId": null,
+      "role": "Resident",
+      "shift": 600,
+      "appearance": 128,
+      "permit": false
+    },
+    {
+      "id": "person-129",
+      "name": "Owen Okafor",
+      "householdId": "household-43",
+      "homeId": "d0-f5-annex",
+      "workId": "d1-f3",
+      "role": "Grower",
+      "shift": 900,
+      "appearance": 129,
+      "permit": true
+    },
+    {
+      "id": "person-130",
+      "name": "Nia Okafor",
+      "householdId": "household-43",
+      "homeId": "d0-f5-annex",
+      "workId": "d1-f4",
+      "role": "Technician",
+      "shift": 900,
+      "appearance": 130,
+      "permit": true
+    },
+    {
+      "id": "person-131",
+      "name": "Arun Okafor",
+      "householdId": "household-43",
+      "homeId": "d0-f5-annex",
+      "workId": null,
+      "role": "Student",
+      "shift": 900,
+      "appearance": 131,
+      "permit": false
+    },
+    {
+      "id": "person-132",
+      "name": "Sol Chen",
+      "householdId": "household-44",
+      "homeId": "d1-f6",
+      "workId": "d1-f5",
+      "role": "Ventilation operator",
+      "shift": 0,
+      "appearance": 132,
+      "permit": true
+    },
+    {
+      "id": "person-133",
+      "name": "Ren Chen",
+      "householdId": "household-44",
+      "homeId": "d1-f6",
+      "workId": "d1-f7",
+      "role": "Stores worker",
+      "shift": 0,
+      "appearance": 133,
+      "permit": true
+    },
+    {
+      "id": "person-134",
+      "name": "Esme Chen",
+      "householdId": "household-44",
+      "homeId": "d1-f6",
+      "workId": null,
+      "role": "Resident",
+      "shift": 0,
+      "appearance": 134,
+      "permit": false
+    },
+    {
+      "id": "person-135",
+      "name": "Yara Reyes",
+      "householdId": "household-45",
+      "homeId": "d1-f5-annex",
+      "workId": "d1-f2-annex",
+      "role": "Water steward",
+      "shift": 300,
+      "appearance": 135,
+      "permit": true
+    },
+    {
+      "id": "person-136",
+      "name": "Milo Reyes",
+      "householdId": "household-45",
+      "homeId": "d1-f5-annex",
+      "workId": "d2-f1",
+      "role": "Ventilation operator",
+      "shift": 300,
+      "appearance": 136,
+      "permit": true
+    },
+    {
+      "id": "person-137",
+      "name": "Sana Reyes",
+      "householdId": "household-45",
+      "homeId": "d1-f5-annex",
+      "workId": null,
+      "role": "Student",
+      "shift": 300,
+      "appearance": 137,
+      "permit": false
+    },
+    {
+      "id": "person-138",
+      "name": "Theo Khan",
+      "householdId": "household-46",
+      "homeId": "d2-f0",
+      "workId": "d2-f3",
+      "role": "Water steward",
+      "shift": 600,
+      "appearance": 138,
+      "permit": true
+    },
+    {
+      "id": "person-139",
+      "name": "Ari Khan",
+      "householdId": "household-46",
+      "homeId": "d2-f0",
+      "workId": "d2-f5",
+      "role": "Drainage operator",
+      "shift": 600,
+      "appearance": 139,
+      "permit": true
+    },
+    {
+      "id": "person-140",
+      "name": "Mara Moss",
+      "householdId": "household-46",
+      "homeId": "d2-f0",
+      "workId": null,
+      "role": "Resident",
+      "shift": 600,
+      "appearance": 140,
+      "permit": false
+    },
+    {
+      "id": "person-141",
+      "name": "Elias Park",
+      "householdId": "household-47",
+      "homeId": "d2-f4",
+      "workId": "d2-f2-annex",
+      "role": "Nurse",
+      "shift": 900,
+      "appearance": 141,
+      "permit": true
+    },
+    {
+      "id": "person-142",
+      "name": "Noor Park",
+      "householdId": "household-47",
+      "homeId": "d2-f4",
+      "workId": "d2-f5-annex",
+      "role": "Grower",
+      "shift": 900,
+      "appearance": 142,
+      "permit": true
+    },
+    {
+      "id": "person-143",
+      "name": "Jun Park",
+      "householdId": "household-47",
+      "homeId": "d2-f4",
+      "workId": null,
+      "role": "Student",
+      "shift": 900,
+      "appearance": 143,
+      "permit": false
+    },
+    {
+      "id": "person-144",
+      "name": "Ada Silva",
+      "householdId": "household-48",
+      "homeId": "d2-f6",
+      "workId": "d0-f1",
+      "role": "Nurse",
+      "shift": 0,
+      "appearance": 144,
+      "permit": true
+    },
+    {
+      "id": "person-145",
+      "name": "Tomas Silva",
+      "householdId": "household-48",
+      "homeId": "d2-f6",
+      "workId": "d0-f3",
+      "role": "Stores worker",
+      "shift": 0,
+      "appearance": 145,
+      "permit": true
+    },
+    {
+      "id": "person-146",
+      "name": "Inez Silva",
+      "householdId": "household-48",
+      "homeId": "d2-f6",
+      "workId": null,
+      "role": "Resident",
+      "shift": 0,
+      "appearance": 146,
+      "permit": false
+    },
+    {
+      "id": "person-147",
+      "name": "Kai Amari",
+      "householdId": "household-49",
+      "homeId": "d2-f7",
+      "workId": "d0-f5",
+      "role": "Checkpoint officer",
+      "shift": 300,
+      "appearance": 147,
+      "permit": true
+    },
+    {
+      "id": "person-148",
+      "name": "Leila Amari",
+      "householdId": "household-49",
+      "homeId": "d2-f7",
+      "workId": "d0-f2-annex",
+      "role": "Relay operator",
+      "shift": 300,
+      "appearance": 148,
+      "permit": true
+    },
+    {
+      "id": "person-149",
+      "name": "Owen Amari",
+      "householdId": "household-49",
+      "homeId": "d2-f7",
+      "workId": null,
+      "role": "Student",
+      "shift": 300,
+      "appearance": 149,
+      "permit": false
+    },
+    {
+      "id": "person-150",
+      "name": "Nia Cole",
+      "householdId": "household-50",
+      "homeId": "d0-f2",
+      "workId": "d1-f0",
+      "role": "Plant engineer",
+      "shift": 600,
+      "appearance": 150,
+      "permit": true
+    },
+    {
+      "id": "person-151",
+      "name": "Arun Cole",
+      "householdId": "household-50",
+      "homeId": "d0-f2",
+      "workId": "d1-f2",
+      "role": "Recycler operator",
+      "shift": 600,
+      "appearance": 151,
+      "permit": true
+    },
+    {
+      "id": "person-152",
+      "name": "Sol Cole",
+      "householdId": "household-50",
+      "homeId": "d0-f2",
+      "workId": null,
+      "role": "Resident",
+      "shift": 600,
+      "appearance": 152,
+      "permit": false
+    },
+    {
+      "id": "person-153",
+      "name": "Ren Das",
+      "householdId": "household-51",
+      "homeId": "d0-f4",
+      "workId": "d1-f3",
+      "role": "Grower",
+      "shift": 900,
+      "appearance": 153,
+      "permit": true
+    },
+    {
+      "id": "person-154",
+      "name": "Esme Das",
+      "householdId": "household-51",
+      "homeId": "d0-f4",
+      "workId": "d1-f4",
+      "role": "Technician",
+      "shift": 900,
+      "appearance": 154,
+      "permit": true
+    },
+    {
+      "id": "person-155",
+      "name": "Yara Das",
+      "householdId": "household-51",
+      "homeId": "d0-f4",
+      "workId": null,
+      "role": "Student",
+      "shift": 900,
+      "appearance": 155,
+      "permit": false
+    },
+    {
+      "id": "person-156",
+      "name": "Milo Sato",
+      "householdId": "household-52",
+      "homeId": "d0-f6",
+      "workId": "d1-f5",
+      "role": "Ventilation operator",
+      "shift": 0,
+      "appearance": 156,
+      "permit": true
+    },
+    {
+      "id": "person-157",
+      "name": "Sana Sato",
+      "householdId": "household-52",
+      "homeId": "d0-f6",
+      "workId": "d1-f7",
+      "role": "Stores worker",
+      "shift": 0,
+      "appearance": 157,
+      "permit": true
+    },
+    {
+      "id": "person-158",
+      "name": "Theo Sato",
+      "householdId": "household-52",
+      "homeId": "d0-f6",
+      "workId": null,
+      "role": "Resident",
+      "shift": 0,
+      "appearance": 158,
+      "permit": false
+    },
+    {
+      "id": "person-159",
+      "name": "Ari Vale",
+      "householdId": "household-53",
+      "homeId": "d0-f5-annex",
+      "workId": "d1-f2-annex",
+      "role": "Water steward",
+      "shift": 300,
+      "appearance": 159,
+      "permit": true
+    },
+    {
+      "id": "person-160",
+      "name": "Mara Okafor",
+      "householdId": "household-53",
+      "homeId": "d0-f5-annex",
+      "workId": "d2-f1",
+      "role": "Ventilation operator",
+      "shift": 300,
+      "appearance": 160,
+      "permit": true
+    },
+    {
+      "id": "person-161",
+      "name": "Elias Okafor",
+      "householdId": "household-53",
+      "homeId": "d0-f5-annex",
+      "workId": null,
+      "role": "Student",
+      "shift": 300,
+      "appearance": 161,
+      "permit": false
+    },
+    {
+      "id": "person-162",
+      "name": "Noor Chen",
+      "householdId": "household-54",
+      "homeId": "d1-f6",
+      "workId": "d2-f3",
+      "role": "Water steward",
+      "shift": 600,
+      "appearance": 162,
+      "permit": true
+    },
+    {
+      "id": "person-163",
+      "name": "Jun Chen",
+      "householdId": "household-54",
+      "homeId": "d1-f6",
+      "workId": "d2-f5",
+      "role": "Drainage operator",
+      "shift": 600,
+      "appearance": 163,
+      "permit": true
+    },
+    {
+      "id": "person-164",
+      "name": "Ada Chen",
+      "householdId": "household-54",
+      "homeId": "d1-f6",
+      "workId": null,
+      "role": "Resident",
+      "shift": 600,
+      "appearance": 164,
+      "permit": false
+    },
+    {
+      "id": "person-165",
+      "name": "Tomas Reyes",
+      "householdId": "household-55",
+      "homeId": "d1-f5-annex",
+      "workId": "d2-f2-annex",
+      "role": "Nurse",
+      "shift": 900,
+      "appearance": 165,
+      "permit": true
+    },
+    {
+      "id": "person-166",
+      "name": "Inez Reyes",
+      "householdId": "household-55",
+      "homeId": "d1-f5-annex",
+      "workId": "d2-f5-annex",
+      "role": "Grower",
+      "shift": 900,
+      "appearance": 166,
+      "permit": true
+    },
+    {
+      "id": "person-167",
+      "name": "Kai Reyes",
+      "householdId": "household-55",
+      "homeId": "d1-f5-annex",
+      "workId": null,
+      "role": "Student",
+      "shift": 900,
+      "appearance": 167,
+      "permit": false
+    },
+    {
+      "id": "person-168",
+      "name": "Leila Khan",
+      "householdId": "household-56",
+      "homeId": "d2-f0",
+      "workId": "d0-f1",
+      "role": "Nurse",
+      "shift": 0,
+      "appearance": 168,
+      "permit": true
+    },
+    {
+      "id": "person-169",
+      "name": "Owen Khan",
+      "householdId": "household-56",
+      "homeId": "d2-f0",
+      "workId": "d0-f3",
+      "role": "Stores worker",
+      "shift": 0,
+      "appearance": 169,
+      "permit": true
+    },
+    {
+      "id": "person-170",
+      "name": "Nia Khan",
+      "householdId": "household-56",
+      "homeId": "d2-f0",
+      "workId": null,
+      "role": "Resident",
+      "shift": 0,
+      "appearance": 170,
+      "permit": false
+    },
+    {
+      "id": "person-171",
+      "name": "Arun Moss",
+      "householdId": "household-57",
+      "homeId": "d2-f4",
+      "workId": "d0-f5",
+      "role": "Checkpoint officer",
+      "shift": 300,
+      "appearance": 171,
+      "permit": true
+    },
+    {
+      "id": "person-172",
+      "name": "Sol Moss",
+      "householdId": "household-57",
+      "homeId": "d2-f4",
+      "workId": "d0-f2-annex",
+      "role": "Relay operator",
+      "shift": 300,
+      "appearance": 172,
+      "permit": true
+    },
+    {
+      "id": "person-173",
+      "name": "Ren Moss",
+      "householdId": "household-57",
+      "homeId": "d2-f4",
+      "workId": null,
+      "role": "Student",
+      "shift": 300,
+      "appearance": 173,
+      "permit": false
+    },
+    {
+      "id": "person-174",
+      "name": "Esme Park",
+      "householdId": "household-58",
+      "homeId": "d2-f6",
+      "workId": "d1-f0",
+      "role": "Plant engineer",
+      "shift": 600,
+      "appearance": 174,
+      "permit": true
+    },
+    {
+      "id": "person-175",
+      "name": "Yara Park",
+      "householdId": "household-58",
+      "homeId": "d2-f6",
+      "workId": "d1-f2",
+      "role": "Recycler operator",
+      "shift": 600,
+      "appearance": 175,
+      "permit": true
+    },
+    {
+      "id": "person-176",
+      "name": "Milo Park",
+      "householdId": "household-58",
+      "homeId": "d2-f6",
+      "workId": null,
+      "role": "Resident",
+      "shift": 600,
+      "appearance": 176,
+      "permit": false
+    },
+    {
+      "id": "person-177",
+      "name": "Sana Silva",
+      "householdId": "household-59",
+      "homeId": "d2-f7",
+      "workId": "d1-f3",
+      "role": "Grower",
+      "shift": 900,
+      "appearance": 177,
+      "permit": true
+    },
+    {
+      "id": "person-178",
+      "name": "Theo Silva",
+      "householdId": "household-59",
+      "homeId": "d2-f7",
+      "workId": "d1-f4",
+      "role": "Technician",
+      "shift": 900,
+      "appearance": 178,
+      "permit": true
+    },
+    {
+      "id": "person-179",
+      "name": "Ari Silva",
+      "householdId": "household-59",
+      "homeId": "d2-f7",
+      "workId": null,
+      "role": "Student",
+      "shift": 900,
+      "appearance": 179,
+      "permit": false
+    }
+  ],
+  "settings": {
+    "generationW": 33000,
+    "batteryWh": 18000,
+    "batteryMaxW": 2000,
+    "seepLps": 2,
+    "pumpLps": 4,
+    "tunnelAreaM2": 2,
+    "closeDepthM": 0.3,
+    "reportEvery": 30,
+    "reportDelay": 5,
+    "reportStaleAfter": 45,
+    "cropSeconds": 900,
+    "cartCrates": 30,
+    "cartCapacity": 30,
+    "storageCapacity": 250000,
+    "hungerPerSecond": 0.004,
+    "thirstPerSecond": 0.008,
+    "fatiguePerSecond": 0.002,
+    "sleepRecoveryPerSecond": 0.02,
+    "heatResponse": 0.0008,
+    "waterTreatmentLps": 0.5,
+    "waterTreatmentYield": 0.9,
+    "growWaterLps": 0.01,
+    "harvestUnits": 60,
+    "fanAirReduction": 0.008,
+    "occupiedAirLoad": 0.0006,
+    "stagnantAirRise": 0.006,
+    "baseCelsius": 23,
+    "depthHeating": 0.85,
+    "fanCoolingDelta": 5
+  },
+  "incidents": [],
+  "assumptions": [
+    "All populations, rates, capacities, environmental and human-need rules are fictional demonstration inputs.",
+    "World set after the surface became unlivable in 2087; surface conditions remain disputed.",
+    "Food and medicine are scenario units; water stocks use liters.",
+    "Air and contamination are authored indices, not measured concentrations."
+  ],
+  "airZones": [
+    {
+      "fanId": "d1-f5",
+      "roomIds": [
+        "d0-f0",
+        "d0-f1",
+        "d0-f2",
+        "d0-f3",
+        "d0-f4",
+        "d0-f5",
+        "d0-f6",
+        "d0-f7",
+        "d0-f2-annex",
+        "d0-f5-annex",
+        "d1-f0",
+        "d1-f1",
+        "d1-f2",
+        "d1-f3",
+        "d1-f4",
+        "d1-f5",
+        "d1-f6",
+        "d1-f7",
+        "d1-f2-annex",
+        "d1-f5-annex"
+      ]
+    },
+    {
+      "fanId": "d2-f1",
+      "roomIds": [
+        "d2-f0",
+        "d2-f1",
+        "d2-f2",
+        "d2-f3",
+        "d2-f4",
+        "d2-f5",
+        "d2-f6",
+        "d2-f7",
+        "d2-f2-annex",
+        "d2-f5-annex"
+      ]
+    }
+  ],
+  "waterLinks": [
+    {
+      "fromId": "d1-f2",
+      "toId": "d1-f3",
+      "litersPerSecond": 0.1
+    },
+    {
+      "fromId": "d1-f2",
+      "toId": "d1-f2-annex",
+      "litersPerSecond": 0.1
+    },
+    {
+      "fromId": "d1-f2",
+      "toId": "d2-f3",
+      "litersPerSecond": 0.1
+    },
+    {
+      "fromId": "d1-f2",
+      "toId": "d2-f5-annex",
+      "litersPerSecond": 0.1
+    }
+  ]
+}
