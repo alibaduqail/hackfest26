@@ -31,6 +31,7 @@ function App() {
     [toast, setToast] = useState(""),
     [loading, setLoading] = useState(true),
     [following, setFollowing] = useState(false),
+    [activeDistrict, setActiveDistrict] = useState<number | null>(1),
     [performanceStats, setPerformanceStats] = useState({
       tickMs: 0,
       achievedSpeed: 0,
@@ -51,6 +52,10 @@ function App() {
     setSelection(s);
     setPanel(null);
     renderer.current?.select(s);
+    if (s.kind === "room") {
+      const district = scenario?.rooms.find((r) => r.id === s.id)?.district;
+      if (district !== undefined) setActiveDistrict(district);
+    }
     if (focus) {
       renderer.current?.focus(s.id);
       setFollowing(false);
@@ -368,26 +373,26 @@ function App() {
           onClick={(e) => {
             e.preventDefault();
             renderer.current?.recenter();
+            setActiveDistrict(null);
           }}
         >
-          <span className="brand-mark">
-            H<span>•</span>
-          </span>
           <span>
-            THE HOLLOW<small>A WORLD BELOW</small>
+            Hollow<small>Sector 07</small>
           </span>
         </a>
         <div className="world-indicator">
-          <i /> LIVE WORLD <span>/</span> SECTOR 07 <b>AFTER THE DESCENT</b>
+          <i /> District network <span>/</span> Observer view
         </div>
         <nav aria-label="World tools">
           <button
+            aria-label="Explore"
             className={panel === "explore" ? "active" : ""}
             onClick={() => togglePanel("explore")}
           >
             ⌕ <span>Explore</span>
           </button>
           <button
+            aria-label="History"
             className={panel === "history" ? "active" : ""}
             onClick={() => togglePanel("history")}
           >
@@ -395,6 +400,7 @@ function App() {
             {state && state.events.length > 1 && <em>{state.events.length}</em>}
           </button>
           <button
+            aria-label="Incidents"
             className={panel === "experiment" ? "active" : ""}
             onClick={() => togglePanel("experiment")}
           >
@@ -412,17 +418,22 @@ function App() {
         <div ref={canvas} className="world-canvas" />
         <div className={`world-title ${selection || panel ? "compact" : ""}`}>
           <span className="eyebrow">
-            A LIVING DISTRICT · FICTIONAL SIMULATION
+            Fictional settlement · sealed for thirty years
           </span>
-          <h1>There is life down here.</h1>
-          <p>Follow a person. Find a story. Watch a city keep going.</p>
+          <h1>
+            {activeDistrict === null ? "The Hollow" : districts[activeDistrict]}
+          </h1>
+          <p>The next shift begins beneath the surface.</p>
         </div>
         <div className="district-nav" aria-label="District navigation">
           {districts.map((d, i) => (
             <button
               key={d}
+              className={activeDistrict === i ? "active" : ""}
+              aria-pressed={activeDistrict === i}
               onClick={() => {
                 renderer.current?.district(i);
+                setActiveDistrict(i);
                 setFollowing(false);
               }}
             >
@@ -467,6 +478,7 @@ function App() {
             aria-label="Recenter world"
             onClick={() => {
               renderer.current?.recenter();
+              setActiveDistrict(null);
               setFollowing(false);
             }}
           >
@@ -1261,9 +1273,9 @@ function App() {
           </aside>
         )}
         <div className="bottom-hint">
-          <span>↔ DRAG TO EXPLORE</span>
-          <span>⊕ SCROLL TO LOOK CLOSER</span>
-          <span>◎ CLICK A PERSON TO FOLLOW</span>
+          <span>Drag to explore</span>
+          <span>Scroll to zoom</span>
+          <span>Select a resident to follow</span>
         </div>
       </main>
       <footer className="timebar">
@@ -1299,7 +1311,7 @@ function App() {
         </div>
         <div className="bottom-state">
           <i className={state?.comms ? "" : "offline"} />
-          {state?.comms ? "NETWORK CONNECTED" : "NETWORK SILENT"}
+          {state?.comms ? "Network connected" : "Network silent"}
           <button
             onClick={() => {
               select({ kind: "cart", id: "cart" }, true);

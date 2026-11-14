@@ -59,3 +59,7 @@ The world, population, basic coupled infrastructure, constrained requests, data-
 - Formal 1920×1080 FPS/p95 measurements, cross-browser state-hash parity, touch/pinch on hardware, screen-reader testing, GPU-context-loss recovery and concurrent-tab save-conflict behavior remain unverified. Local save transactions protect against partial writes; two tabs may still overwrite the shared “latest” slot.
 
 The next SPARC phase should use these gaps and the specification acceptance criteria for focused refinement, rather than treating unchecked requirements as already passed.
+
+## Strata branch follow-up
+
+The original browser walkthrough above documents the previous side-view renderer. The current isometric branch passes 21 checks (the original 19 plus two projection checks). See [Strata experiment verification](STRATA_EXPERIMENT.md) for its browser checks, screenshots, and unmeasured rendering limits. No new engine benchmark was necessary because engine behavior is unchanged.
