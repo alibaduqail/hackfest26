@@ -1,0 +1,746 @@
+{
+  "feature": "hollow-living-world",
+  "phase": "specification",
+  "status": "complete",
+  "approvalStatus": "draft-for-team-review",
+  "implemented": false,
+  "document": "SPEC.md",
+  "requirements": {
+    "functional": [
+      {
+        "id": "FR-01",
+        "priority": "P0",
+        "text": "Render all reference districts in one continuous 2D coordinate system with connected passages and level changes."
+      },
+      {
+        "id": "FR-02",
+        "priority": "P0",
+        "text": "Provide drag pan, cursor-anchored zoom, bounds/recenter, a district locator, and follow-person/follow-cart controls."
+      },
+      {
+        "id": "FR-03",
+        "priority": "P0",
+        "text": "Select a room, resident, machine, stockpile, or connection and show its identity, actual state, dependencies, dependents, and current limiting reason."
+      },
+      {
+        "id": "FR-04",
+        "priority": "P0",
+        "text": "Render the material, lighting, furnishing, density, and motion differences described in section 4; silhouettes remain legible in failed lighting."
+      },
+      {
+        "id": "FR-05",
+        "priority": "P0",
+        "text": "Produce the rendered rooms, traversable paths, entrances, work positions, and machine locations from the scenario. Editing those definitions must not require editing SVG paths or simulation source."
+      },
+      {
+        "id": "FR-06",
+        "priority": "P0",
+        "text": "Keep inspectors contextual and collapsible. Search and event navigation can find entities outside the current view."
+      },
+      {
+        "id": "FR-07",
+        "priority": "P0",
+        "text": "Support mouse/trackpad and keyboard operation, accessible HTML equivalents for essential canvas content, text/symbol status cues, and reduced motion."
+      },
+      {
+        "id": "FR-08",
+        "priority": "P0",
+        "text": "Give every resident a persistent ID, name, household, home, role, appearance, current location, daily schedule, needs, inventory, and current task with a reason."
+      },
+      {
+        "id": "FR-09",
+        "priority": "P0",
+        "text": "Represent household membership and shared stocks explicitly. The 180-person fixture contains 60 three-person households; later scenario files may vary household sizes."
+      },
+      {
+        "id": "FR-10",
+        "priority": "P0",
+        "text": "Run autonomous schedules for sleep/rest, meals, water collection, work, and essential service visits. Include unemployed/dependent residents with daily activity instead of assigning everyone an industrial job."
+      },
+      {
+        "id": "FR-11",
+        "priority": "P0",
+        "text": "Use one task state machine for planned, traveling, queued, active, interrupted, completed, and blocked tasks. Record why a transition happened."
+      },
+      {
+        "id": "FR-12",
+        "priority": "P0",
+        "text": "Move people along real walkable links with distances, travel speed, route restrictions, and queues; preserve person identity and household relationships across district boundaries."
+      },
+      {
+        "id": "FR-13",
+        "priority": "P0",
+        "text": "Handle unavailable destinations by a declared rule: reachable alternative, wait, return home, or seek a reachable refuge. Never teleport or silently delete an agent to resolve failure."
+      },
+      {
+        "id": "FR-14",
+        "priority": "P0",
+        "text": "Match staffed work positions to eligible roles. Production and service rates depend on staffing, operational machine capacity, input stock, and output space."
+      },
+      {
+        "id": "FR-15",
+        "priority": "P0",
+        "text": "Simulate finite service queues and capacity at lifts, taps, rations, and clinics. Queue ordering and exemptions must be explicit and deterministic."
+      },
+      {
+        "id": "FR-16",
+        "priority": "P0",
+        "text": "Update hunger, thirst, fatigue, heat/air exposure, and unmet-care indicators using elapsed simulation time. Consume real items or service quantities to satisfy needs."
+      },
+      {
+        "id": "FR-17",
+        "priority": "P0",
+        "text": "On an observed hazard or failed route, re-evaluate the current task according to the resident's local knowledge and household responsibilities. A resident may be mistaken about a distant outage."
+      },
+      {
+        "id": "FR-18",
+        "priority": "P1",
+        "text": "Add family check-ins, assistance to dependents, hand-carried messages, and a small number of household-specific priorities. These use the same movement and task rules."
+      },
+      {
+        "id": "FR-19",
+        "priority": "P1",
+        "text": "Add longer-term rest disruption and illness progression as declared fictional rules with visible exposure history and recovery conditions."
+      },
+      {
+        "id": "FR-20",
+        "priority": "P0",
+        "text": "Allocate finite geothermal output through authored feeders, capacity limits, switches, and an explicit baseline Directorate priority order."
+      },
+      {
+        "id": "FR-21",
+        "priority": "P0",
+        "text": "Model battery stored energy and discharge power separately. A device cannot run on sufficient energy alone when the power cap is insufficient."
+      },
+      {
+        "id": "FR-22",
+        "priority": "P0",
+        "text": "Derive room light from actual supplied fixtures and the local light schedule. Darkness affects specified tasks and resident comfort; it does not disable camera exploration."
+      },
+      {
+        "id": "FR-23",
+        "priority": "P0",
+        "text": "Model room ventilation service and an air-quality proxy affected by occupancy, powered exchange, and connected ventilation paths. Distinguish air movement from thermal cooling."
+      },
+      {
+        "id": "FR-24",
+        "priority": "P0",
+        "text": "Model room temperature with authored depth-related heat input, occupancy/machine heat, exchange, and available cooling. Fan state changes the future rate; temperature does not jump to a preset crisis value."
+      },
+      {
+        "id": "FR-25",
+        "priority": "P0",
+        "text": "Track recycled/clean water stocks, production, storage, consumption, and a contamination index. Stopped or degraded treatment changes output amount or quality according to authored parameters."
+      },
+      {
+        "id": "FR-26",
+        "priority": "P0",
+        "text": "Accumulate drainage water from finite authored inflow, transfer it along capacity-limited drainage links, and remove it only through operating pumps or defined outflows."
+      },
+      {
+        "id": "FR-27",
+        "priority": "P0",
+        "text": "Compute walkability from water depth, access policy, damage, and mode-specific limits. Residents and carts may have different limits."
+      },
+      {
+        "id": "FR-28",
+        "priority": "P0",
+        "text": "Produce food from an authored crop cycle with water, lamp energy, staffing, and space requirements. Short outages reduce accumulated growth; mature food does not appear because an animation loops."
+      },
+      {
+        "id": "FR-29",
+        "priority": "P0",
+        "text": "Store food, water, medicine, parts, and carried cargo in real inventories. Reserve, transfer, consume, spoil, and waste items through explicit operations with conservation checks."
+      },
+      {
+        "id": "FR-30",
+        "priority": "P0",
+        "text": "Transport a finite load by a visible cart/operator route from source loading to unloading at a reachable destination. A stopped cart keeps its cargo."
+      },
+      {
+        "id": "FR-31",
+        "priority": "P0",
+        "text": "Apply household and clinic consumption over time. A missed delivery reduces reserves before unmet demand increases."
+      },
+      {
+        "id": "FR-32",
+        "priority": "P0",
+        "text": "Represent clinic stock, staff, service slots, and access. Residents may need care they cannot reach or that cannot be supplied."
+      },
+      {
+        "id": "FR-33",
+        "priority": "P0",
+        "text": "Represent maintenance condition, machine dependency, finite spares, and an operator/technician duty. The baseline may include ordinary authored repair jobs; it must not automatically solve every injected fault."
+      },
+      {
+        "id": "FR-34",
+        "priority": "P1",
+        "text": "Add wear-driven breakdowns, multi-stage repairs, food spoilage differences, and chronic service deficits only after the conservation and routine models pass P0 tests."
+      },
+      {
+        "id": "FR-35",
+        "priority": "P0",
+        "text": "Define inter-level permits, checkpoint opening schedules, air/power allocation priorities, and ration entitlements as editable Directorate policy data."
+      },
+      {
+        "id": "FR-36",
+        "priority": "P0",
+        "text": "Apply access rules to routes and queue/service allocation. A physically connected path may remain inaccessible because of policy."
+      },
+      {
+        "id": "FR-37",
+        "priority": "P0",
+        "text": "Simulate report sources, coverage, interval, sampling time, delivery time, delay, and communication-channel availability."
+      },
+      {
+        "id": "FR-38",
+        "priority": "P0",
+        "text": "Separate engine truth, observer-visible cutaway truth, resident knowledge, and controller/official reports. Each inspector must label which view it presents."
+      },
+      {
+        "id": "FR-39",
+        "priority": "P0",
+        "text": "On communication loss retain the last delivered sample with its original timestamp, mark its freshness correctly, and show unknown for a never-delivered sample."
+      },
+      {
+        "id": "FR-40",
+        "priority": "P1",
+        "text": "Model separated-family check-in uncertainty and local/courier propagation. A network cut alone must not grant residents knowledge of each other's locations."
+      },
+      {
+        "id": "FR-41",
+        "priority": "P1",
+        "text": "Support explicitly authored reporting omissions/delays in Directorate summaries. Track provenance so simulated bias is distinguishable from the engine's actual counts; do not infer intentional deception automatically."
+      },
+      {
+        "id": "FR-42",
+        "priority": "P0",
+        "text": "Include a sealed surface approach, visible or recorded machine activity, and separately attributed official claims and rumors. Do not label the surface safe without a modeled measurement/evidence process."
+      },
+      {
+        "id": "FR-43",
+        "priority": "P2",
+        "text": "Add surface sensing, suits/outposts, robots, and migration only through separately specified modules and assumptions."
+      },
+      {
+        "id": "FR-44",
+        "priority": "P0",
+        "text": "Run an ordinary-day fixture with no selected crisis and an independently selectable incident fixture. Provide at least feeder loss, communications cut, and restricted passage as reusable incident types; parameters target IDs rather than hardcoded rooms."
+      },
+      {
+        "id": "FR-45",
+        "priority": "P0",
+        "text": "Allow a timed or user-triggered incident, with trigger, duration, cause, affected entities, and possible restoration recorded as events. Downstream consequences come from simulation rules."
+      },
+      {
+        "id": "FR-46",
+        "priority": "P0",
+        "text": "Provide pause, resume, step one simulated minute, speed selection, reset, and a visible simulation date/time. The engine clock continues consistently across camera changes."
+      },
+      {
+        "id": "FR-47",
+        "priority": "P0",
+        "text": "Save and reload a world snapshot and export/import a replay containing scenario hash, engine/model version, seed, external-event schedule, and ordered commands."
+      },
+      {
+        "id": "FR-48",
+        "priority": "P0",
+        "text": "Reproduce the same state and metrics from the same scenario, seed, and accepted command sequence. Replay outcomes are independent of render FPS and viewed district."
+      },
+      {
+        "id": "FR-49",
+        "priority": "P0",
+        "text": "Emit causal events and service-deficit intervals that link an affected person or household to the relevant resource, machine, job, or passage."
+      },
+      {
+        "id": "FR-50",
+        "priority": "P0",
+        "text": "Report outcomes by person/household, district, and depth. Keep delivered goods, reachable services, actual service receipt, and unmet needs separate."
+      },
+      {
+        "id": "FR-51",
+        "priority": "P0",
+        "text": "Offer a small contextual incident/history view and in-world focus links. Outcome comparisons are an optional mode; no always-visible dashboard is required."
+      },
+      {
+        "id": "FR-52",
+        "priority": "P2",
+        "text": "Compare baseline and intervention from a common snapshot, exogenous incident schedule, and ending tick, with region-level metrics and causal trace links."
+      },
+      {
+        "id": "FR-53",
+        "priority": "P0",
+        "text": "Load a versioned JSON scenario with geometry, graphs, households, residents, machines, inventories, routines, policies, report channels, incident definitions, and unit-bearing parameters."
+      },
+      {
+        "id": "FR-54",
+        "priority": "P0",
+        "text": "Validate scenario cross-references, geometry/path alignment, units, ranges, capacity limits, event targets, and spawn/service locations before replacing the current world."
+      },
+      {
+        "id": "FR-55",
+        "priority": "P0",
+        "text": "Keep simulation rules independent of the renderer. Headless execution can load a scenario, advance ticks, and inspect outcomes without a canvas."
+      },
+      {
+        "id": "FR-56",
+        "priority": "P0",
+        "text": "Expose read-only timestamped observation and validated command interfaces as specified in section 11. Manual requests and later controller requests share authorization, reachability, delay, capacity, and resource checks."
+      },
+      {
+        "id": "FR-57",
+        "priority": "P0",
+        "text": "Keep incident-authoring privileges separate from in-world commands. A future controller cannot remove a flood, reveal hidden truth, or refill stores through an ordinary action call."
+      },
+      {
+        "id": "FR-58",
+        "priority": "P2",
+        "text": "Add one replaceable deterministic controller through that boundary when the team chooses a solution to evaluate. It must receive reported information rather than omniscient state by default."
+      }
+    ],
+    "nonFunctional": [
+      {
+        "id": "NFR-01",
+        "priority": "P0",
+        "text": "At the 180-resident/30-room reference fixture, target \u226555 rendered FPS median while panning at 1920\u00d71080 and 1\u00d7 simulation speed on the agreed demonstration laptop; p95 frame duration \u226433 ms over a two-minute sample. A low-effects mode targets \u226530 FPS."
+      },
+      {
+        "id": "NFR-02",
+        "priority": "P0",
+        "text": "Target p95 engine cost \u226410 ms per simulated-second tick at the reference scale and p95 control/inspector response \u2264100 ms while simulating. Requested 300\u00d7 speed may be reduced visibly if CPU capacity is insufficient."
+      },
+      {
+        "id": "NFR-03",
+        "priority": "P0",
+        "text": "Initial compressed production assets target \u226425 MB and load-to-interactive \u22645 seconds on localhost with a warm browser process. No remote font/image dependency is required to view the world."
+      },
+      {
+        "id": "NFR-04",
+        "priority": "P0",
+        "text": "A 30-simulated-day headless reference run completes without negative stocks, NaN values, invalid locations, leaked task reservations, or silently dropped people. Runtime is measured separately."
+      },
+      {
+        "id": "NFR-05",
+        "priority": "P0",
+        "text": "Identical replay inputs produce identical authoritative state hashes on supported tested browsers, using versioned deterministic numerical rules and stable ordering. Render state/camera and cosmetic particles are excluded from the hash."
+      },
+      {
+        "id": "NFR-06",
+        "priority": "P0",
+        "text": "Pausing freezes simulation state, needs, movement, work, and events. Camera/input remains usable. Decorative effects may continue only if reduced-motion preferences permit."
+      },
+      {
+        "id": "NFR-07",
+        "priority": "P0",
+        "text": "All essential controls are keyboard accessible with visible focus; contextual state is available as semantic HTML. Do not rely solely on color, sound, tiny sprites, or pointer hover."
+      },
+      {
+        "id": "NFR-08",
+        "priority": "P0",
+        "text": "Saves and imports are versioned and validated before use. A corrupt/incompatible file leaves the current run available and returns a useful field/path error."
+      },
+      {
+        "id": "NFR-09",
+        "priority": "P0",
+        "text": "Default operation is local and uses synthetic people. No authentication or real personal data collection is required. JSON imports do not execute code or interpret arbitrary HTML."
+      },
+      {
+        "id": "NFR-10",
+        "priority": "P0",
+        "text": "Fixed-point calculations, event budgets, queue limits, numeric ranges, and file-size/entity-count caps prevent malformed input from creating unbounded work. Proposed import cap: 10 MB, 2,000 residents, 300 rooms; larger worlds require an explicit profiling gate."
+      },
+      {
+        "id": "NFR-11",
+        "priority": "P0",
+        "text": "Authoritative state belongs to one engine instance. Workers communicate by serializable messages; UI and future controllers cannot mutate shared world records directly."
+      },
+      {
+        "id": "NFR-12",
+        "priority": "P0",
+        "text": "Primary target is laptop/desktop Chrome/Edge, Firefox, and Safari stable versions available at implementation. Record actual tested versions. Touch/tablet exploration is desirable; phone-scale editing and multiplayer are deferred."
+      },
+      {
+        "id": "NFR-13",
+        "priority": "P0",
+        "text": "Locally authored code modules are trusted development inputs. Do not expose arbitrary JavaScript upload/eval as a public controller feature. A hostile-plugin sandbox would need a separate threat model."
+      },
+      {
+        "id": "NFR-14",
+        "priority": "P0",
+        "text": "Asset references have a credits/license record. Prefer local textures, fonts, and audio. Browser reload/network loss must not silently replace saved scenario state."
+      },
+      {
+        "id": "NFR-15",
+        "priority": "P0",
+        "text": "A missing decorative texture has a labeled fallback. An engine or WebGL failure produces a readable diagnostic and preserves/exportably retains the last valid save where possible."
+      }
+    ]
+  },
+  "acceptanceCriteria": [
+    {
+      "id": "AC-01",
+      "priority": "P0",
+      "text": "Given the reference world, when it opens, then the primary view is an inhabited cutaway with three connected district locations and compact controls, with no permanent metric-card grid.",
+      "requirements": "FR-01, 04, 06"
+    },
+    {
+      "id": "AC-02",
+      "priority": "P0",
+      "text": "Given a paused world, when the viewer drags, zooms, recenters, and selects a district, then the camera changes while the authoritative state hash and tick do not.",
+      "requirements": "FR-02, 46"
+    },
+    {
+      "id": "AC-03",
+      "priority": "P0",
+      "text": "Given a selected nurse with a shift in another district, when ordinary time advances, then the same resident leaves home, follows valid connections, queues if needed, and reaches or explicitly fails to reach the clinic with a recorded reason.",
+      "requirements": "FR-08\u201315"
+    },
+    {
+      "id": "AC-04",
+      "priority": "P0",
+      "text": "Given a machine requiring an operator and input stock, when its worker is absent or its input runs out, then output falls according to the declared limiting factor and work animation reflects the actual task state.",
+      "requirements": "FR-14, 29, 33"
+    },
+    {
+      "id": "AC-05",
+      "priority": "P0",
+      "text": "Given a loaded cart and an open permitted route, when travel and unloading finish, then destination stock increases exactly by unloaded quantity and source/cargo totals decrease consistently.",
+      "requirements": "FR-29\u201331"
+    },
+    {
+      "id": "AC-06",
+      "priority": "P0",
+      "text": "Given a loaded cart and a flood-closing connection, when the connection becomes unusable, then the cart waits or takes a valid alternative, retains its cargo, and records no delivery until unloading occurs.",
+      "requirements": "FR-12, 27, 30"
+    },
+    {
+      "id": "AC-07",
+      "priority": "P0",
+      "text": "Given two possible routes, when one floods, then an eligible informed resident reroutes; when both become unavailable, the resident enters a visible blocked/fallback task without teleporting.",
+      "requirements": "FR-12, 13, 17"
+    },
+    {
+      "id": "AC-08",
+      "priority": "P0",
+      "text": "Given a lower-feeder outage, when it occurs, then only dependent devices lose service, and the independent upper clinic remains powered according to its network connection.",
+      "requirements": "FR-20\u201324"
+    },
+    {
+      "id": "AC-09",
+      "priority": "P0",
+      "text": "Given a battery with enough Wh but an insufficient W discharge limit for two devices, when both request power, then allocation respects the W limit and states the curtailed device's reason.",
+      "requirements": "FR-21"
+    },
+    {
+      "id": "AC-10",
+      "priority": "P0",
+      "text": "Given a known drainage inflow and pump capacity, when a fixed number of seconds elapses, then the calculated volume matches the balance fixture and closure occurs at the configured depth.",
+      "requirements": "FR-26, 27"
+    },
+    {
+      "id": "AC-11",
+      "priority": "P0",
+      "text": "Given a fan outage, when time advances, then temperature/air-service exposure changes according to configured rates without instantaneous illness or a hardcoded temperature jump.",
+      "requirements": "FR-23, 24, 16"
+    },
+    {
+      "id": "AC-12",
+      "priority": "P0",
+      "text": "Given a closed household supply route with enough stored food for one meal, when that meal is consumed, then reserves decrease and starvation is not declared merely because the route is closed.",
+      "requirements": "FR-16, 31"
+    },
+    {
+      "id": "AC-13",
+      "priority": "P0",
+      "text": "Given an unpowered lamp farm, when growth time advances, then crop progress/harvest follows declared service/input fractions and food conservation holds.",
+      "requirements": "FR-28, 29"
+    },
+    {
+      "id": "AC-14",
+      "priority": "P0",
+      "text": "Given a checkpoint that requires a permit, when an unpermitted resident plans a route, then the denied edge is excluded and the inspector identifies policy as the cause.",
+      "requirements": "FR-35, 36"
+    },
+    {
+      "id": "AC-15",
+      "priority": "P0",
+      "text": "Given a delivered report at tick 100, when communications fail and the world reaches tick 160, then its sample time remains 100 and it becomes stale under that source's threshold while truth continues evolving.",
+      "requirements": "FR-37\u201339"
+    },
+    {
+      "id": "AC-16",
+      "priority": "P0",
+      "text": "Given a report source that has never delivered, when inspected, then its values are unknown/null rather than zero or the hidden true value.",
+      "requirements": "FR-38, 39"
+    },
+    {
+      "id": "AC-17",
+      "priority": "P0",
+      "text": "Given 12 households with no permitted depot path for `[120, 420)` seconds, when access returns, then the metric is 60 household-minutes and the drill-down identifies those households, the interval, and closure causes.",
+      "requirements": "FR-49, 50"
+    },
+    {
+      "id": "AC-18",
+      "priority": "P0",
+      "text": "Given two closures isolating the same households, when both persist for one minute, then each household contributes one household-minute, with both causes available in the trace.",
+      "requirements": "FR-49, 50"
+    },
+    {
+      "id": "AC-19",
+      "priority": "P0",
+      "text": "Given a valid scenario room/link edit, when the scenario reloads, then the visible geometry and traversable connection move together; dangling endpoints fail validation.",
+      "requirements": "FR-05, 53, 54"
+    },
+    {
+      "id": "AC-20",
+      "priority": "P0",
+      "text": "Given the same seed and command/event inputs, when one run is viewed at 30 FPS and another at 60 FPS or headlessly, then tick-matched authoritative hashes and metrics agree.",
+      "requirements": "FR-48, 55"
+    },
+    {
+      "id": "AC-21",
+      "priority": "P0",
+      "text": "Given an offscreen working district, when the viewer returns after simulated time, then its people, production, and shortages match an equivalent run observed continuously.",
+      "requirements": "FR-48"
+    },
+    {
+      "id": "AC-22",
+      "priority": "P0",
+      "text": "Given a snapshot taken while a cart travels and residents queue, when exported and reloaded, then route progress, cargo, queue order, reservations, knowledge, PRNG streams, and next events resume identically.",
+      "requirements": "FR-47, 48"
+    },
+    {
+      "id": "AC-23",
+      "priority": "P0",
+      "text": "Given an invalid scenario or obsolete save, when imported, then a readable validation error is shown and the active run remains usable.",
+      "requirements": "FR-54, NFR-08"
+    },
+    {
+      "id": "AC-24",
+      "priority": "P0",
+      "text": "Given the same unauthorized or infeasible action through manual and controller channels, when submitted, then both are rejected by the same validation rule with a reason.",
+      "requirements": "FR-56, 57"
+    },
+    {
+      "id": "AC-25",
+      "priority": "P0",
+      "text": "Given two conflicting commands in the same tick or a duplicate command ID, when processed, then documented authority/sequence and idempotency rules determine one consistent result.",
+      "requirements": "FR-56"
+    },
+    {
+      "id": "AC-26",
+      "priority": "P0",
+      "text": "Given a reset followed by an old-run command, when it arrives, then it is rejected and cannot change the new run.",
+      "requirements": "FR-47, 56"
+    },
+    {
+      "id": "AC-27",
+      "priority": "P0",
+      "text": "Given a 24-hour ordinary-day fixture without an incident, when run, then people complete multiple routine types and aggregate inputs, outputs, consumption, and reserve changes reconcile against the authored balance sheet.",
+      "requirements": "FR-10, 29, 44"
+    },
+    {
+      "id": "AC-28",
+      "priority": "P0",
+      "text": "Given the reference fixture and test laptop, when the performance procedure in NFR-01/02 runs, then measured targets pass or a documented release-blocking performance issue identifies the failed target.",
+      "requirements": "NFR-01, 02"
+    },
+    {
+      "id": "AC-29",
+      "priority": "P0",
+      "text": "Given keyboard-only operation or reduced motion, when exploring and inspecting, then essential functions and causal information remain available and focus stays visible.",
+      "requirements": "FR-07, NFR-07"
+    },
+    {
+      "id": "AC-30",
+      "priority": "P1",
+      "text": "Given separated household members and a network cut, when neither can receive a check-in, then their knowledge remains stale until a valid local/network/courier report arrives.",
+      "requirements": "FR-18, 40"
+    },
+    {
+      "id": "AC-31",
+      "priority": "P1",
+      "text": "Given authored official report suppression, when comparing the official report with the truth view, then the omitted counts and source/timestamp differences are inspectable without rewriting engine truth.",
+      "requirements": "FR-41"
+    },
+    {
+      "id": "AC-32",
+      "priority": "P2",
+      "text": "Given two branches from the same complete snapshot, when one receives an intervention, then both share external incident times and ending tick; differences in access, delivery, and exposure trace to their own events.",
+      "requirements": "FR-52, 58"
+    }
+  ],
+  "constraints": [
+    {
+      "id": "C-01",
+      "category": "Performance",
+      "text": "Start at the reference-world scale; benchmark before increasing population. Rendering simplification must never alter authoritative behavior."
+    },
+    {
+      "id": "C-02",
+      "category": "Time/fidelity",
+      "text": "Model seconds, minutes, days, and chronic effects on appropriate scales. Show all accelerated rates and assumptions."
+    },
+    {
+      "id": "C-03",
+      "category": "Security/privacy",
+      "text": "Synthetic residents, local operation, no secret-bearing imports, no executing imported scenario content, no automatic external telemetry."
+    },
+    {
+      "id": "C-04",
+      "category": "Compatibility",
+      "text": "Desktop web and WebGL-capable browsers are primary. Pin and verify dependencies at implementation; do not promise mobile or GPU-less support without testing."
+    },
+    {
+      "id": "C-05",
+      "category": "Infrastructure",
+      "text": "Static local hosting, packaged assets, one simulation worker, versioned local persistence. Server deployment remains optional."
+    },
+    {
+      "id": "C-06",
+      "category": "Art/IP",
+      "text": "Use original/licensed assets and an independent visual identity. Fallout Shelter supplies a presentation reference, not source assets or world canon."
+    },
+    {
+      "id": "C-07",
+      "category": "Scope",
+      "text": "No optimizer or proposed solution is required to make this world complete. Larger social/surface models are explicitly staged."
+    },
+    {
+      "id": "C-08",
+      "category": "Provenance",
+      "text": "Separate brief canon, team-authored assumptions, and measurements. Never silently upgrade an invented number into evidence about real communities or infrastructure."
+    }
+  ],
+  "edgeCases": [
+    {
+      "id": "EC-01",
+      "title": "Invalid map:",
+      "text": "duplicate IDs, negative capacities, missing homes, invalid policy groups, endpoints inside walls, or machines attached to absent networks reject scenario activation atomically."
+    },
+    {
+      "id": "EC-02",
+      "title": "No route:",
+      "text": "a resident with a stale planned path encounters closure, waits at a valid endpoint, updates local knowledge, and chooses a declared fallback. No infinite per-tick route search."
+    },
+    {
+      "id": "EC-03",
+      "title": "Mid-crossing failure:",
+      "text": "a lift power loss or rising water during traversal follows the documented endpoint/interruption rule. All occupants remain accounted for; cargo cannot unload remotely."
+    },
+    {
+      "id": "EC-04",
+      "title": "Shared resource contention:",
+      "text": "several devices, people, or carts request the same remaining item/slot. Reserve in deterministic order and commit once; losers receive a blocked reason."
+    },
+    {
+      "id": "EC-05",
+      "title": "Repeated toggles/conflicting requests:",
+      "text": "bound request processing, make duplicate IDs idempotent, and preserve explicit command authority and sequence."
+    },
+    {
+      "id": "EC-06",
+      "title": "Unknown/stale/conflicting reports:",
+      "text": "retain source/sample time and competing reports. Do not average them into invented truth. Unknown means no delivered evidence, not a numeric zero."
+    },
+    {
+      "id": "EC-07",
+      "title": "New work after reset:",
+      "text": "late worker messages, report deliveries, and controller actions from an old run are discarded by run ID/sequence."
+    },
+    {
+      "id": "EC-08",
+      "title": "Empty battery/depleted inputs:",
+      "text": "devices stop or operate at permitted partial capacity without negative resources or free output. Explain why a command cannot complete."
+    },
+    {
+      "id": "EC-09",
+      "title": "Offscreen or fast-forward:",
+      "text": "render less often if necessary but continue every authoritative tick. Topology and resident state do not depend on camera location."
+    },
+    {
+      "id": "EC-10",
+      "title": "Background tab/device sleep:",
+      "text": "pause and display the pause reason. Resume explicitly; do not process hours of surprise deficits on return."
+    },
+    {
+      "id": "EC-11",
+      "title": "Storage quota/corrupt save:",
+      "text": "retain the in-memory run and offer JSON export with a useful failure message. Keep the previous valid save until a replacement write succeeds."
+    },
+    {
+      "id": "EC-12",
+      "title": "Missing asset/GPU context:",
+      "text": "show a safe fallback or diagnostic. Avoid losing the engine's current run when recreating graphics."
+    },
+    {
+      "id": "EC-13",
+      "title": "Remote dependency failure:",
+      "text": "core world logic and assets are local. A future optional API failure marks its data unavailable; simulation continues according to its authored fallback."
+    },
+    {
+      "id": "EC-14",
+      "title": "Circular dependencies:",
+      "text": "a recycler needs power while generation cooling needs water. Solve through declared previous-tick state and finite stocks; never recurse indefinitely or create resources to break the cycle."
+    },
+    {
+      "id": "EC-15",
+      "title": "Long-run accumulation:",
+      "text": "remove completed reservations/tasks according to retention rules, bound cosmetic effects, archive event chunks, and keep causal deficit intervals sufficient to reproduce totals."
+    },
+    {
+      "id": "EC-16",
+      "title": "Concurrent access:",
+      "text": "each browser run is single-writer. Two local tabs have distinct run IDs; concurrent save conflicts are detected rather than last-write silently replacing an unrelated run. Shared multiplayer has no implied support."
+    }
+  ],
+  "integrationPoints": [
+    {
+      "id": "IP-01",
+      "title": "Existing prototype:",
+      "text": "Preserve `hollow-simulator/` as the earlier experiment. Its separation of `createSimulation`, reports, actions, and renderer is useful; its hardcoded single-passage rules and SVG map are not the final world engine."
+    },
+    {
+      "id": "IP-02",
+      "title": "Scenario pipeline:",
+      "text": "Author \u2192 schema/cross-reference validation \u2192 initial state \u2192 geometry/network views. One source supplies the visible map and simulation graph."
+    },
+    {
+      "id": "IP-03",
+      "title": "Renderer/engine:",
+      "text": "The worker publishes versioned snapshots/events; the renderer interpolates them and sends intent/commands. No simulation calculations live solely inside animation callbacks."
+    },
+    {
+      "id": "IP-04",
+      "title": "Resident inspector:",
+      "text": "Pull a read-only entity view including household, route, tasks, resource balance, and relevant causal events. Changes to simulation records do not require matching hand-written label text."
+    },
+    {
+      "id": "IP-05",
+      "title": "Saves/replays:",
+      "text": "Snapshot, scenario/model hashes, command order, incident schedule, and PRNG streams are one reproducible artifact, validated on import."
+    },
+    {
+      "id": "IP-06",
+      "title": "Future solution adapter:",
+      "text": "Timestamped observation and command receipts are the stable boundary in section 11. Later algorithms replace only this adapter, not engine truth or baseline policy."
+    },
+    {
+      "id": "IP-07",
+      "title": "Test runner:",
+      "text": "Headless scenario execution and invariant/property checks use the same engine shipped in the browser."
+    },
+    {
+      "id": "IP-08",
+      "title": "GitHub documentation:",
+      "text": "Keep this specification and local SPARC phase record in the team repository with the implementation assumptions and acceptance results. Preserve unrelated team work."
+    }
+  ],
+  "sourceDocument": "https://docs.google.com/document/d/1sz_UdwRzvyL1dVbcbqLnUdJwVHvOUWARg4B79VmKgaE/edit?tab=t.g3ixdrcdfya4",
+  "tracking": {
+    "backend": "repository-local",
+    "rufloMemoryWritten": false,
+    "trajectoryRecorded": false,
+    "reason": "Ruflo memory, trajectory, and learned-pattern tools unavailable in this session"
+  }
+}
