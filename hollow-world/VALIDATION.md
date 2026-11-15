@@ -63,3 +63,8 @@ The next SPARC phase should use these gaps and the specification acceptance crit
 ## Strata branch follow-up
 
 The original browser walkthrough above documents the previous side-view renderer. The current isometric branch passes 21 checks (the original 19 plus two projection checks). See [Strata experiment verification](STRATA_EXPERIMENT.md) for its browser checks, screenshots, and unmeasured rendering limits. No new engine benchmark was necessary because engine behavior is unchanged.
+
+
+### Desktop interaction and visual follow-up
+
+The subsequent desktop pass passes 27 tests and the production build. [Desktop verification](qa/DESKTOP_PASS.md) records matched 1440×900 / 1920×1080 captures, actual lift/cart movement, outage/request/recovery feedback, selection and camera checks, and alternating reviewed/final frame samples. Its short browser timings supplement the earlier engine benchmark and do not establish sustained FPS.

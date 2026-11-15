@@ -37,3 +37,7 @@ Screenshots: [working district](qa/strata-world.jpg), [room inspector](qa/strata
 ## Limits
 
 This is an art-direction experiment, not a match for every detail in the generated Strata concept. It uses projected primitives and billboard residents, with simulated light pools rather than a 3D lighting/shadow solver. Fixed viewpoint; no camera orbit. Formal frame-rate measurements, production-browser walkthrough, cross-browser parity, screen-reader use and touch/pinch on physical hardware were not repeated for this branch. The earlier headless engine benchmark remains relevant to engine timing, not proof of the new renderer's performance.
+
+## Desktop follow-up
+
+The pass after reviewed `86369c4` builds the lift into served-floor geometry, adds role/task poses and matching portraits, distinguishes room fixtures, makes cart cargo visible from real stock, and improves desktop focus, scroll, recovery actions and History. **27 tests and the production build pass.** See [desktop verification and limits](qa/DESKTOP_PASS.md) and the [matched screenshot gallery / lift sequences](qa/desktop-pass/index.html). Latest alternating reviewed/final browser samples both presented at 60 FPS at 1440×900 and 1920×1080, at 60×/300×; earlier samples reached 99.6–120 FPS. These short local readings do not establish sustained performance.
