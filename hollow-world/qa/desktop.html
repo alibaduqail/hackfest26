@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Strata desktop verification</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="../src/main.tsx"></script>
+    <script type="module">
+      const meter = document.createElement("section");
+      meter.setAttribute("aria-label", "Desktop frame measurement");
+      meter.style.cssText =
+        "position:fixed;left:200px;bottom:150px;z-index:20;background:#111d25;padding:12px;border:1px solid #647780;max-width:620px;font:12px system-ui";
+      meter.innerHTML =
+        '<button style="background:#536973;padding:8px">Measure 10 seconds</button> <output>Ready. Reset the run and choose speed before measuring.</output>';
+      document.body.append(meter);
+      const button = meter.querySelector("button"),
+        output = meter.querySelector("output");
+      button.onclick = () => {
+        button.disabled = true;
+        const samples = [],
+          started = performance.now();
+        let previous = started;
+        output.textContent = "Measuring… keep this tab in the foreground.";
+        function frame(now) {
+          samples.push(now - previous);
+          previous = now;
+          if (now - started < 10000) return requestAnimationFrame(frame);
+          samples.sort((a, b) => a - b);
+          const result = {
+            viewport: `${innerWidth}×${innerHeight}`,
+            frames: samples.length,
+            seconds: +((now - started) / 1000).toFixed(2),
+            fps: +((samples.length * 1000) / (now - started)).toFixed(1),
+            p95Ms: +samples[Math.floor(samples.length * 0.95)].toFixed(2),
+            over33Ms: samples.filter((n) => n > 33.34).length,
+            hidden: document.hidden,
+          };
+          output.textContent = JSON.stringify(result);
+          button.disabled = false;
+        }
+        requestAnimationFrame(frame);
+      };
+    </script>
+  </body>
+</html>

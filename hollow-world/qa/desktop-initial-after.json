@@ -1,0 +1,18 @@
+[
+  {
+    "speed": 60,
+    "result": "Measure 10 seconds {\"viewport\":\"1440×900\",\"frames\":1201,\"seconds\":10.01,\"fps\":120,\"p95Ms\":9.8,\"over33Ms\":0,\"hidden\":false}"
+  },
+  {
+    "speed": 300,
+    "result": "Measure 10 seconds {\"viewport\":\"1440×900\",\"frames\":1201,\"seconds\":10.01,\"fps\":120,\"p95Ms\":9.9,\"over33Ms\":0,\"hidden\":false}"
+  },
+  {
+    "speed": 60,
+    "result": "Measure 10 seconds {\"viewport\":\"1920×1080\",\"frames\":1201,\"seconds\":10.01,\"fps\":120,\"p95Ms\":9.7,\"over33Ms\":0,\"hidden\":false}"
+  },
+  {
+    "speed": 300,
+    "result": "Measure 10 seconds {\"viewport\":\"1920×1080\",\"frames\":1201,\"seconds\":10.01,\"fps\":120,\"p95Ms\":9.7,\"over33Ms\":0,\"hidden\":false}"
+  }
+]

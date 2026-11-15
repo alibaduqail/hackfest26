@@ -1,0 +1,183 @@
+{
+  "method": "10-second requestAnimationFrame interval samples around the actual React + Pixi app; reset run, Works district, default zoom 1.15, 180 persistent residents, one foreground tab. Frame intervals include presentation cadence; these are not renderer CPU durations or sustained-load guarantees.",
+  "initial_before_commit": "86369c4",
+  "initial_after_commit": "7ed7de3",
+  "final_commit": "ec93508",
+  "initial_before": [
+    {
+      "speed": 60,
+      "viewport": "1440\u00d7900",
+      "frames": 997,
+      "seconds": 10.01,
+      "fps": 99.6,
+      "p95Ms": 16.7,
+      "over33Ms": 4,
+      "hidden": false
+    },
+    {
+      "speed": 300,
+      "viewport": "1440\u00d7900",
+      "frames": 1201,
+      "seconds": 10.01,
+      "fps": 120,
+      "p95Ms": 8.9,
+      "over33Ms": 0,
+      "hidden": false
+    },
+    {
+      "speed": 60,
+      "viewport": "1920\u00d71080",
+      "frames": 1201,
+      "seconds": 10.01,
+      "fps": 120,
+      "p95Ms": 9,
+      "over33Ms": 0,
+      "hidden": false
+    },
+    {
+      "speed": 300,
+      "viewport": "1920\u00d71080",
+      "frames": 1201,
+      "seconds": 10.01,
+      "fps": 120,
+      "p95Ms": 9.3,
+      "over33Ms": 0,
+      "hidden": false
+    }
+  ],
+  "initial_after": [
+    {
+      "speed": 60,
+      "viewport": "1440\u00d7900",
+      "frames": 1201,
+      "seconds": 10.01,
+      "fps": 120,
+      "p95Ms": 9.8,
+      "over33Ms": 0,
+      "hidden": false
+    },
+    {
+      "speed": 300,
+      "viewport": "1440\u00d7900",
+      "frames": 1201,
+      "seconds": 10.01,
+      "fps": 120,
+      "p95Ms": 9.9,
+      "over33Ms": 0,
+      "hidden": false
+    },
+    {
+      "speed": 60,
+      "viewport": "1920\u00d71080",
+      "frames": 1201,
+      "seconds": 10.01,
+      "fps": 120,
+      "p95Ms": 9.7,
+      "over33Ms": 0,
+      "hidden": false
+    },
+    {
+      "speed": 300,
+      "viewport": "1920\u00d71080",
+      "frames": 1201,
+      "seconds": 10.01,
+      "fps": 120,
+      "p95Ms": 9.7,
+      "over33Ms": 0,
+      "hidden": false
+    }
+  ],
+  "paired_final": [
+    {
+      "build": "86369c4",
+      "speed": 60,
+      "viewport": "1440\u00d7900",
+      "frames": 601,
+      "seconds": 10.01,
+      "fps": 60,
+      "p95Ms": 16.9,
+      "over33Ms": 0,
+      "hidden": false,
+      "record": "Transcribed from the immediate CUA meter output."
+    },
+    {
+      "build": "ec93508",
+      "speed": 60,
+      "viewport": "1440\u00d7900",
+      "frames": 601,
+      "seconds": 10.01,
+      "fps": 60,
+      "p95Ms": 16.8,
+      "over33Ms": 0,
+      "hidden": false,
+      "record": "Transcribed from the immediate CUA meter output."
+    },
+    {
+      "build": "86369c4",
+      "speed": 300,
+      "viewport": "1440\u00d7900",
+      "frames": 601,
+      "seconds": 10.01,
+      "fps": 60,
+      "p95Ms": 18.6,
+      "over33Ms": 0,
+      "hidden": false
+    },
+    {
+      "build": "ec93508",
+      "speed": 300,
+      "viewport": "1440\u00d7900",
+      "frames": 601,
+      "seconds": 10.01,
+      "fps": 60,
+      "p95Ms": 18.6,
+      "over33Ms": 0,
+      "hidden": false
+    },
+    {
+      "build": "86369c4",
+      "speed": 60,
+      "viewport": "1920\u00d71080",
+      "frames": 601,
+      "seconds": 10.01,
+      "fps": 60,
+      "p95Ms": 18.6,
+      "over33Ms": 0,
+      "hidden": false
+    },
+    {
+      "build": "ec93508",
+      "speed": 60,
+      "viewport": "1920\u00d71080",
+      "frames": 601,
+      "seconds": 10.01,
+      "fps": 60,
+      "p95Ms": 18.5,
+      "over33Ms": 0,
+      "hidden": false
+    },
+    {
+      "build": "86369c4",
+      "speed": 300,
+      "viewport": "1920\u00d71080",
+      "frames": 601,
+      "seconds": 10.01,
+      "fps": 60,
+      "p95Ms": 18.6,
+      "over33Ms": 0,
+      "hidden": false
+    },
+    {
+      "build": "ec93508",
+      "speed": 300,
+      "viewport": "1920\u00d71080",
+      "frames": 601,
+      "seconds": 10.01,
+      "fps": 60,
+      "p95Ms": 18.5,
+      "over33Ms": 0,
+      "hidden": false
+    }
+  ],
+  "note": "Presentation cadence changed during the session. The late comparison alternated the reviewed source served from a clean git archive and the final source in the same browser. Both then presented at 60 FPS. Earlier initial samples reached 99.6\u2013120 FPS. No cause for the cadence change was established."
+}

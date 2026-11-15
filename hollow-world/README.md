@@ -1,6 +1,8 @@
 # The Hollow · A world below
 
-An explorable 2D underground world, built with React, TypeScript and PixiJS. The reference scenario has three connected districts, eight depth levels, 30 furnished rooms, 180 persistent people and 60 households. Ordinary life runs autonomously; choose when to introduce an incident.
+An explorable isometric underground world, built with React, TypeScript and PixiJS. The reference scenario has three connected districts, eight depth levels, 30 furnished rooms, 180 persistent people and 60 households. Ordinary life runs autonomously; choose when to introduce an incident.
+
+This branch explores a darker Strata presentation. See the [visual experiment and current checks](STRATA_EXPERIMENT.md); the simulation and save formats are unchanged.
 
 ## Start locally
 

@@ -7,11 +7,20 @@ import type {
   WorkerRequest,
   WorkerResponse,
   WorldState,
+  PersonDef,
+  Report,
 } from "./engine/types";
-import { Router } from "./engine/routing";
+import { blocked, Router } from "./engine/routing";
 import { validateSave, validateScenario } from "./engine/validation";
 import { WorldRenderer, type Selection } from "./world/render";
 import { download, loadLocal, saveLocal, type SaveFile } from "./persistence";
+import {
+  appearance,
+  cssColor,
+  cargoUnits,
+  importantEvent,
+  subjectRoom,
+} from "./world/presentation";
 import "./style.css";
 const districts = ["The Exchange", "The Works", "The Sump"];
 const clock = (tick: number, start = 7) =>
@@ -31,6 +40,17 @@ function App() {
     [toast, setToast] = useState(""),
     [loading, setLoading] = useState(true),
     [following, setFollowing] = useState(false),
+    [activeLevel, setActiveLevel] = useState<number | null>(null),
+    [historyFilter, setHistoryFilter] = useState("important"),
+    [lastRequest, setLastRequest] = useState<{
+      id: string;
+      target: string;
+      type: string;
+      message: string;
+      ok?: boolean;
+      tick?: number;
+    }>(),
+    [activeDistrict, setActiveDistrict] = useState<number | null>(1),
     [performanceStats, setPerformanceStats] = useState({
       tickMs: 0,
       achievedSpeed: 0,
@@ -51,6 +71,23 @@ function App() {
     setSelection(s);
     setPanel(null);
     renderer.current?.select(s);
+    if (renderer.current) {
+      renderer.current.followId = null;
+      renderer.current.setInspectorOpen(true);
+    }
+    setFollowing(false);
+    setReportView(false);
+    if (scenario && stateRef.current) {
+      const location =
+        subjectRoom(scenario, stateRef.current, s.id) ??
+        scenario.rooms.find(
+          (r) => r.id === scenario.links.find((l) => l.id === s.id)?.a,
+        );
+      if (location) {
+        setActiveDistrict(location.district);
+        setActiveLevel(location.floor + 1);
+      }
+    }
     if (focus) {
       renderer.current?.focus(s.id);
       setFollowing(false);
@@ -85,12 +122,25 @@ function App() {
       } else if (m.type === "error") {
         notify(m.message);
         setLoading(false);
-      } else if (m.type === "receipt")
+      } else if (m.type === "receipt") {
+        setLastRequest((previous) =>
+          previous?.id === m.receipt.commandId
+            ? {
+                ...previous,
+                ok: m.receipt.ok,
+                tick: m.receipt.scheduledTick,
+                message: m.receipt.ok
+                  ? "Request acknowledged; queued for the next simulation tick."
+                  : (m.receipt.reason ?? "Request rejected"),
+              }
+            : previous,
+        );
         notify(
           m.receipt.ok
             ? "Request accepted; scheduled for the next simulation tick."
             : (m.receipt.reason ?? "Request rejected"),
         );
+      }
     };
     w.onerror = () =>
       notify(
@@ -150,6 +200,16 @@ function App() {
     if (state && renderer.current?.app.renderer)
       renderer.current.update(state, playing);
   }, [state, playing]);
+  useEffect(() => {
+    renderer.current?.setInspectorOpen(Boolean(panel || selection));
+    if (following && state && scenario && renderer.current?.followId) {
+      const location = subjectRoom(scenario, state, renderer.current.followId);
+      if (location) {
+        setActiveDistrict(location.district);
+        setActiveLevel(location.floor + 1);
+      }
+    }
+  }, [state, following, panel, selection?.id, scenario]);
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (
@@ -213,6 +273,7 @@ function App() {
     setSelection(null);
     setPanel(null);
     setFollowing(false);
+    setLastRequest(undefined);
     send({ type: "load", scenario: file.scenario, state: file.state });
     notify("Saved world restored, paused at the recorded time.");
   }
@@ -249,18 +310,22 @@ function App() {
   }
   function request(
     type:
-      | "assignBackup"
-      | "requestRepair"
-      | "setDeviceEnabled"
-      | "requestDelivery",
+      "assignBackup" | "requestRepair" | "setDeviceEnabled" | "requestDelivery",
     targetId: string,
     value?: string | boolean,
   ) {
     if (!state) return;
+    const commandId = `manual-${state.runId}-${++commandSequence.current}`;
+    setLastRequest({
+      id: commandId,
+      target: targetId,
+      type,
+      message: "Sending request…",
+    });
     send({
       type: "command",
       command: {
-        commandId: `manual-${state.runId}-${++commandSequence.current}`,
+        commandId,
         actorId: "district-operator",
         expectedRunId: state.runId,
         requestedAtTick: state.tick,
@@ -273,6 +338,7 @@ function App() {
   function togglePanel(p: typeof panel) {
     setPanel(panel === p ? null : p);
     setSelection(null);
+    renderer.current?.select({ kind: "room", id: "" });
   }
   function incident(kind: IncidentKind) {
     send({ type: "incident", kind });
@@ -281,6 +347,8 @@ function App() {
     selection?.kind === "room"
       ? scenario?.rooms.find((r) => r.id === selection.id)
       : undefined;
+  const pumpRoom = scenario?.rooms.find((r) => r.kind === "pump");
+  const pumpState = state?.rooms.find((r) => r.id === pumpRoom?.id);
   const selectedPerson =
     selection?.kind === "person"
       ? scenario?.residents.find((p) => p.id === selection.id)
@@ -345,7 +413,7 @@ function App() {
   const deficits =
     state?.households.reduce((n, h) => n + h.cutoffSeconds / 60, 0) ?? 0;
   const report = state?.reports.find(
-    (r) => r.subjectId === (selectedRoom?.id ?? "d2-f5"),
+    (r) => r.subjectId === (selectedRoom?.id ?? pumpRoom?.id),
   );
   const reportStatus = !report
     ? "UNKNOWN"
@@ -359,6 +427,38 @@ function App() {
   const currentTemp = state
     ? state.rooms.reduce((n, r) => n + r.temperature, 0) / state.rooms.length
     : 0;
+  const backupIssue =
+    !state || !scenario || !selectedRoom
+      ? "World is loading"
+      : !state.comms
+        ? "Command channel disconnected"
+        : state.commands.length >= 100
+          ? "Command queue full"
+          : state.commands.some(
+                (c) =>
+                  c.type === "assignBackup" && c.targetId === selectedRoom.id,
+              )
+            ? "A backup request is pending"
+            : state.batteryMilliWh <= 0
+              ? "Battery empty"
+              : selectedRoom.demandW > scenario.settings.batteryMaxW
+                ? "Discharge power limit exceeded"
+                : state.disabled.includes(selectedRoom.id)
+                  ? "Enable this device before assigning backup"
+                  : state.backupTarget === selectedRoom.id
+                    ? "Backup is assigned to this machine"
+                    : "";
+  function selectEvent(id: string) {
+    const kind =
+      id === "cart"
+        ? "cart"
+        : scenario?.residents.some((p) => p.id === id)
+          ? "person"
+          : scenario?.links.some((l) => l.id === id)
+            ? "link"
+            : "room";
+    select({ kind, id }, true);
+  }
   return (
     <div className="shell">
       <header className="topbar">
@@ -368,33 +468,35 @@ function App() {
           onClick={(e) => {
             e.preventDefault();
             renderer.current?.recenter();
+            setActiveDistrict(null);
+            setActiveLevel(null);
+            setFollowing(false);
           }}
         >
-          <span className="brand-mark">
-            H<span>•</span>
-          </span>
           <span>
-            THE HOLLOW<small>A WORLD BELOW</small>
+            Hollow<small>Sector 07</small>
           </span>
         </a>
         <div className="world-indicator">
-          <i /> LIVE WORLD <span>/</span> SECTOR 07 <b>AFTER THE DESCENT</b>
+          <i /> District network <span>/</span> Observer view
         </div>
         <nav aria-label="World tools">
           <button
+            aria-label="Explore"
             className={panel === "explore" ? "active" : ""}
             onClick={() => togglePanel("explore")}
           >
             ⌕ <span>Explore</span>
           </button>
           <button
+            aria-label="History"
             className={panel === "history" ? "active" : ""}
             onClick={() => togglePanel("history")}
           >
             ◷ <span>History</span>
-            {state && state.events.length > 1 && <em>{state.events.length}</em>}
           </button>
           <button
+            aria-label="Incidents"
             className={panel === "experiment" ? "active" : ""}
             onClick={() => togglePanel("experiment")}
           >
@@ -408,22 +510,34 @@ function App() {
           </button>
         </nav>
       </header>
-      <main className="world-stage">
+      <main
+        className={`world-stage ${panel || selection ? "inspector-open" : ""}`}
+      >
         <div ref={canvas} className="world-canvas" />
         <div className={`world-title ${selection || panel ? "compact" : ""}`}>
           <span className="eyebrow">
-            A LIVING DISTRICT · FICTIONAL SIMULATION
+            Fictional settlement · sealed for thirty years
           </span>
-          <h1>There is life down here.</h1>
-          <p>Follow a person. Find a story. Watch a city keep going.</p>
+          <h1>
+            {activeDistrict === null ? "The Hollow" : districts[activeDistrict]}
+          </h1>
+          <p>
+            {activeLevel
+              ? `Level ${activeLevel}${following ? " · Following across the settlement" : ""}`
+              : "The next shift begins beneath the surface."}
+          </p>
         </div>
         <div className="district-nav" aria-label="District navigation">
           {districts.map((d, i) => (
             <button
               key={d}
+              className={activeDistrict === i ? "active" : ""}
+              aria-pressed={activeDistrict === i}
               onClick={() => {
                 renderer.current?.district(i);
+                setActiveDistrict(i);
                 setFollowing(false);
+                setActiveLevel(null);
               }}
             >
               <span>0{i + 1}</span>
@@ -441,10 +555,15 @@ function App() {
         </div>
         <div className="world-stats">
           <span>
-            <b>{state?.people.length ?? 180}</b> residents
+            <b>{state?.people.length ?? scenario?.residents.length ?? 0}</b>{" "}
+            residents
           </span>
           <span>
-            <b>{connectedHomes}/60</b> homes connected
+            <b>
+              {connectedHomes}/
+              {state?.households.length ?? scenario?.households.length ?? 0}
+            </b>{" "}
+            homes connected
           </span>
           <span>
             <b>{currentTemp.toFixed(1)}°</b> average temperature
@@ -467,7 +586,9 @@ function App() {
             aria-label="Recenter world"
             onClick={() => {
               renderer.current?.recenter();
+              setActiveDistrict(null);
               setFollowing(false);
+              setActiveLevel(null);
             }}
           >
             ⌖
@@ -492,15 +613,20 @@ function App() {
           <div className="incident-banner">
             <span>⚡</span>
             <div>
-              <strong>LOWER FEEDER OFFLINE</strong>
-              <small>Upper clinic remains lit. Watch the lower crossing.</small>
+              <strong>Lower feeder offline</strong>
+              <small>
+                {state.closedLinks.length
+                  ? `${state.closedLinks.length} flooded passage${state.closedLinks.length === 1 ? "" : "s"} · ${state.households.filter((h) => h.accessClosed).length} homes isolated`
+                  : `Lower lifts unavailable · drainage pump ${pumpState?.powered ? "operating" : "offline"}`}
+              </small>
             </div>
             <button
+              disabled={!pumpRoom}
               onClick={() => {
-                select({ kind: "room", id: "d2-f5" }, true);
+                if (pumpRoom) select({ kind: "room", id: pumpRoom.id }, true);
               }}
             >
-              Locate ↗
+              Drainage & backup ↗
             </button>
           </div>
         )}
@@ -512,7 +638,11 @@ function App() {
           </div>
         )}
         {(panel || selection) && (
-          <aside className="drawer" aria-label="World inspector">
+          <aside
+            key={panel ?? `${selection?.kind}:${selection?.id}`}
+            className="drawer"
+            aria-label="World inspector"
+          >
             <div className="drawer-top">
               <span className="eyebrow">
                 {panel === "explore"
@@ -599,19 +729,7 @@ function App() {
                             select({ kind: "person", id: p.id }, true)
                           }
                         >
-                          <span
-                            className="person-icon"
-                            style={{
-                              background: [
-                                "#bca879",
-                                "#91a78d",
-                                "#81a4a7",
-                                "#b18d78",
-                              ][p.appearance % 4],
-                            }}
-                          >
-                            ●
-                          </span>
+                          <ResidentPortrait person={p} />
                           <span>
                             <strong>{p.name}</strong>
                             <small>
@@ -632,6 +750,22 @@ function App() {
                   Recorded events from this run. Select one to find where it
                   happened.
                 </p>
+                <div className="tabs" aria-label="History filter">
+                  <button
+                    className={historyFilter === "important" ? "selected" : ""}
+                    aria-pressed={historyFilter === "important"}
+                    onClick={() => setHistoryFilter("important")}
+                  >
+                    Outages & deliveries
+                  </button>
+                  <button
+                    className={historyFilter === "all" ? "selected" : ""}
+                    aria-pressed={historyFilter === "all"}
+                    onClick={() => setHistoryFilter("all")}
+                  >
+                    All events ({state?.events.length ?? 0})
+                  </button>
+                </div>
                 <div className="summary-row">
                   <span>
                     Supply delivered
@@ -643,18 +777,19 @@ function App() {
                 </div>
                 <div className="event-list">
                   {state?.events
+                    .filter((e) => historyFilter === "all" || importantEvent(e))
                     .slice()
                     .reverse()
                     .map((e) => (
                       <button
                         key={e.id}
-                        onClick={() =>
-                          select({ kind: "room", id: e.subjectId }, true)
-                        }
+                        onClick={() => selectEvent(e.subjectId)}
                       >
                         <time>{clock(e.tick, scenario?.startHour)}</time>
                         <span>
-                          <small>{e.kind.toUpperCase()}</small>
+                          <small>
+                            {e.kind === "access" ? "Household access" : e.kind}
+                          </small>
                           {e.text}
                         </span>
                         <b>↗</b>
@@ -663,8 +798,10 @@ function App() {
                 </div>
                 <h3>Household access intervals</h3>
                 <p className="muted">
-                  12 households × 5 closed minutes = 60 household-minutes.
-                  Concurrent closures count each household once.
+                  {state?.households.filter((h) => h.accessClosed).length ?? 0}{" "}
+                  households currently isolated; {decimal(deficits)}{" "}
+                  household-minutes of access lost. Concurrent closures count
+                  each household once.
                 </p>
                 {state?.deficits.slice(-24).map((d, i) => (
                   <div className="deficit" key={i}>
@@ -681,7 +818,6 @@ function App() {
                         : clock(d.end, scenario?.startHour)}{" "}
                       · {decimal(((d.end ?? state.tick) - d.start) / 60)} min
                     </span>
-                    <small>Causes: {d.causes.join(", ")}</small>
                   </div>
                 ))}
               </>
@@ -845,8 +981,10 @@ function App() {
                 <h3>Under the surface</h3>
                 <p className="muted">
                   {scenario?.rooms.length} rooms · {scenario?.residents.length}{" "}
-                  residents · 60 households · 8 levels. All populations,
-                  capacities, needs and exposure rules are fictional inputs.
+                  residents · {scenario?.households.length} households ·{" "}
+                  {new Set(scenario?.rooms.map((r) => r.floor)).size} levels.
+                  All populations, capacities, needs and exposure rules are
+                  fictional inputs.
                 </p>
                 <p className="muted">
                   One fixed simulation-second per tick. Rendering never advances
@@ -869,6 +1007,89 @@ function App() {
                   {selectedRoom.floor + 1}
                 </span>
                 <h2>{selectedRoom.name}</h2>
+                {(selectedRoom.kind === "pump" ||
+                  selectedRoom.kind === "fan") &&
+                  state &&
+                  scenario && (
+                    <section
+                      className={`recovery-action ${!room.powered || state.closedLinks.length ? "has-problem" : ""}`}
+                      aria-label="Current problem and backup action"
+                    >
+                      <h3>
+                        {selectedRoom.kind === "pump"
+                          ? state.closedLinks.length
+                            ? "Crossing flooded"
+                            : !room.powered
+                              ? "Drainage pump has no power"
+                              : state.backupTarget === selectedRoom.id &&
+                                  state.blackout
+                                ? "Pump running on backup"
+                                : "Drainage pump running"
+                          : room.powered
+                            ? "Ventilation running"
+                            : "Ventilation has no power"}
+                      </h3>
+                      <p>
+                        Live observer ·{" "}
+                        {selectedRoom.kind === "pump"
+                          ? `${(state.waterL / (scenario.settings.tunnelAreaM2 * 1000)).toFixed(2)} m water; crossing closes at ${scenario.settings.closeDepthM} m. ${connectedHomes}/${state.households.length} homes connected.`
+                          : `${room.temperature.toFixed(1)}°C · air burden ${room.air.toFixed(1)}/100.`}
+                      </p>
+                      <button
+                        className="gold-button"
+                        disabled={Boolean(backupIssue)}
+                        onClick={() =>
+                          request(
+                            "assignBackup",
+                            selectedRoom.id,
+                            selectedRoom.kind,
+                          )
+                        }
+                      >
+                        {state.backupTarget === selectedRoom.id
+                          ? "Backup assigned"
+                          : `Request ${selectedRoom.kind} backup`}
+                      </button>
+                      <p className="action-prerequisite">
+                        {backupIssue ||
+                          `${selectedRoom.demandW} W device · ${scenario.settings.batteryMaxW} W backup limit · ${decimal(state.batteryMilliWh / 1000)} Wh remaining. Transfers backup from the current ${state.backup}.`}
+                      </p>
+                      {lastRequest?.target === selectedRoom.id && (
+                        <p className="command-feedback" role="status">
+                          {lastRequest.ok &&
+                          lastRequest.tick &&
+                          state.tick >= lastRequest.tick &&
+                          !state.commands.some(
+                            (c) => c.commandId === lastRequest.id,
+                          )
+                            ? `Executed at ${clock(lastRequest.tick, scenario.startHour)}:${String(lastRequest.tick % 60).padStart(2, "0")}. ${lastRequest.type === "assignBackup" ? `Backup assigned to ${selectedRoom.name}.` : "Operator request executed."}`
+                            : `${lastRequest.message}${lastRequest.ok && !playing ? " Resume or step one minute to execute." : ""}`}
+                        </p>
+                      )}
+                      {!state.comms && (
+                        <p className="action-prerequisite">
+                          Observer view remains live. Controller readings below
+                          are retained samples; operator requests need
+                          communications.
+                        </p>
+                      )}
+                      <button
+                        className="text-button"
+                        onClick={() => setReportView(!reportView)}
+                      >
+                        {reportView ? "Hide" : "View"} controller report ·{" "}
+                        {reportStatus.toLowerCase()}
+                      </button>
+                      {reportView && (
+                        <ControllerReport
+                          status={reportStatus}
+                          report={report}
+                          tick={state.tick}
+                          startHour={scenario.startHour}
+                        />
+                      )}
+                    </section>
+                  )}
                 <p className="room-description">{describe(selectedRoom)}</p>
                 <div className="status-pill">
                   <i className={room.powered ? "" : "off"} />
@@ -922,7 +1143,7 @@ function App() {
                   </p>
                 ) : (
                   <div className="people-list">
-                    {occupants.slice(0, 20).map((p) => (
+                    {occupants.map((p) => (
                       <button
                         key={p.id}
                         onClick={() =>
@@ -933,7 +1154,11 @@ function App() {
                           {scenario?.residents.find((d) => d.id === p.id)?.name}
                         </strong>
                         <small>
-                          {p.taskState === "queued" ? "Waiting · " : ""}
+                          {p.taskState === "queued"
+                            ? "Waiting · "
+                            : p.taskState === "blocked"
+                              ? "Blocked · "
+                              : ""}
                           {p.task} ↗
                         </small>
                       </button>
@@ -961,12 +1186,7 @@ function App() {
                           (r) => r.id === (l.a === selectedRoom.id ? l.b : l.a),
                         )?.name
                       }
-                      <small>
-                        {state?.closedLinks.includes(l.id)
-                          ? "FLOODED"
-                          : l.kind.toUpperCase()}{" "}
-                        ↗
-                      </small>
+                      <small>{(state && blocked(l, state)) || l.kind} ↗</small>
                     </button>
                   ))}
                 <h3>Households depending on this room</h3>
@@ -989,52 +1209,40 @@ function App() {
                     </div>
                   );
                 })}
-                <button
-                  className="text-button"
-                  onClick={() => setReportView(!reportView)}
-                >
-                  {reportView ? "Hide" : "View"} controller report{" "}
-                  {reportStatus === "STALE" ? "· STALE" : ""} ↓
-                </button>
-                {reportView && (
-                  <div className="report">
-                    <b>{reportStatus} · REPORTED INFORMATION</b>
-                    <p>
-                      {report
-                        ? `Sample at ${clock(report.sampledAtTick, scenario?.startHour)}:${String(report.sampledAtTick % 60).padStart(2, "0")} · ${state!.tick - report.sampledAtTick}s old. Water ${report.waterM.toFixed(2)}m · ${report.temperature.toFixed(1)}°C · ${report.powered ? "powered" : "unpowered"}`
-                        : "No sample delivered. Values are unknown."}
-                    </p>
-                  </div>
-                )}
-                {selectedRoom.kind === "pump" || selectedRoom.kind === "fan" ? (
-                  <>
-                    <h3>Operator request</h3>
-                    <p className="muted">
-                      Battery {decimal((state?.batteryMilliWh ?? 0) / 1000)} Wh
-                      · {scenario?.settings.batteryMaxW} W maximum. Current
-                      backup: {state?.backup}. Requests require communications.
-                    </p>
-                    <button
-                      className="gold-button"
-                      onClick={() =>
-                        request(
-                          "assignBackup",
-                          selectedRoom.id,
-                          selectedRoom.kind,
-                        )
-                      }
-                    >
-                      Request backup for {selectedRoom.kind}
-                    </button>
-                  </>
-                ) : null}
+                {selectedRoom.kind !== "pump" &&
+                  selectedRoom.kind !== "fan" && (
+                    <>
+                      <button
+                        className="text-button"
+                        onClick={() => setReportView(!reportView)}
+                      >
+                        {reportView ? "Hide" : "View"} controller report{" "}
+                        {reportStatus === "STALE" ? "· STALE" : ""} ↓
+                      </button>
+                      {reportView && (
+                        <ControllerReport
+                          status={reportStatus}
+                          report={report}
+                          tick={state!.tick}
+                          startHour={scenario!.startHour}
+                        />
+                      )}
+                    </>
+                  )}
                 <button
                   className="text-button"
                   onClick={() =>
-                    request("setDeviceEnabled", selectedRoom.id, !room.powered)
+                    request(
+                      "setDeviceEnabled",
+                      selectedRoom.id,
+                      state?.disabled.includes(selectedRoom.id),
+                    )
                   }
                 >
-                  Request {room.powered ? "device off" : "device on"}
+                  Request{" "}
+                  {state?.disabled.includes(selectedRoom.id)
+                    ? "device on"
+                    : "device off"}
                 </button>
               </>
             )}
@@ -1045,15 +1253,7 @@ function App() {
                 </span>
                 <h2>{selectedPerson.name}</h2>
                 <div className="resident-portrait">
-                  <span
-                    style={{
-                      background: ["#bda16f", "#87a087", "#81a0a5", "#ab8974"][
-                        selectedPerson.appearance % 4
-                      ],
-                    }}
-                  >
-                    ●<i />
-                  </span>
+                  <ResidentPortrait person={selectedPerson} />
                   <div>
                     <b>{person.task}</b>
                     <small>{person.taskState.toUpperCase()}</small>
@@ -1165,7 +1365,15 @@ function App() {
                 <h2>A lifeline on wheels.</h2>
                 <p className="room-description">{state.cart.reason}</p>
                 <div className="status-pill">
-                  {state.cart.phase.toUpperCase()}
+                  {state.cart.phase === "waiting"
+                    ? "Blocked · cargo retained"
+                    : state.cart.phase === "traveling"
+                      ? cargoUnits(state.cart.cargo) > 0
+                        ? "Loaded delivery"
+                        : "Empty return"
+                      : state.cart.phase === "loading"
+                        ? "Loading supplies"
+                        : "Unloading supplies"}
                 </div>
                 <button
                   className="gold-button"
@@ -1185,6 +1393,14 @@ function App() {
                     Medicine
                     <strong>{decimal(state.cart.cargo.medicine)}</strong>
                   </span>
+                  {(["water", "parts", "waste"] as const)
+                    .filter((item) => state.cart.cargo[item] > 0)
+                    .map((item) => (
+                      <span key={item}>
+                        {item}
+                        <strong>{decimal(state.cart.cargo[item])}</strong>
+                      </span>
+                    ))}
                   <span>
                     Food delivered
                     <strong>{decimal(state.cart.delivered)}</strong>
@@ -1204,6 +1420,13 @@ function App() {
                   Goods count as delivered only after unloading into household
                   stores. Flooding leaves the cargo on the cart.
                 </p>
+                {(state.cart.phase === "loading" ||
+                  state.cart.phase === "unloading") && (
+                  <p className="command-feedback">
+                    Transfer in {Math.max(0, state.cart.until - state.tick)}{" "}
+                    simulated seconds.
+                  </p>
+                )}
               </>
             )}
             {link && (
@@ -1214,24 +1437,30 @@ function App() {
                 <h2>
                   {link.kind === "sump"
                     ? "The lower crossing"
-                    : "A way through"}
+                    : link.kind === "lift"
+                      ? "Service lift"
+                      : "A way through"}
                 </h2>
                 <p className="room-description">
                   {scenario?.rooms.find((r) => r.id === link.a)?.name} ↔{" "}
                   {scenario?.rooms.find((r) => r.id === link.b)?.name}
                 </p>
                 <div className="status-pill">
-                  {state?.closedLinks.includes(link.id)
-                    ? "FLOODED · NO PASSAGE"
-                    : link.kind === "checkpoint" && state?.lockdown
-                      ? "SEALED BY DIRECTORATE"
-                      : "PASSAGE OPEN"}
+                  {(state && blocked(link, state)) || "Passage open"}
                 </div>
                 <p className="muted">
                   Travel: {link.seconds}s · simultaneous capacity:{" "}
                   {link.capacity}
                   {link.permit ? " · service permit required" : ""}.
                 </p>
+                {link.kind === "lift" && (
+                  <p className="muted">
+                    {state?.people.filter((p) => p.edgeId === link.id).length ??
+                      0}{" "}
+                    residents crossing. Landing lights and moving platforms show
+                    these powered, capacity-limited traversals.
+                  </p>
+                )}
                 {link.kind === "sump" && (
                   <>
                     <h3>Water against the markings</h3>
@@ -1261,9 +1490,9 @@ function App() {
           </aside>
         )}
         <div className="bottom-hint">
-          <span>↔ DRAG TO EXPLORE</span>
-          <span>⊕ SCROLL TO LOOK CLOSER</span>
-          <span>◎ CLICK A PERSON TO FOLLOW</span>
+          <span>Drag to explore</span>
+          <span>Scroll to zoom</span>
+          <span>Select a resident to follow</span>
         </div>
       </main>
       <footer className="timebar">
@@ -1291,6 +1520,7 @@ function App() {
             <button
               key={s}
               className={speed === s ? "selected" : ""}
+              aria-pressed={speed === s}
               onClick={() => send({ type: "speed", speed: s })}
             >
               {s}×
@@ -1299,7 +1529,7 @@ function App() {
         </div>
         <div className="bottom-state">
           <i className={state?.comms ? "" : "offline"} />
-          {state?.comms ? "NETWORK CONNECTED" : "NETWORK SILENT"}
+          {state?.comms ? "Network connected" : "Network silent"}
           <button
             onClick={() => {
               select({ kind: "cart", id: "cart" }, true);
@@ -1332,6 +1562,95 @@ function App() {
         </div>
       )}
     </div>
+  );
+}
+function ControllerReport({
+  status,
+  report,
+  tick,
+  startHour,
+}: {
+  status: string;
+  report: Report | undefined;
+  tick: number;
+  startHour: number;
+}) {
+  return (
+    <div className="report">
+      <b>{status.toLowerCase()} · Controller report</b>
+      <p>
+        {report
+          ? `Sample at ${clock(report.sampledAtTick, startHour)}:${String(report.sampledAtTick % 60).padStart(2, "0")} · ${tick - report.sampledAtTick}s old. Water ${report.waterM.toFixed(2)} m · ${report.temperature.toFixed(1)}°C · ${report.powered ? "powered" : "unpowered"}`
+          : "No sample delivered. Values are unknown."}
+      </p>
+    </div>
+  );
+}
+function ResidentPortrait({ person }: { person: PersonDef }) {
+  const a = appearance(person),
+    skin = cssColor(a.skin),
+    hair = cssColor(a.hair),
+    shirt = cssColor(a.shirt);
+  return (
+    <svg
+      className="person-portrait"
+      viewBox="0 0 80 90"
+      role="img"
+      aria-label={`${person.name}, ${person.role}`}
+    >
+      <rect width="80" height="90" rx="4" fill="#273b43" />
+      <path
+        d={`M${21 - a.width / 2} 90 L23 57 Q40 48 57 57 L${59 + a.width / 2} 90Z`}
+        fill={shirt}
+      />
+      <rect x="34" y="42" width="12" height="16" fill={skin} />
+      <ellipse cx="40" cy="32" rx="16" ry="21" fill={skin} />
+      <path
+        d="M24 33 Q19 10 38 9 Q60 8 57 27 L50 22 L28 23 L28 39Z"
+        fill={hair}
+      />
+      {a.hairStyle === 1 && <circle cx="23" cy="26" r="7" fill={hair} />}
+      {a.hairStyle === 2 && (
+        <path d="M23 20 L20 52 L31 48 L28 24Z" fill={hair} />
+      )}
+      <circle cx="35" cy="32" r="1.6" fill="#253239" />
+      <circle cx="47" cy="32" r="1.6" fill="#253239" />
+      <path
+        d="M39 35 L38 41 L42 41 M36 46 Q41 49 46 45"
+        fill="none"
+        stroke="#775b48"
+        strokeWidth="1.6"
+      />
+      {a.technical && (
+        <>
+          <path d="M20 22 Q20 4 40 4 Q60 4 60 22Z" fill="#bda16b" />
+          <path d="M17 22 H63" stroke="#d3b87c" strokeWidth="5" />
+        </>
+      )}
+      {(a.grower || a.technical) && (
+        <>
+          <path d="M31 55 H49 L55 90 H25Z" fill={cssColor(a.apron)} />
+          <path
+            d="M29 55 L32 70 M51 55 L48 70"
+            stroke="#c2b89a"
+            strokeWidth="3"
+          />
+        </>
+      )}
+      {a.medical && (
+        <>
+          <path
+            d="M28 54 L40 72 L51 54 M40 72 V90"
+            fill="none"
+            stroke="#7a9993"
+            strokeWidth="2"
+          />
+          <path d="M25 56 L56 79" stroke="#4a777a" strokeWidth="3" />
+          <rect x="46" y="72" width="18" height="15" rx="2" fill="#507c7d" />
+          <path d="M55 75 V84 M51 79.5 H59" stroke="#e5e6cc" strokeWidth="3" />
+        </>
+      )}
+    </svg>
   );
 }
 function describe(room: RoomDef) {
