@@ -52,6 +52,15 @@ test("fixture spots stay on each room floor and a gathering uses depth and varie
   assert.equal(new Set(spots.map((p) => p.facing)).size, 2);
 });
 
+test("the full commons shift has a separate seat at each shared table", () => {
+  const room = scenario.rooms.find((r) => r.id === "d2-f2")!;
+  const seats = Array.from({ length: room.capacity }, (_, i) =>
+    fixtureSpot(room, "sit", i),
+  );
+  assert.equal(new Set(seats.map((p) => `${p.x},${p.z}`)).size, seats.length);
+  assert.ok(seats.every((p) => p.h === 14));
+});
+
 test("cart totals expose an empty deck and retain real stock during a blocked trip", () => {
   const engine = new HollowEngine(scenario);
   assert.equal(cargoUnits(engine.state.cart.cargo), 0);

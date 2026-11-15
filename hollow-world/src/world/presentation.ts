@@ -90,16 +90,16 @@ export function fixtureSpot(
       facing: slot % 2 ? -1 : 1,
     };
   }
-  if (pose === "sit" && room.kind === "mess")
-    return {
-      x:
-        50 +
-        (slot % Math.max(1, Math.floor((w - 65) / 95))) * 95 +
-        (Math.floor(slot / 4) % 2) * 26,
-      z: slot % 2 ? 112 : 44,
-      h: 14,
-      facing: slot % 2 ? -1 : 1,
-    };
+  if (pose === "sit" && room.kind === "mess") {
+    const tables = Math.max(1, Math.ceil((w - 91) / 95));
+    if (slot < tables * 4)
+      return {
+        x: 48 + Math.floor(slot / 4) * 95 + (slot % 2) * 34,
+        z: slot % 4 < 2 ? 44 : 112,
+        h: 14,
+        facing: slot % 4 < 2 ? 1 : -1,
+      };
+  }
   if (pose === "sit" && room.kind === "home") {
     const beds = Math.max(1, Math.floor((w - 30) / 110));
     if (slot < beds * 2)

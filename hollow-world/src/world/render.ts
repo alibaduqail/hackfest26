@@ -1541,7 +1541,7 @@ export class WorldRenderer {
       if (!p.edgeId) v.body.scale.x = target.facing;
       else if (Math.abs(dx) > 0.4) v.body.scale.x = dx < 0 ? -1 : 1;
       v.body.texture = target.back ? v.back : v.front;
-      v.body.y = target.pose === "sit" ? -6 : -9;
+      v.body.y = target.pose === "sit" ? (target.seat > 0 ? 6 : 0) : -9;
       v.body.rotation =
         target.pose === "sleep"
           ? Math.PI / 2
