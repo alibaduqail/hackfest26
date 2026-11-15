@@ -327,7 +327,14 @@ export class WorldRenderer {
   private transferUntil = 0;
   private targets = new Map<
     string,
-    { point: Point; pose: Pose; facing: number; lift: boolean; back: boolean }
+    {
+      point: Point;
+      pose: Pose;
+      facing: number;
+      lift: boolean;
+      back: boolean;
+      seat: number;
+    }
   >();
   private landings = new Map<
     string,
@@ -1315,6 +1322,7 @@ export class WorldRenderer {
         facing: spot.facing,
         lift: inLift,
         back: pose === "work" && !appearance(def).medical,
+        seat: spot.h,
       });
       const v = this.people.get(person.id)!;
       v.root.alpha = state.rooms.find((r) => r.id === room.id)?.powered
@@ -1442,19 +1450,32 @@ export class WorldRenderer {
         if (amount <= 0) continue;
         const count = Math.min(4, Math.max(1, Math.ceil(amount / 12)));
         for (let i = 0; i < count; i++, slot++) {
-          const x = -23 + (slot % 3) * 17,
-            z = -7 + (Math.floor(slot / 3) % 2) * 15;
-          if (item === "water") tank(this.cartCargo, x + 7, z + 6, 7, 18, teal);
-          else {
-            crate(this.cartCargo, x, z, 15, 16, 16);
-            if (item === "medicine") {
-              block(this.cartCargo, x, z, 15, 12, 16, 0xa7bfb3, 16);
-              const p = local(x + 7, z, 25);
-              this.cartCargo
-                .rect(p.x - 1, p.y - 4, 3, 9)
-                .rect(p.x - 4, p.y - 1, 9, 3)
-                .fill(0x315e66);
-            }
+          const x = -26 + (slot % 3) * 18,
+            z = -8 + (Math.floor(slot / 3) % 2) * 17;
+          block(
+            this.cartCargo,
+            x,
+            z,
+            18,
+            15,
+            24,
+            item === "medicine" ? 0xa7bfb3 : item === "water" ? teal : 0xad945e,
+            16,
+          );
+          plane(this.cartCargo, x + 7, z, 3, 15, 40.5, 0xd8c598);
+          line(
+            this.cartCargo,
+            local(x + 8, z, 16),
+            local(x + 8, z, 40),
+            0xd8c598,
+            2,
+          );
+          if (item === "medicine") {
+            const p = local(x + 9, z, 28);
+            this.cartCargo
+              .rect(p.x - 1, p.y - 4, 3, 9)
+              .rect(p.x - 4, p.y - 1, 9, 3)
+              .fill(0x315e66);
           }
         }
       }
@@ -1464,8 +1485,8 @@ export class WorldRenderer {
             this.cartCargo,
             [
               local(x, -12, 16),
-              local(x, -8, 36),
-              local(x, 17, 36),
+              local(x, -8, 42),
+              local(x, 24, 42),
               local(x, 21, 16),
             ],
             0xc0b58b,
@@ -1530,6 +1551,7 @@ export class WorldRenderer {
               ? Math.sin(now * 14) * 0.035
               : 0;
       v.legs.scale.y = target.pose === "sit" ? 0.5 : 1;
+      v.legs.y = target.pose === "sit" && target.seat > 0 ? 12 : 0;
       v.legs.rotation =
         target.pose === "sleep"
           ? Math.PI / 2

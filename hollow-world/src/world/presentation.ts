@@ -100,6 +100,16 @@ export function fixtureSpot(
       h: 14,
       facing: slot % 2 ? -1 : 1,
     };
+  if (pose === "sit" && room.kind === "home") {
+    const beds = Math.max(1, Math.floor((w - 30) / 110));
+    if (slot < beds * 2)
+      return {
+        x: 47 + Math.floor(slot / 2) * 110 + (slot % 2) * 29,
+        z: 78,
+        h: 18,
+        facing: slot % 2 ? -1 : 1,
+      };
+  }
   const columns = Math.max(1, Math.floor((w - 60) / 48));
   return {
     x: 32 + (slot % columns) * 48 + (Math.floor(slot / columns) % 2) * 9,

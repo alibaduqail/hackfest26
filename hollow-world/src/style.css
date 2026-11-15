@@ -979,6 +979,53 @@ a {
 .hidden {
   display: none;
 }
+.person-portrait {
+  width: 32px;
+  height: 36px;
+  flex-shrink: 0;
+}
+.resident-portrait .person-portrait {
+  width: 72px;
+  height: 81px;
+  border: 1px solid #5c7276;
+}
+.recovery-action {
+  margin: 16px 0;
+  padding: 15px;
+  background: #20353d;
+  border-left: 3px solid #79a29a;
+}
+.recovery-action.has-problem {
+  border-color: #d2a76a;
+  background: #3a342a;
+}
+.recovery-action h3 {
+  margin: 0 0 8px;
+  font-size: 17px;
+  color: #f0ddba;
+}
+.recovery-action p {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #d4d7c5;
+}
+.recovery-action .action-prerequisite {
+  color: #bdc7bd;
+  margin-bottom: 0;
+}
+.command-feedback {
+  color: #e9d6a7;
+  font-size: 12px;
+  line-height: 1.6;
+}
+button:disabled {
+  cursor: default;
+}
+.gold-button:disabled {
+  color: #b3c3bc;
+  background: #34464a;
+  border-color: #617473;
+}
 @media (max-width: 1100px) {
   .world-indicator {
     display: none;
@@ -1306,5 +1353,161 @@ a {
   }
   .toast {
     bottom: 134px;
+  }
+}
+
+@media (min-width: 741px) {
+  .topbar {
+    height: 60px;
+  }
+  .world-stage {
+    --inspector-space: 22px;
+  }
+  .world-stage.inspector-open {
+    --inspector-space: 390px;
+  }
+  .drawer {
+    width: 364px;
+    padding: 22px;
+    background: #14232bf8;
+    scrollbar-gutter: stable;
+    overflow-anchor: none;
+  }
+  .drawer .muted,
+  .drawer .room-description,
+  .drawer .directory strong,
+  .drawer .people-list strong,
+  .drawer .stocks > span,
+  .drawer .connection,
+  .drawer .route-info,
+  .drawer .deficit strong,
+  .drawer .deficit span {
+    font-size: 13px;
+  }
+  .drawer .directory small,
+  .drawer .people-list small,
+  .drawer .deficit small,
+  .drawer .report p,
+  .drawer .text-button,
+  .drawer .status-pill,
+  .drawer .tabs button {
+    font-size: 12px;
+  }
+  .drawer .gold-button,
+  .drawer input {
+    font-size: 13px;
+  }
+  .drawer h3 {
+    font-size: 14px;
+  }
+  .world-title {
+    background: #101d25df;
+    padding: 10px 12px;
+    left: 22px;
+    top: 18px;
+    max-width: 310px;
+  }
+  .world-title .eyebrow {
+    color: #b2bdb5;
+  }
+  .world-title.compact h1,
+  .world-title.compact p {
+    display: block;
+  }
+  .district-nav {
+    top: 139px;
+    left: 22px;
+  }
+  .district-nav button {
+    width: 152px;
+    background: #14232bf5;
+  }
+  .district-nav button.active {
+    background: #394847;
+    border-left: 3px solid #e1b777;
+  }
+  .world-stats {
+    background: #11212bf2;
+    border: 1px solid #45575c;
+    padding: 12px 15px;
+    bottom: 44px;
+    gap: 22px;
+    color: #ced7ca;
+  }
+  .world-stats span {
+    color: #b8c7c0;
+  }
+  .world-stats b {
+    color: #ece2c6;
+  }
+  .camera-controls {
+    right: var(--inspector-space);
+    z-index: 5;
+    bottom: 44px;
+    background: #172933f5;
+  }
+  .camera-controls button {
+    width: 38px;
+    height: 38px;
+  }
+  .incident-banner {
+    top: 18px;
+    bottom: auto;
+    left: 352px;
+    right: var(--inspector-space);
+    max-width: 485px;
+    padding: 12px 15px;
+    z-index: 3;
+    background: #302c23f5;
+  }
+  .incident-banner strong {
+    font:
+      600 14px "Aptos",
+      "Segoe UI",
+      sans-serif;
+    letter-spacing: 0;
+  }
+  .incident-banner small {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  .incident-banner button {
+    font-size: 12px;
+    margin-left: auto;
+    white-space: nowrap;
+  }
+  .following {
+    left: 210px;
+    transform: none;
+    bottom: 104px;
+    background: #20343df5;
+  }
+  .clock > strong,
+  .clock > strong small {
+    color: #e6dcc0;
+    font-variant-numeric: tabular-nums;
+  }
+  .clock .eyebrow {
+    color: #adb9ae;
+  }
+  .time-controls button {
+    min-width: 45px;
+    font-size: 12px;
+  }
+  .time-controls button.selected {
+    background: #d2a76a;
+    color: #17272e;
+    border-color: #ecd2a3;
+  }
+  .bottom-state {
+    color: #bdcbbd;
+    max-width: 240px;
+  }
+  .bottom-state button {
+    font-size: 13px;
+    color: #e9d19e;
+    padding: 7px 10px;
+    border: 1px solid #617578;
+    background: #263b43;
   }
 }
