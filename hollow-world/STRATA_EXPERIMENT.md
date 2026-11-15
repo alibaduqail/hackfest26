@@ -1,6 +1,6 @@
 # Strata: dystopian isometric experiment
 
-Issue #5; experimental branch `5-strata-dystopian`. The user chose the spatial layout of the Strata concept and asked for a darker, dystopian implementation.
+Issue #5; originally developed on `5-strata-dystopian`. The user chose the spatial layout of the Strata concept and asked for a darker, dystopian implementation, then approved promoting the completed desktop pass to `main` through PR #6.
 
 ## Visual direction
 

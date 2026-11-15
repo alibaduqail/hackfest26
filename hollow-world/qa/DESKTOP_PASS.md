@@ -1,6 +1,6 @@
 # Strata desktop pass
 
-Implemented on `5-strata-dystopian`, beginning at reviewed commit `86369c4`. Source revision for final verification: `ec93508`. The experiment stays in PR #6 for visual review.
+Implemented on `5-strata-dystopian`, beginning at reviewed commit `86369c4`. Source revision for final verification: `ec93508`. The user approved promoting this implementation to `main` through PR #6.
 
 ## Result
 
