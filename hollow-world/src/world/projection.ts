@@ -6,6 +6,21 @@ export interface Point {
 }
 export const ROOM_DEPTH = 150;
 export const WALL_HEIGHT = 104;
+export const LIFT_WIDTH = 76;
+export const LIFT_DEPTH = 72;
+export const LIFT_Z = 24;
+export const LIFT_BOARD = 0.22;
+export const LIFT_ALIGHT = 0.78;
+
+export function liftBay(room: RoomDef) {
+  return {
+    x: room.x + room.w - 90,
+    y: room.y + room.h - 15,
+    z: LIFT_Z,
+    w: LIFT_WIDTH,
+    d: LIFT_DEPTH,
+  };
+}
 
 // Keep authored scenario coordinates; only the observer's drawing is projected.
 export function project(x: number, y: number, depth = 0, height = 0): Point {
@@ -57,6 +72,18 @@ export function pathPoints(a: RoomDef, b: RoomDef, kind: string): Point[] {
     y1 = a.y + a.h - 15;
   const x2 = b.x + b.w / 2,
     y2 = b.y + b.h - 15;
+  if (kind === "lift" && y1 !== y2) {
+    const bay = liftBay(a.x + a.w > b.x + b.w ? a : b),
+      z = bay.z + bay.d / 2;
+    return [
+      project(x1, y1, 18),
+      project(bay.x - 14, y1, z),
+      project(bay.x + bay.w / 2, y1, z),
+      project(bay.x + bay.w / 2, y2, z),
+      project(bay.x - 14, y2, z),
+      project(x2, y2, 18),
+    ];
+  }
   const left = a.x < b.x || (a.x === b.x && a.id < b.id) ? a : b;
   const shaft = kind === "lift" ? left.x + left.w - 24 : left.x + 22;
   const points =
@@ -72,6 +99,24 @@ export function pathPoints(a: RoomDef, b: RoomDef, kind: string): Point[] {
           [x2, y2],
         ];
   return points.map(([x, y]) => project(x, y, 18));
+}
+
+export function traversalPoint(
+  a: RoomDef,
+  b: RoomDef,
+  kind: string,
+  progress: number,
+): Point {
+  const points = pathPoints(a, b, kind),
+    p = Math.max(0, Math.min(1, progress));
+  if (kind !== "lift" || points.length !== 6) return alongPath(points, p);
+  if (p < LIFT_BOARD) return alongPath(points.slice(0, 3), p / LIFT_BOARD);
+  if (p <= LIFT_ALIGHT)
+    return alongPath(
+      points.slice(2, 4),
+      (p - LIFT_BOARD) / (LIFT_ALIGHT - LIFT_BOARD),
+    );
+  return alongPath(points.slice(3), (p - LIFT_ALIGHT) / (1 - LIFT_ALIGHT));
 }
 
 export function alongPath(points: Point[], progress: number): Point {

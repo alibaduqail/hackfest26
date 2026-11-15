@@ -8,6 +8,8 @@ import {
 } from "pixi.js";
 import type {
   PersonState,
+  PersonDef,
+  LinkDef,
   RoomDef,
   Scenario,
   WorldState,
@@ -22,8 +24,20 @@ import {
   roomBase,
   roomOutline,
   WALL_HEIGHT,
+  liftBay,
+  LIFT_BOARD,
+  LIFT_ALIGHT,
+  traversalPoint,
   type Point,
 } from "./projection";
+import { blocked } from "../engine/routing";
+import {
+  appearance,
+  cargoUnits,
+  fixtureSpot,
+  residentPose,
+  type Pose,
+} from "./presentation";
 export type Selection = {
   kind: "room" | "person" | "cart" | "link";
   id: string;
@@ -265,6 +279,7 @@ interface RoomVisual {
   name: Text;
   selection: Graphics;
   fans: Container[];
+  job: Graphics;
 }
 export class WorldRenderer {
   app = new Application();
@@ -278,6 +293,11 @@ export class WorldRenderer {
       legs: Graphics;
       cargo: Graphics;
       tag: Text;
+      deck: Graphics;
+      deckFront: Graphics;
+      back: Texture;
+      front: Texture;
+      tool: Graphics;
     }
   >();
   cart = new Container();
@@ -300,6 +320,29 @@ export class WorldRenderer {
   private viewSize = { width: 0, height: 0 };
   private reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   private textures: Texture[] = [];
+  private cartCargo = new Graphics();
+  private cartPlatform = new Graphics();
+  private cartCue = label("", -25, -63, 14, pale);
+  private cartSignature = "";
+  private transferUntil = 0;
+  private targets = new Map<
+    string,
+    { point: Point; pose: Pose; facing: number; lift: boolean; back: boolean }
+  >();
+  private landings = new Map<
+    string,
+    { indicator: Graphics; gate: Graphics; status: Text }
+  >();
+  private liftRoomIds: Set<string>;
+  private linkDefs: Map<string, LinkDef>;
+  private personDefs: Map<string, PersonDef>;
+  private cameraMove?: {
+    from: { x: number; y: number; zoom: number };
+    to: { x: number; y: number; zoom: number };
+    start: number;
+  };
+  private inspectorOpen = false;
+  private motionPreference = matchMedia("(prefers-reduced-motion: reduce)");
   private allRooms: Map<string, RoomDef>;
   private pointerPositions = new Map<number, { x: number; y: number }>();
   private pinchDistance = 0;
@@ -311,6 +354,13 @@ export class WorldRenderer {
     public onCamera: () => void,
   ) {
     this.allRooms = new Map(scenario.rooms.map((r) => [r.id, r]));
+    this.linkDefs = new Map(scenario.links.map((l) => [l.id, l]));
+    this.personDefs = new Map(scenario.residents.map((p) => [p.id, p]));
+    this.liftRoomIds = new Set(
+      scenario.links
+        .filter((l) => l.kind === "lift")
+        .flatMap((l) => [l.a, l.b]),
+    );
     const points = scenario.rooms.flatMap(roomOutline);
     this.bounds = {
       left: Math.min(...points.map((p) => p.x)) - 90,
@@ -339,11 +389,12 @@ export class WorldRenderer {
     );
     this.app.canvas.setAttribute("role", "img");
     this.app.stage.addChild(this.world);
+    this.world.sortableChildren = true;
     this.drawWorld();
     this.makePeople();
     this.makeCart();
     this.world.addChild(this.connectionOverlay, this.selection);
-    this.district(1);
+    this.district(1, false);
     this.input();
     this.viewSize = {
       width: this.host.clientWidth,
@@ -366,6 +417,7 @@ export class WorldRenderer {
   }
   private drawWorld() {
     const back = new Graphics();
+    back.zIndex = -10000;
     const b = this.bounds;
     polygon(
       back,
@@ -390,7 +442,7 @@ export class WorldRenderer {
           { x: x + span, y: y + span * 0.12 + 45 },
           { x, y: y + 34 },
         ],
-        i % 3 ? 0x1b2c36 : 0x263640,
+        i % 3 ? 0x18262e : 0x213039,
         0.7,
       );
       for (let j = 0; j < 9; j++) {
@@ -416,7 +468,9 @@ export class WorldRenderer {
     }
     this.world.addChild(back);
     const links = new Graphics();
+    links.zIndex = -5000;
     for (const l of this.scenario.links) {
+      if (l.kind === "lift") continue;
       const points = this.pathPoints(
         this.allRooms.get(l.a)!,
         this.allRooms.get(l.b)!,
@@ -432,7 +486,7 @@ export class WorldRenderer {
           0x0a1217,
           24,
         );
-        line(links, p, q, 0x4a5357, l.kind === "lift" ? 16 : 22);
+        line(links, p, q, 0x4a5357, 22);
         line(
           links,
           { x: p.x, y: p.y + 4 },
@@ -447,30 +501,8 @@ export class WorldRenderer {
             const t = j / steps,
               x = p.x + (q.x - p.x) * t,
               y = p.y + (q.y - p.y) * t;
-            line(
-              links,
-              { x: x - 8, y },
-              { x: x + 8, y: y + 3 },
-              l.kind === "lift" ? rust : 0x899083,
-              2,
-            );
+            line(links, { x: x - 8, y }, { x: x + 8, y: y + 3 }, 0x899083, 2);
           }
-        }
-        if (l.kind === "lift") {
-          line(
-            links,
-            { x: p.x - 12, y: p.y },
-            { x: q.x - 12, y: q.y },
-            0x8d6b53,
-            3,
-          );
-          line(
-            links,
-            { x: p.x + 12, y: p.y },
-            { x: q.x + 12, y: q.y },
-            0x8d6b53,
-            3,
-          );
         }
       }
     }
@@ -479,55 +511,11 @@ export class WorldRenderer {
       (a, b) => roomBase(a).y - roomBase(b).y,
     ))
       this.drawRoom(d);
-    const shafts = new Graphics();
-    for (const link of this.scenario.links.filter(
-      (link) => link.kind === "lift",
-    )) {
-      const points = this.pathPoints(
-        this.allRooms.get(link.a)!,
-        this.allRooms.get(link.b)!,
-        link.kind,
-      );
-      if (points.length < 4) continue;
-      const a = points[1],
-        b = points[2];
-      line(shafts, a, b, 0x121f28, 32);
-      for (const side of [-16, 16]) {
-        line(
-          shafts,
-          { x: a.x + side, y: a.y - 16 },
-          { x: b.x + side, y: b.y + 4 },
-          0x493f36,
-          8,
-        );
-        line(
-          shafts,
-          { x: a.x + side - 1, y: a.y - 16 },
-          { x: b.x + side - 1, y: b.y + 4 },
-          0xa5845b,
-          2,
-        );
-      }
-      for (let y = Math.min(a.y, b.y); y < Math.max(a.y, b.y); y += 55) {
-        line(
-          shafts,
-          { x: a.x - 16, y },
-          { x: a.x + 16, y: y + 30 },
-          0x686c61,
-          2,
-        );
-        line(
-          shafts,
-          { x: a.x + 16, y },
-          { x: a.x - 16, y: y + 30 },
-          0x686c61,
-          2,
-        );
-      }
-      glow(shafts, a, 24, 22, amber);
-      shafts.rect(a.x - 20, a.y - 5, 40, 7).fill(0xa48a59);
-    }
-    this.world.addChild(shafts, this.labels);
+    this.drawLift();
+    this.labels.zIndex = 50000;
+    this.connectionOverlay.zIndex = 60000;
+    this.selection.zIndex = 70000;
+    this.world.addChild(this.labels);
     for (let district = 0; district < 3; district++) {
       const r = this.scenario.rooms.find(
         (r) => r.district === district && r.floor === 0,
@@ -554,15 +542,114 @@ export class WorldRenderer {
       this.districtLabels.push(l, caption);
     }
   }
+  private drawLift() {
+    // shortcut: the authored lift links form one aligned shaft; split by footprint when adding another shaft.
+    const served = [...this.liftRoomIds]
+      .map((id) => this.allRooms.get(id)!)
+      .sort((a, b) => a.floor - b.floor);
+    if (!served.length) return;
+    const first = liftBay(served[0]),
+      last = liftBay(served.at(-1)!),
+      drop = (last.y - first.y) * 1.25;
+    const rear = new Graphics(),
+      near = new Graphics(),
+      anchor = project(first.x, first.y, first.z);
+    rear.position.set(anchor.x, anchor.y);
+    near.position.copyFrom(rear.position);
+    rear.zIndex = -4000;
+    near.zIndex = 80000;
+    polygon(
+      rear,
+      [
+        local(0, first.d, 118),
+        local(first.w, first.d, 118),
+        local(first.w, first.d, -drop),
+        local(0, first.d, -drop),
+      ],
+      0x0b141a,
+    );
+    polygon(
+      rear,
+      [
+        local(first.w, 0, 118),
+        local(first.w, first.d, 118),
+        local(first.w, first.d, -drop),
+        local(first.w, 0, -drop),
+      ],
+      0x27383e,
+    );
+    for (const x of [0, first.w]) {
+      block(rear, x, first.d, 7, 8, drop + 118, 0x4a5b60, -drop);
+      block(near, x, 0, 7, 8, drop + 118, 0x46565a, -drop);
+      line(near, local(x + 2, 0, 118), local(x + 2, 0, -drop), 0x76817d, 1.4);
+    }
+    for (const x of [20, first.w - 16])
+      line(
+        rear,
+        local(x, first.d - 3, 112),
+        local(x, first.d - 3, -drop),
+        0x6c7473,
+        2,
+      );
+    block(rear, -8, 0, first.w + 22, first.d + 16, 13, 0x5b6869, 112);
+    for (const room of served) {
+      const base = roomBase(room),
+        landing = new Container(),
+        g = new Graphics(),
+        x = room.w - 104;
+      landing.position.set(base.x, base.y);
+      landing.zIndex = base.y - 129;
+      // A slab with an actual opening, and a short bridge flush with the lift threshold.
+      block(g, x, 112, 104, 38, 16, 0x465356, -16);
+      block(g, x, 0, 104, 12, 24, 0x3b494f, -24);
+      block(g, x, 40, 28, 40, 10, 0x6b7775, -10);
+      for (let z = 42; z < 80; z += 9) plane(g, x + 21, z, 5, 4, 0.4, amber);
+      for (const z of [32, 88]) {
+        block(g, x - 2, z, 5, 5, 39, steel);
+        line(g, local(x, z, 38), local(x + 24, z, 38), 0x84908a, 3);
+      }
+      // Rear handrail sits behind riders. Near posts are the final occluding layer.
+      line(
+        g,
+        local(room.w - 90, 108, 36),
+        local(room.w - 7, 108, 36),
+        0x75817b,
+        3,
+      );
+      for (const u of [room.w - 90, room.w - 7])
+        line(g, local(u, 108, 0), local(u, 108, 36), steel, 4);
+      const indicator = new Graphics(),
+        gate = new Graphics();
+      const p = local(x + 22, 92, 49);
+      indicator.position.set(p.x, p.y);
+      const statusPos = local(x + 5, -2, -7),
+        status = label(
+          "",
+          base.x + statusPos.x,
+          base.y + statusPos.y,
+          12,
+          amber,
+        );
+      status.skew.y = Math.atan(0.22 / 0.93);
+      gate.position.set(base.x, base.y);
+      gate.zIndex = base.y + 75;
+      landing.addChild(g, indicator);
+      this.labels.addChild(status);
+      this.world.addChild(landing, gate);
+      this.landings.set(room.id, { indicator, gate, status });
+    }
+    this.world.addChild(rear, near);
+  }
   private drawRoom(d: RoomDef) {
     const root = new Container(),
       base = roomBase(d);
     root.position.set(base.x, base.y);
     const g = new Graphics(),
-      w = d.w,
+      w = this.liftRoomIds.has(d.id) ? d.w - 104 : d.w,
       depth = ROOM_DEPTH,
       h = WALL_HEIGHT,
       deep = d.floor >= 5;
+    root.zIndex = base.y - 130;
     const wall = d.district === 1 ? 0x414c52 : deep ? 0x3e4446 : 0x4a5355;
     // Open front and right walls keep people and machinery visible in the section.
     block(
@@ -623,7 +710,8 @@ export class WorldRenderer {
         i % 2 ? 0x536169 : 0x3a4952,
       );
     }
-    plane(g, 0, 0, w, depth, 0, 0x56605c);
+    const floorColor = [0x62665c, 0x46565a, 0x514f48][d.district];
+    plane(g, 0, 0, w, depth, 0, floorColor);
     for (let x = 0; x < w; x += 44)
       for (let z = 0; z < depth; z += 38)
         plane(
@@ -633,7 +721,7 @@ export class WorldRenderer {
           Math.min(42, w - x - 1),
           Math.min(36, depth - z - 1),
           0.5,
-          (x + z + d.floor * 5) % 3 ? 0x4c5758 : 0x5c625a,
+          shade(floorColor, (x + z + d.floor * 5) % 3 ? 0.92 : 1.08),
         );
     block(g, 0, depth - 10, w, 15, h, wall);
     block(g, -8, 0, 9, depth, h, shade(wall, 0.9));
@@ -692,6 +780,17 @@ export class WorldRenderer {
         const p = local(w / 2, depth - 14, 77);
         g.rect(p.x - 4, p.y - 15, 8, 30).fill(0xb4bba5);
         g.rect(p.x - 14, p.y - 5, 28, 9).fill(0xb4bba5);
+        for (let x = 92; x < w - 65; x += 115) {
+          const p = local(x, 110, 73);
+          line(g, local(x, 110), p, 0x9aa6a0, 2);
+          line(g, p, { x: p.x + 14, y: p.y }, 0x9aa6a0, 2);
+          g.roundRect(p.x + 8, p.y, 9, 17, 2).fill(0x99c3b9);
+          cabinet(g, x - 5, 112, 26, 44, 0x97aaa2);
+        }
+        block(g, 24, 28, 45, 26, 35, 0x899e96);
+        const kit = local(44, 28, 36);
+        g.rect(kit.x - 3, kit.y - 13, 6, 15).fill(0xc3d3ba);
+        g.rect(kit.x - 8, kit.y - 8, 16, 5).fill(0xc3d3ba);
       } else {
         for (let x = 66; x < w - 10; x += 125) {
           const p = local(x, depth - 15, 72);
@@ -700,6 +799,26 @@ export class WorldRenderer {
         }
         if (!deep) plant(g, w - 30, 40, 0.8);
         block(g, 20, 26, 52, 24, 27, 0x77644b);
+        for (let x = 40; x < w - 40; x += 110) {
+          plane(
+            g,
+            x,
+            70,
+            58,
+            5,
+            19,
+            [0x94735b, 0x6f8582, 0x8e8c63][Math.floor(x / 110) % 3],
+          );
+          crate(g, x + 70, 35, 18, 15);
+          const p = local(x + 79, 111, 50);
+          line(
+            g,
+            { x: p.x - 7, y: p.y + 8 },
+            { x: p.x + 12, y: p.y - 9 },
+            0xb6a781,
+            2,
+          );
+        }
       }
     } else if (d.kind === "farm") {
       for (const z of [39, 100]) {
@@ -714,7 +833,30 @@ export class WorldRenderer {
           line(g, p, q, 0xb5bd82, 4);
         }
       }
-    } else if (d.kind === "depot" || d.kind === "workshop") {
+    } else if (d.kind === "workshop") {
+      // Long timber bench and steel vise, with wall tools distinct from freight shelving.
+      for (const x of [32, w - 56])
+        for (const z of [91, 123]) block(g, x, z, 6, 6, 25, steel);
+      block(g, 28, 88, w - 54, 43, 5, 0x9a8058, 25);
+      block(g, w - 104, 85, 29, 26, 12, 0x788a89, 30);
+      block(g, w - 111, 80, 8, 35, 8, 0x9ba5a0, 38);
+      line(g, local(w - 98, 77, 35), local(w - 67, 77, 35), 0xb1b6a6, 3);
+      const handle = local(w - 98, 77, 35);
+      line(
+        g,
+        { x: handle.x + 8, y: handle.y - 7 },
+        { x: handle.x + 8, y: handle.y + 8 },
+        0xb1b6a6,
+        3,
+      );
+      for (let x = 40; x < w - 35; x += 38) {
+        const p = local(x, depth - 11, 79);
+        line(g, p, { x: p.x + 5, y: p.y + 17 }, 0xbcaa87, 4);
+        line(g, { x: p.x - 5, y: p.y }, { x: p.x + 7, y: p.y }, 0x81989b, 5);
+      }
+      cabinet(g, 28, 15, 40, 45, 0x526b73);
+      crate(g, w - 68, 25, 30, 22);
+    } else if (d.kind === "depot") {
       for (let x = 28; x < w - 60; x += 82) {
         for (const u of [x, x + 63]) block(g, u, 90, 4, 43, 83, 0x616b65);
         for (const y of [5, 39, 76]) plane(g, x, 89, 67, 45, y, 0x5b635b);
@@ -722,17 +864,14 @@ export class WorldRenderer {
         crate(g, x + 35, 94, 23, 23, 8);
         crate(g, x + 7, 94, 25, 25, 42);
       }
-      if (d.kind === "workshop") {
-        block(g, 62, 28, w - 120, 38, 37, 0x766e59);
-        cabinet(g, 84, 34, 48, 58, steel);
-        for (let i = 0; i < 4; i++) {
-          const p = local(150 + i * 26, 38, 39);
-          g.circle(p.x, p.y, 4).fill(0xa5a18c);
-        }
-      } else {
-        crate(g, 40, 28, 37);
-        crate(g, 86, 28, 31);
-      }
+      crate(g, 32, 30, 35);
+      crate(g, 75, 34, 30);
+      crate(g, 32, 30, 31, 25, 29);
+      crate(g, 118, 31, 28);
+      for (const z of [20, 71])
+        line(g, local(w - 120, z, 1), local(w - 22, z, 1), amber, 2, 0.7);
+      for (const x of [w - 120, w - 22])
+        line(g, local(x, 20, 1), local(x, 71, 1), amber, 2, 0.7);
     } else if (d.kind === "fan" || d.kind === "plant") {
       for (let x = 70; x < w - 30; x += 120) {
         if (d.kind === "plant") {
@@ -771,37 +910,82 @@ export class WorldRenderer {
           cabinet(g, x - 20, 25, 32, 38, 0x536968);
         }
       }
-    } else if (d.kind === "pump" || d.kind === "recycler" || d.kind === "tap") {
-      for (let x = 65; x < w - 30; x += 105) {
-        tank(
-          g,
-          x,
-          98,
-          d.kind === "pump" ? 26 : 30,
-          d.kind === "tap" ? 63 : 74,
-          0x54737a,
-        );
+    } else if (d.kind === "recycler") {
+      for (let x = 30; x < w - 135; x += 132) {
+        block(g, x, 66, 103, 65, 30, 0x647f7e);
+        plane(g, x + 6, 72, 91, 52, 31, 0x254b53);
+        plane(g, x + 10, 76, 83, 44, 31.5, teal, 0.75);
         pipe(
           g,
           [
-            local(x, 98, 9),
-            local(x, 30, 9),
-            local(Math.min(w - 20, x + 85), 30, 9),
+            local(x + 15, 121, 32),
+            local(x + 15, 121, 65),
+            local(x + 95, 121, 65),
           ],
-          0x849287,
-          7,
+          0xa0a58b,
+          6,
         );
-        const p = local(x, 98, 54);
-        g.circle(p.x, p.y, 8).fill(0xbdc5a7);
-        line(g, p, { x: p.x + 4, y: p.y - 3 }, ink, 2);
+        line(g, local(x + 48, 70, 32), local(x + 48, 128, 32), steel, 5);
       }
-      if (d.kind === "pump") {
-        cabinet(g, 28, 24, 56, 47, steel);
-        for (let x = 190; x < w - 50; x += 72) {
-          const p = local(x, depth - 17, 75);
-          g.circle(p.x, p.y, 10).fill(pale);
-          line(g, p, { x: p.x + 4, y: p.y - 6 }, ink, 2);
-        }
+      tank(g, w - 62, 110, 22, 86, 0x718583);
+      pipe(
+        g,
+        [local(w - 62, 108, 85), local(w - 62, 30, 85), local(w - 125, 30, 38)],
+        0x7d948c,
+        8,
+      );
+      cabinet(g, 28, 20, 47, 47, 0x5a747b);
+    } else if (d.kind === "tap") {
+      block(g, 28, 112, w - 56, 28, 63, 0x496d76);
+      for (let x = 52; x < w - 30; x += 72) {
+        pipe(
+          g,
+          [local(x, 114, 52), local(x, 75, 52), local(x, 75, 42)],
+          0xc0baa0,
+          4,
+        );
+        block(g, x - 13, 68, 29, 23, 16, 0x6c7f79);
+        tank(g, x, 73, 8, 23, 0xadc3b4);
+        const p = local(x, 76, 37);
+        g.circle(p.x, p.y, 5).stroke({ color: amber, width: 2 });
+      }
+      for (let x = 35; x < w - 40; x += 61) {
+        block(g, x, 20, 19, 17, 23, 0x94ada6);
+        const p = local(x + 9, 29, 25);
+        g.roundRect(p.x - 5, p.y - 5, 10, 6, 2).stroke({
+          color: 0xbac5b4,
+          width: 2,
+        });
+      }
+    } else if (d.kind === "pump") {
+      plane(g, 40, 30, 130, 64, -1, 0x132b34);
+      for (let x = 44; x < 170; x += 12)
+        line(g, local(x, 30, 0), local(x, 94, 0), 0x5d787b, 3);
+      block(g, 195, 76, 96, 49, 14, 0x4b6168);
+      block(g, 211, 81, 66, 39, 34, 0x60868b, 14);
+      const motor = local(216, 80, 32);
+      g.ellipse(motor.x, motor.y, 19, 17)
+        .fill(0x304e58)
+        .stroke({ color: 0x8aaba9, width: 4 });
+      for (let x = 230; x < 276; x += 8)
+        line(g, local(x, 81, 18), local(x, 81, 44), 0x3c6571, 2);
+      pipe(
+        g,
+        [local(102, 62, 2), local(102, 62, 22), local(213, 87, 28)],
+        0x8faaa5,
+        13,
+      );
+      pipe(
+        g,
+        [local(274, 108, 38), local(w - 35, 108, 38), local(w - 35, 123, 88)],
+        0x799b9b,
+        12,
+      );
+      cabinet(g, 30, 110, 46, 75, 0x526c76);
+      for (const x of [w - 68, w - 36]) {
+        const p = local(x, depth - 14, 76);
+        g.circle(p.x, p.y, 10).fill(0xc2c5aa);
+        line(g, p, { x: p.x + 4, y: p.y - 6 }, ink, 2);
       }
     } else if (d.kind === "mess") {
       for (let x = 36; x < w - 55; x += 95) {
@@ -827,9 +1011,20 @@ export class WorldRenderer {
       block(g, 30, 38, 90, 10, 52, 0x9b885a);
       for (let x = 35; x < 110; x += 19)
         line(g, local(x, 37, 49), local(x + 9, 37, 39), 0x27353a, 7);
+    } else if (d.kind === "relay") {
+      for (let x = 34; x < w - 38; x += 58) {
+        block(g, x, 108, 41, 28, 86, 0x394d57);
+        for (let h = 12; h < 80; h += 12) {
+          const p = local(x + 5, 107, h);
+          line(g, p, local(x + 34, 107, h), 0x7c9295, 4);
+          g.circle(p.x + 3, p.y - 2, 1.6).fill(teal);
+        }
+      }
+      block(g, 35, 31, w - 70, 30, 31, 0x788276);
+      for (let x = 53; x < w - 40; x += 62) cabinet(g, x, 40, 30, 24, 0x527d83);
+      pipe(g, [local(22, 129, 93), local(w - 20, 129, 93)], 0x9a8b65, 5);
     } else {
-      for (let x = 34; x < w - 48; x += 64)
-        cabinet(g, x, 91, 46, 78, d.kind === "relay" ? 0x4a646c : steel);
+      for (let x = 34; x < w - 48; x += 64) cabinet(g, x, 91, 46, 78, steel);
       pipe(g, [local(25, 117, 14), local(w - 30, 117, 14)], 0x8a795c, 6);
     }
     // A low rail leaves the section open. Gaps mark the actual circulation route.
@@ -845,6 +1040,7 @@ export class WorldRenderer {
         );
       }
     const lights = new Graphics();
+    lights.alpha = d.district === 2 ? 0.78 : d.district === 0 ? 0.94 : 1;
     for (let x = 52; x < w - 15; x += 146) {
       const p = local(x, depth - 22, h - 16);
       g.roundRect(p.x - 13, p.y - 4, 27, 7, 2).fill(0x302c22);
@@ -866,6 +1062,20 @@ export class WorldRenderer {
     // Place wall-mounted rotors above the wall drawing, below the unpowered shade.
     root.addChildAt(g, 0);
     root.addChild(lights);
+    const job = new Graphics();
+    if (d.kind === "workshop") {
+      block(job, w * 0.44, 96, 42, 23, 18, 0x66878b, 30);
+      const p = local(w * 0.44 + 20, 96, 50);
+      job.circle(p.x, p.y, 8).stroke({ color: 0xb3b5a1, width: 4 });
+      line(
+        job,
+        local(w * 0.44 - 12, 95, 32),
+        local(w * 0.44 + 5, 95, 50),
+        amber,
+        3,
+      );
+    }
+    root.addChild(job);
     const darkness = new Graphics();
     polygon(
       darkness,
@@ -882,13 +1092,23 @@ export class WorldRenderer {
     root.addChild(darkness);
     const water = new Graphics();
     root.addChild(water);
-    const namePos = local(24, 0, -10),
+    block(
+      g,
+      14,
+      -16,
+      Math.min(w - 28, d.name.length * 9 + 28),
+      3,
+      24,
+      0x17282e,
+      -34,
+    );
+    const namePos = local(24, -17, -15),
       name = label(
         d.name,
         base.x + namePos.x,
         base.y + namePos.y,
-        17,
-        0xbac0b2,
+        18,
+        0xe0d5b7,
       );
     name.skew.y = Math.atan(0.22 / 0.93);
     this.labels.addChild(name);
@@ -907,74 +1127,208 @@ export class WorldRenderer {
       name,
       selection,
       fans,
+      job,
     });
   }
   private makePeople() {
-    const colors = [
-      0xaf915a, 0x6c877d, 0x6b909c, 0x9f7564, 0xb3af97, 0x7d8397, 0x83927c,
-      0xa08657,
-    ];
-    for (let i = 0; i < 24; i++) {
-      const g = new Graphics(),
-        skin = [0xc5a285, 0xa37659, 0x795746, 0xd8bc98][i % 4];
-      g.ellipse(0, 1, 9, 3).fill({ color: ink, alpha: 0.55 });
-      g.poly([-5, -24, 5, -24, 7, -9, -6, -9]).fill(colors[i % 8]);
-      g.rect(-7, -23, 3, 12).fill(shade(colors[i % 8], 0.8));
-      g.rect(5, -23, 3, 12).fill(colors[i % 8]);
-      g.circle(0, -30, 6).fill(skin);
-      g.ellipse(0, -34, 6, 3).fill(i % 3 ? 0x353b3b : 0x9b9788);
-      g.rect(-4, -26, 8, 2).fill(0xb5b6a1);
-      if (i % 4 === 0) {
-        g.ellipse(0, -35, 8, 3).fill(amber);
-        g.roundRect(-5, -40, 10, 7, 3).fill(0xb58f50);
-      }
-      const texture = this.app.renderer.generateTexture({
-        target: g,
-        resolution: 2,
-      });
-      this.textures.push(texture);
-      g.destroy();
-    }
+    const figures = new Map<string, [Texture, Texture]>();
     for (const def of this.scenario.residents) {
+      const a = appearance(def),
+        key = `${def.role}-${def.appearance}`;
+      if (!figures.has(key)) {
+        const pair: Texture[] = [];
+        for (const back of [false, true]) {
+          const g = new Graphics(),
+            w = a.width;
+          g.poly([-w, -30, w - 1, -30, w + 1, -10, -w, -10]).fill(a.shirt);
+          g.poly([-w, -28, -w - 3, -23, -w - 2, -13, -w + 1, -13]).fill(
+            shade(a.shirt, 0.8),
+          );
+          g.poly([w - 2, -28, w + 2, -24, w + 2, -16, w - 1, -16]).fill(
+            a.shirt,
+          );
+          g.circle(-w, -12, 2.5)
+            .circle(w + 1, -15, 2.5)
+            .fill(a.skin);
+          g.rect(-3, -34, 6, 7).fill(a.skin);
+          g.ellipse(0, -39, 6.4, 7.5).fill(a.skin);
+          if (!back) {
+            g.poly([5, -41, 8, -36, 5, -35]).fill(a.skin);
+            g.circle(3, -40, 1).fill(ink);
+          }
+          g.ellipse(-1, -44, 6.6, 3.7).fill(a.hair);
+          g.rect(-6, -43, 3, 8).fill(a.hair);
+          if (back) g.ellipse(0, -40, 6, 6).fill(a.hair);
+          if (a.hairStyle === 1) g.circle(-6, -41, 3.6).fill(a.hair);
+          if (a.hairStyle === 2)
+            g.poly([-6, -44, -8, -31, -2, -33, -1, -44]).fill(a.hair);
+          if (a.technical) {
+            g.roundRect(-7, -49, 14, 7, 4).fill(0xbda16b);
+            g.rect(-9, -43, 19, 2).fill(0xd3b87c);
+          }
+          if (a.grower || a.technical) {
+            g.poly([-4, -29, 4, -29, 6, -10, -6, -10]).fill(a.apron);
+            g.rect(-4, -29, 2, 10).rect(3, -29, 2, 10).fill(0xc2b89a);
+            g.rect(-3, -17, 7, 4).fill(shade(a.apron, 1.25));
+          }
+          if (a.medical) {
+            g.poly([
+              -7, -20, 7, -20, 9, -5, 1, -5, 0, -13, -1, -5, -8, -5,
+            ]).fill(a.shirt);
+            line(g, { x: -4, y: -29 }, { x: 1, y: -18 }, 0x748d88, 2);
+            g.roundRect(3, -18, 9, 10, 2).fill(0x507c7d);
+            g.rect(6, -16, 2, 6).rect(4, -14, 6, 2).fill(0xe5e6cc);
+          }
+          const texture = this.app.renderer.generateTexture({
+            target: g,
+            resolution: 2,
+          });
+          pair.push(texture);
+          this.textures.push(texture);
+          g.destroy();
+        }
+        figures.set(key, pair as [Texture, Texture]);
+      }
+      const [front, back] = figures.get(key)!;
       const root = new Container(),
-        body = new Sprite(this.textures[def.appearance % 24]);
+        body = new Sprite(front);
       body.anchor.set(0.5, 1);
+      body.y = -9;
       const legs = new Graphics();
-      legs.rect(-4, -10, 3, 11).rect(2, -10, 3, 11).fill(0x26373e);
+      legs.rect(-5, -12, 4, 12).rect(2, -12, 4, 12).fill(0x293e48);
+      legs.roundRect(-6, -2, 7, 4, 1).roundRect(2, -2, 8, 4, 1).fill(0x19272f);
       const cargo = new Graphics();
-      crate(cargo, 8, 0, 12, 12);
-      cargo.y = -15;
+      crate(cargo, 3, -5, 16, 15);
+      line(cargo, { x: 1, y: -6 }, { x: 13, y: -2 }, a.skin, 4);
+      cargo.y = -18;
       cargo.visible = false;
-      const tag = label(def.name.split(" ")[0], -24, -56, 17, 0xf0dfb5);
+      const tool = new Graphics();
+      line(tool, { x: 4, y: -26 }, { x: 16, y: -22 }, a.skin, 3);
+      line(tool, { x: 15, y: -24 }, { x: 23, y: -31 }, 0xb7bca9, 3);
+      if (a.grower)
+        line(tool, { x: 22, y: -34 }, { x: 27, y: -27 }, 0x9ba783, 3);
+      const deck = new Graphics(),
+        deckFront = new Graphics();
+      block(deck, -20, -16, 40, 32, 7, 0x637a7d, -7);
+      line(deck, local(-20, 16, 30), local(20, 16, 30), 0x92a19a, 2);
+      for (const x of [-20, 20])
+        line(deck, local(x, 16, 0), local(x, 16, 30), steel, 3);
+      for (const x of [-20, 20])
+        line(deckFront, local(x, -16, 0), local(x, -16, 24), steel, 3);
+      line(deckFront, local(-20, -16, 12), local(20, -16, 12), 0x7b8986, 2);
+      deck.visible = deckFront.visible = false;
+      const tag = label(def.name.split(" ")[0], -24, -67, 16, 0xf0dfb5);
       tag.visible = false;
-      root.addChild(legs, body, cargo, tag);
+      root.addChild(deck, legs, body, tool, cargo, deckFront, tag);
       this.world.addChild(root);
-      this.people.set(def.id, { root, body, legs, cargo, tag });
+      this.people.set(def.id, {
+        root,
+        body,
+        legs,
+        cargo,
+        tag,
+        deck,
+        deckFront,
+        front,
+        back,
+        tool,
+      });
     }
   }
   private makeCart() {
     const g = new Graphics();
-    block(g, -23, 0, 46, 28, 16, 0x7d8a7d, 6);
-    crate(g, -18, 3, 24, 26, 22);
-    crate(g, 7, 3, 17, 20, 22);
-    for (const x of [-14, 21]) {
-      const p = local(x, 0);
-      g.circle(p.x, p.y + 6, 6)
-        .fill(ink)
-        .stroke({ color: 0x9da28c, width: 2 });
+    block(this.cartPlatform, -38, -22, 76, 50, 7, steel, -9);
+    line(this.cartPlatform, local(-36, 28, 34), local(36, 28, 34), 0x92a19a, 3);
+    this.cartPlatform.visible = false;
+    for (const z of [18, -16]) {
+      if (z === -16) {
+        block(g, -31, -14, 62, 35, 7, 0x599399, 8);
+        plane(g, -27, -10, 54, 27, 16, 0x6f8b88);
+        for (const u of [-25, 25]) block(g, u, -14, 4, 36, 10, 0x79a3a0, 15);
+        for (const v of [-8, 14])
+          line(g, local(-31, v, 16), local(-47, v, 33), 0x91b4ac, 4);
+        line(g, local(-47, -8, 33), local(-47, 14, 33), 0xb1c5b6, 4);
+      }
+      for (const x of [-21, 19]) {
+        const p = local(x, z, 5);
+        line(g, local(x, z, 13), p, 0xb5c0ad, 3);
+        g.circle(p.x, p.y, 7)
+          .fill(0x101e26)
+          .stroke({ color: 0x9cafaa, width: 2 });
+        g.circle(p.x, p.y, 2).fill(0xc5c7af);
+      }
     }
-    this.cart.addChild(g);
+    const mark = local(-13, -15, 16),
+      fleet = label("07", mark.x, mark.y - 1, 11, 0xf0e1b8);
+    fleet.skew.y = Math.atan(0.22 / 0.93);
+    this.cart.addChild(
+      this.cartPlatform,
+      g,
+      this.cartCargo,
+      fleet,
+      this.cartCue,
+    );
     this.world.addChild(this.cart);
   }
   update(state: WorldState, playing: boolean) {
     this.state = state;
     this.playing = playing;
+    this.updateLiftAndCargo(state);
+    const slots = new Map<string, number>();
+    for (const person of state.people) {
+      const def = this.personDefs.get(person.id)!,
+        room = this.allRooms.get(person.roomId)!;
+      const pose = residentPose(def, person, room),
+        key = `${room.id}-${pose}`;
+      const slot = slots.get(key) ?? 0;
+      slots.set(key, slot + 1);
+      const spot = fixtureSpot(
+        room,
+        pose,
+        slot,
+        this.liftRoomIds.has(room.id) ? room.w - 104 : room.w,
+      );
+      const link = person.edgeId ? this.linkDefs.get(person.edgeId) : undefined;
+      const inLift =
+        link?.kind === "lift" &&
+        person.edgeProgress >= LIFT_BOARD &&
+        person.edgeProgress <= LIFT_ALIGHT;
+      const point = person.edgeId
+        ? this.along(
+            person.edgeId,
+            person.fromId,
+            person.toId,
+            person.edgeProgress,
+          )
+        : project(room.x + spot.x, room.y + room.h - 15, spot.z, spot.h);
+      if (inLift)
+        point.x +=
+          ((def.appearance % 3) - 1) *
+          14 *
+          Math.sin(
+            (Math.PI * (person.edgeProgress - LIFT_BOARD)) /
+              (LIFT_ALIGHT - LIFT_BOARD),
+          );
+      this.targets.set(person.id, {
+        point,
+        pose,
+        facing: spot.facing,
+        lift: inLift,
+        back: pose === "work" && !appearance(def).medical,
+      });
+      const v = this.people.get(person.id)!;
+      v.root.alpha = state.rooms.find((r) => r.id === room.id)?.powered
+        ? 1
+        : 0.74;
+    }
     for (const r of state.rooms) {
       const v = this.rooms.get(r.id)!,
         d = this.allRooms.get(r.id)!;
       v.shade.visible = !r.powered;
       v.lights.visible = r.powered;
       v.status.text = r.powered ? "" : "Power lost";
+      v.job.visible = r.staff > 0;
+      for (const fan of v.fans) fan.alpha = r.powered ? 1 : 0.4;
       v.water.clear();
       if (d.district === 2 && d.floor >= 5 && state.waterL > 0) {
         const height = Math.min(
@@ -1014,11 +1368,7 @@ export class WorldRenderer {
     }
     this.connectionOverlay.clear();
     for (const l of this.scenario.links) {
-      if (
-        !state.closedLinks.includes(l.id) &&
-        !(l.kind === "checkpoint" && state.lockdown)
-      )
-        continue;
+      if (!blocked(l, state) || l.kind === "lift") continue;
       const points = this.pathPoints(
         this.allRooms.get(l.a)!,
         this.allRooms.get(l.b)!,
@@ -1050,6 +1400,79 @@ export class WorldRenderer {
       );
     }
   }
+  private updateLiftAndCargo(state: WorldState) {
+    for (const [id, landing] of this.landings) {
+      const link =
+        this.scenario.links.find((l) => l.kind === "lift" && l.a === id) ??
+        this.scenario.links.find((l) => l.kind === "lift" && l.b === id)!;
+      const reason = blocked(link, state),
+        usage = state.people.filter((p) => p.edgeId === link.id).length,
+        hasCart = state.cart.edgeId === link.id;
+      landing.indicator
+        .clear()
+        .circle(0, 0, 4)
+        .fill(reason ? 0xb67a5f : usage || hasCart ? amber : teal);
+      if ((usage || hasCart) && !reason)
+        glow(landing.indicator, { x: 0, y: 0 }, 18, 18, amber);
+      const a = this.allRooms.get(link.a)!,
+        b = this.allRooms.get(link.b)!;
+      landing.status.text = `L${a.floor + 1}–${b.floor + 1} · ${reason ? "No power" : `${usage}/${link.capacity}${hasCart ? " + cart" : ""}`}`;
+      landing.status.style.fill = reason ? 0xe4a17b : 0xcac3a5;
+      landing.gate.clear();
+      if (reason) {
+        const x = this.allRooms.get(id)!.w - 92;
+        line(landing.gate, local(x, 40, 33), local(x, 82, 33), 0xaa785f, 5);
+        line(landing.gate, local(x, 40, 12), local(x, 82, 33), 0xaa785f, 2);
+      }
+    }
+    const signature = JSON.stringify(state.cart.cargo);
+    if (signature !== this.cartSignature) {
+      if (this.cartSignature) {
+        this.cartCue.text =
+          cargoUnits(state.cart.cargo) >
+          cargoUnits(JSON.parse(this.cartSignature))
+            ? "Supplies loaded"
+            : "Supplies delivered";
+        this.transferUntil = performance.now() + 1100;
+      }
+      this.cartSignature = signature;
+      this.cartCargo.clear();
+      let slot = 0;
+      for (const [item, amount] of Object.entries(state.cart.cargo)) {
+        if (amount <= 0) continue;
+        const count = Math.min(4, Math.max(1, Math.ceil(amount / 12)));
+        for (let i = 0; i < count; i++, slot++) {
+          const x = -23 + (slot % 3) * 17,
+            z = -7 + (Math.floor(slot / 3) % 2) * 15;
+          if (item === "water") tank(this.cartCargo, x + 7, z + 6, 7, 18, teal);
+          else {
+            crate(this.cartCargo, x, z, 15, 16, 16);
+            if (item === "medicine") {
+              block(this.cartCargo, x, z, 15, 12, 16, 0xa7bfb3, 16);
+              const p = local(x + 7, z, 25);
+              this.cartCargo
+                .rect(p.x - 1, p.y - 4, 3, 9)
+                .rect(p.x - 4, p.y - 1, 9, 3)
+                .fill(0x315e66);
+            }
+          }
+        }
+      }
+      if (slot)
+        for (const x of [-18, 17])
+          pipe(
+            this.cartCargo,
+            [
+              local(x, -12, 16),
+              local(x, -8, 36),
+              local(x, 17, 36),
+              local(x, 21, 16),
+            ],
+            0xc0b58b,
+            2,
+          );
+    }
+  }
   private location(roomId: string, id: number) {
     const r = this.allRooms.get(roomId)!;
     return project(
@@ -1059,54 +1482,101 @@ export class WorldRenderer {
     );
   }
   private along(edge: string, from: string, to: string, progress: number) {
-    const l = this.scenario.links.find((l) => l.id === edge)!;
-    return alongPath(
-      this.pathPoints(this.allRooms.get(from)!, this.allRooms.get(to)!, l.kind),
+    const l = this.linkDefs.get(edge)!;
+    return traversalPoint(
+      this.allRooms.get(from)!,
+      this.allRooms.get(to)!,
+      l.kind,
       progress,
     );
   }
   private personLocation(p: PersonState) {
-    return p.edgeId
-      ? this.along(p.edgeId, p.fromId, p.toId, p.edgeProgress)
-      : this.location(
-          p.roomId,
-          this.scenario.residents.findIndex((d) => d.id === p.id),
-        );
+    return this.targets.get(p.id)?.point ?? this.location(p.roomId, 0);
   }
   private frame() {
     if (!this.state) return;
     const now = performance.now() / 1000;
+    this.reduced = this.motionPreference.matches;
     this.fps = this.app.ticker.FPS;
     for (const p of this.state.people) {
       const v = this.people.get(p.id)!,
-        pos = this.personLocation(p);
-      if (!v.root.x && !v.root.y) v.root.position.set(pos.x, pos.y);
+        target = this.targets.get(p.id)!,
+        pos = target.point;
+      const dx = pos.x - v.root.x;
+      if (this.reduced || !this.playing || (!v.root.x && !v.root.y))
+        v.root.position.set(pos.x, pos.y);
       else {
-        v.root.x += (pos.x - v.root.x) * 0.28;
-        v.root.y += (pos.y - v.root.y) * 0.28;
+        const blend = 1 - Math.exp(-this.app.ticker.deltaMS / 45);
+        v.root.x += (pos.x - v.root.x) * blend;
+        v.root.y += (pos.y - v.root.y) * blend;
       }
+      v.root.zIndex = v.root.y;
       const walking =
-        p.taskState === "traveling" && this.playing && !this.reduced;
-      v.legs.rotation = walking ? Math.sin(now * 14 + p.id.length) * 0.17 : 0;
+        !!p.edgeId &&
+        !target.lift &&
+        this.playing &&
+        !this.reduced &&
+        p.taskState !== "blocked";
+      if (!p.edgeId) v.body.scale.x = target.facing;
+      else if (Math.abs(dx) > 0.4) v.body.scale.x = dx < 0 ? -1 : 1;
+      v.body.texture = target.back ? v.back : v.front;
+      v.body.y = target.pose === "sit" ? -6 : -9;
       v.body.rotation =
-        p.task === "Sleeping" && p.taskState === "resting"
-          ? -Math.PI / 2
-          : walking
-            ? Math.sin(now * 14) * 0.025
-            : 0;
-      v.cargo.visible = p.bag.food > 0 || p.bag.water > 0;
-      v.cargo.y = -15 + (walking ? Math.sin(now * 14) : 0);
+        target.pose === "sleep"
+          ? Math.PI / 2
+          : target.pose === "bend"
+            ? 0.58 * v.body.scale.x
+            : walking
+              ? Math.sin(now * 14) * 0.035
+              : 0;
+      v.legs.scale.y = target.pose === "sit" ? 0.5 : 1;
+      v.legs.rotation =
+        target.pose === "sleep"
+          ? Math.PI / 2
+          : target.pose === "sit"
+            ? -0.65
+            : walking
+              ? Math.sin(now * 14 + this.personDefs.get(p.id)!.appearance) * 0.2
+              : 0;
+      v.cargo.visible = cargoUnits(p.bag) > 0;
+      v.cargo.scale.x = v.body.scale.x;
+      v.cargo.y = -18 + (walking ? Math.sin(now * 14) : 0);
+      v.tool.visible =
+        (target.pose === "work" &&
+          appearance(this.personDefs.get(p.id)!).technical) ||
+        target.pose === "bend";
+      v.tool.scale.x = v.body.scale.x;
+      v.tool.y = target.pose === "bend" ? 10 : 0;
+      v.deck.visible = v.deckFront.visible = target.lift;
       v.tag.visible = this.selected?.id === p.id;
     }
     const c = this.state.cart,
       pos = c.edgeId
         ? this.along(c.edgeId, c.fromId, c.toId, c.progress)
-        : this.location(c.roomId, 1);
-    if (!this.cart.x && !this.cart.y) this.cart.position.set(pos.x, pos.y);
+        : (() => {
+            const r = this.allRooms.get(c.roomId)!;
+            return project(
+              r.x + (this.liftRoomIds.has(r.id) ? r.w - 104 : r.w) - 88,
+              r.y + r.h - 15,
+              48,
+            );
+          })();
+    if (this.reduced || !this.playing || (!this.cart.x && !this.cart.y))
+      this.cart.position.set(pos.x, pos.y);
     else {
       this.cart.x += (pos.x - this.cart.x) * 0.25;
       this.cart.y += (pos.y - this.cart.y) * 0.25;
     }
+    this.cart.zIndex = this.cart.y + 3;
+    this.cartPlatform.visible = Boolean(
+      c.edgeId &&
+      this.linkDefs.get(c.edgeId)?.kind === "lift" &&
+      c.progress >= LIFT_BOARD &&
+      c.progress <= LIFT_ALIGHT,
+    );
+    this.cartCue.visible =
+      performance.now() < this.transferUntil || c.phase === "waiting";
+    if (c.phase === "waiting") this.cartCue.text = "Route blocked";
     for (const [id, v] of this.rooms)
       if (
         this.playing &&
@@ -1114,12 +1584,23 @@ export class WorldRenderer {
         !this.reduced
       )
         for (const fan of v.fans) fan.children[0].rotation += 0.045;
-    if (this.followId) {
+    if (this.cameraMove) {
+      const move = this.cameraMove,
+        t = this.reduced
+          ? 1
+          : Math.min(1, (performance.now() - move.start) / 280),
+        ease = 1 - (1 - t) ** 3;
+      this.camera.x = move.from.x + (move.to.x - move.from.x) * ease;
+      this.camera.y = move.from.y + (move.to.y - move.from.y) * ease;
+      this.zoom = move.from.zoom + (move.to.zoom - move.from.zoom) * ease;
+      this.transform();
+      if (t === 1) this.cameraMove = undefined;
+    } else if (this.followId) {
       const view =
         this.people.get(this.followId)?.root ??
         (this.followId === "cart" ? this.cart : null);
       if (view) {
-        this.camera.x = this.app.screen.width * 0.42 - view.x * this.zoom;
+        this.camera.x = this.centerX() - view.x * this.zoom;
         this.camera.y = this.app.screen.height / 2 - view.y * this.zoom;
         this.transform();
       }
@@ -1161,64 +1642,91 @@ export class WorldRenderer {
   }
   focus(id: string, follow = false) {
     const d = this.allRooms.get(id),
-      p = this.state?.people.find((p) => p.id === id);
+      p = this.state?.people.find((p) => p.id === id),
+      link = this.linkDefs.get(id);
     const pos = d
       ? project(d.x + d.w / 2, d.y + d.h - 15, 65, 30)
       : p
         ? this.personLocation(p)
         : id === "cart"
           ? this.cart.position
-          : null;
+          : link
+            ? traversalPoint(
+                this.allRooms.get(link.a)!,
+                this.allRooms.get(link.b)!,
+                link.kind,
+                0.5,
+              )
+            : null;
     if (!pos) return;
     this.followId = follow ? id : null;
-    this.zoom = Math.max(this.zoom, 1.05);
-    this.camera = {
-      x: this.app.screen.width * 0.4 - pos.x * this.zoom,
-      y: this.app.screen.height * 0.5 - pos.y * this.zoom,
-    };
-    this.transform();
+    const zoom = Math.max(this.zoom, 1.05);
+    this.moveCamera(
+      this.centerX() - pos.x * zoom,
+      this.app.screen.height * 0.5 - pos.y * zoom,
+      zoom,
+    );
   }
-  district(d: number) {
+  setInspectorOpen(open: boolean) {
+    this.inspectorOpen = open;
+  }
+  private centerX() {
+    return (170 + this.app.screen.width - (this.inspectorOpen ? 380 : 0)) / 2;
+  }
+  private moveCamera(x: number, y: number, zoom: number, animate = true) {
+    if (animate && !this.motionPreference.matches)
+      this.cameraMove = {
+        from: { ...this.camera, zoom: this.zoom },
+        to: { x, y, zoom },
+        start: performance.now(),
+      };
+    else {
+      this.cameraMove = undefined;
+      this.camera = { x, y };
+      this.zoom = zoom;
+      this.transform();
+    }
+  }
+  district(d: number, animate = true) {
     const rooms = this.scenario.rooms.filter((r) => r.district === d);
     if (!rooms.length) return;
     this.followId = null;
     const points = rooms.flatMap(roomOutline),
       left = Math.min(...points.map((p) => p.x)),
       right = Math.max(...points.map((p) => p.x));
-    this.zoom = Math.min(
+    const zoom = Math.min(
       1.15,
       Math.max(0.6, (this.host.clientWidth - 140) / (right - left)),
     );
     const top = Math.min(...points.map((p) => p.y));
-    this.camera = {
-      x:
-        (this.host.clientWidth - (right - left) * this.zoom) / 2 -
-        left * this.zoom,
-      y: 115 - top * this.zoom,
-    };
-    this.transform();
+    this.moveCamera(
+      this.centerX() - ((left + right) / 2) * zoom,
+      115 - top * zoom,
+      zoom,
+      animate,
+    );
   }
   recenter() {
     this.followId = null;
     const b = this.bounds;
-    this.zoom = Math.min(
+    const zoom = Math.min(
       0.78,
-      Math.max(0.3, (this.host.clientWidth - 180) / (b.right - b.left)),
+      (this.host.clientWidth - 220 - (this.inspectorOpen ? 380 : 0)) /
+        (b.right - b.left),
+      (this.host.clientHeight - 150) / (b.bottom - b.top),
     );
-    // Start close enough to read a working district; lower levels remain available by panning.
-    this.camera = {
-      x:
-        (this.host.clientWidth - (b.right - b.left) * this.zoom) / 2 -
-        b.left * this.zoom,
-      y: 115 - b.top * this.zoom,
-    };
-    this.transform();
+    this.moveCamera(
+      this.centerX() - ((b.left + b.right) / 2) * zoom,
+      80 - b.top * zoom,
+      Math.max(0.22, zoom),
+    );
   }
   zoomBy(
     factor: number,
     x = this.app.screen.width / 2,
     y = this.app.screen.height / 2,
   ) {
+    this.cameraMove = undefined;
     const next = Math.max(0.22, Math.min(2.2, this.zoom * factor)),
       ratio = next / this.zoom;
     this.camera.x = x - (x - this.camera.x) * ratio;
@@ -1227,6 +1735,7 @@ export class WorldRenderer {
     this.transform();
   }
   pan(dx: number, dy: number) {
+    this.cameraMove = undefined;
     this.followId = null;
     this.camera.x += dx;
     this.camera.y += dy;
@@ -1247,7 +1756,7 @@ export class WorldRenderer {
     this.world.scale.set(this.zoom);
     for (const v of this.rooms.values()) {
       v.name.visible = this.zoom >= 0.35;
-      v.name.scale.set(Math.max(1, 0.64 / this.zoom));
+      v.name.scale.set(1);
     }
     for (const text of this.districtLabels) text.visible = this.zoom < 0.6;
   }
@@ -1256,6 +1765,7 @@ export class WorldRenderer {
     canvas.style.touchAction = "none";
     canvas.style.cursor = "grab";
     canvas.onpointerdown = (e) => {
+      this.cameraMove = undefined;
       this.pointerPositions.set(e.pointerId, { x: e.offsetX, y: e.offsetY });
       canvas.setPointerCapture(e.pointerId);
       this.down = true;
@@ -1307,16 +1817,34 @@ export class WorldRenderer {
       const x = (e.offsetX - this.camera.x) / this.zoom,
         y = (e.offsetY - this.camera.y) / this.zoom;
       let selected: Selection | undefined;
-      if (Math.hypot(x - this.cart.x, y - this.cart.y) < 28)
+      if (
+        Math.abs(x - this.cart.x) < 55 &&
+        y > this.cart.y - 48 &&
+        y < this.cart.y + 24
+      )
         selected = { kind: "cart", id: "cart" };
       if (!selected && this.state) {
-        let nearest = Infinity;
+        const candidates: { id: string; distance: number }[] = [];
         for (const [id, p] of this.people) {
+          const box = p.body.getBounds().rectangle;
           const distance = Math.hypot(x - p.root.x, y - (p.root.y - 17));
-          if (distance < Math.max(14, 9 / this.zoom) && distance < nearest) {
-            nearest = distance;
-            selected = { kind: "person", id };
-          }
+          if (
+            e.offsetX >= box.x - 6 &&
+            e.offsetX <= box.x + box.width + 6 &&
+            e.offsetY >= box.y - 5 &&
+            e.offsetY <= box.y + box.height + 10
+          )
+            candidates.push({ id, distance });
+        }
+        candidates.sort((a, b) => a.distance - b.distance);
+        if (candidates.length) {
+          const previous = candidates.findIndex(
+            (p) => p.id === this.selected?.id,
+          );
+          selected = {
+            kind: "person",
+            id: candidates[(previous + 1) % candidates.length].id,
+          };
         }
       }
       if (!selected) {

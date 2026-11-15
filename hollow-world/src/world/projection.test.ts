@@ -9,6 +9,10 @@ import {
   project,
   ROOM_DEPTH,
   roomOutline,
+  liftBay,
+  traversalPoint,
+  LIFT_BOARD,
+  LIFT_ALIGHT,
 } from "./projection";
 
 const scenario: Scenario = JSON.parse(
@@ -27,6 +31,45 @@ test("every authored room can be selected on its projected floor and back wall",
       r.id,
     );
     assert.equal(contains(outline, { x: -10000, y: -10000 }), false);
+  }
+});
+
+test("lift thresholds, riders and upright posts share a rectangular world footprint", () => {
+  const rooms = new Map(scenario.rooms.map((r) => [r.id, r]));
+  for (const link of scenario.links.filter((l) => l.kind === "lift")) {
+    const a = rooms.get(link.a)!,
+      b = rooms.get(link.b)!,
+      bay = liftBay(a),
+      next = liftBay(b);
+    assert.equal(bay.x, next.x);
+    const enter = traversalPoint(a, b, "lift", LIFT_BOARD),
+      exit = traversalPoint(a, b, "lift", LIFT_ALIGHT);
+    assert.deepEqual(
+      enter,
+      project(bay.x + bay.w / 2, bay.y, bay.z + bay.d / 2),
+    );
+    assert.deepEqual(
+      exit,
+      project(next.x + next.w / 2, next.y, next.z + next.d / 2),
+    );
+    assert.equal(enter.x, exit.x, "travel remains vertical");
+    for (const progress of [0, 0.1, 0.22, 0.5, 0.78, 0.9, 1]) {
+      const point = traversalPoint(a, b, "lift", progress),
+        reverse = traversalPoint(b, a, "lift", 1 - progress);
+      assert.ok(Math.hypot(point.x - reverse.x, point.y - reverse.y) < 1e-7);
+    }
+    for (const x of [bay.x, bay.x + bay.w])
+      for (const z of [bay.z, bay.z + bay.d])
+        assert.equal(
+          project(x, bay.y, z).x,
+          project(x, next.y, z, 40).x,
+          "near and far posts stay upright",
+        );
+    assert.notEqual(
+      project(bay.x, bay.y, bay.z).x,
+      project(bay.x, bay.y, bay.z + bay.d).x,
+      "front and rear posts separate in depth",
+    );
   }
 });
 
