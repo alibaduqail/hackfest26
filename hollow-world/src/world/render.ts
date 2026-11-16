@@ -38,6 +38,7 @@ import {
   residentPose,
   type Pose,
 } from "./presentation";
+import { constrainCamera, elasticCamera, type Bounds } from "./camera";
 export type Selection = {
   kind: "room" | "person" | "cart" | "link";
   id: string;
@@ -354,6 +355,8 @@ export class WorldRenderer {
   private pointerPositions = new Map<number, { x: number; y: number }>();
   private pinchDistance = 0;
   private bounds = { left: 0, top: 0, right: 0, bottom: 0 };
+  private zoomSnap?: ReturnType<typeof setTimeout>;
+  private cameraBounds: Bounds;
   constructor(
     public host: HTMLElement,
     public scenario: Scenario,
@@ -374,6 +377,13 @@ export class WorldRenderer {
       top: Math.min(...points.map((p) => p.y)) - 140,
       right: Math.max(...points.map((p) => p.x)) + 80,
       bottom: Math.max(...points.map((p) => p.y)) + 100,
+    };
+    // Camera edges follow the built settlement, not the extra background-rock margin.
+    this.cameraBounds = {
+      left: Math.min(...points.map((p) => p.x)) - 36,
+      top: Math.min(...points.map((p) => p.y)) - 44,
+      right: Math.max(...points.map((p) => p.x)) + 36,
+      bottom: Math.max(...points.map((p) => p.y)) + 84,
     };
   }
   async init() {
@@ -413,8 +423,10 @@ export class WorldRenderer {
       this.camera.x += (width - this.viewSize.width) / 2;
       this.camera.y += (height - this.viewSize.height) / 2;
       this.viewSize = { width, height };
+      this.cameraMove = undefined;
       this.app.resize();
       this.transform();
+      this.snapCamera();
     });
     this.resize.observe(this.host);
     this.app.ticker.add(() => this.frame());
@@ -536,17 +548,8 @@ export class WorldRenderer {
           31,
           0x9ea99f,
         );
-      const caption = label(
-        ["Civic allocation", "Industrial sector", "Lower residential"][
-          district
-        ],
-        p.x + 46,
-        p.y - 196,
-        16,
-        0x657c87,
-      );
-      this.world.addChild(l, caption);
-      this.districtLabels.push(l, caption);
+      this.world.addChild(l);
+      this.districtLabels.push(l);
     }
   }
   private drawLift() {
@@ -1334,7 +1337,7 @@ export class WorldRenderer {
         d = this.allRooms.get(r.id)!;
       v.shade.visible = !r.powered;
       v.lights.visible = r.powered;
-      v.status.text = r.powered ? "" : "Power lost";
+      v.status.text = r.powered ? "" : "Off";
       v.job.visible = r.staff > 0;
       for (const fan of v.fans) fan.alpha = r.powered ? 1 : 0.4;
       v.water.clear();
@@ -1422,9 +1425,13 @@ export class WorldRenderer {
         .fill(reason ? 0xb67a5f : usage || hasCart ? amber : teal);
       if ((usage || hasCart) && !reason)
         glow(landing.indicator, { x: 0, y: 0 }, 18, 18, amber);
-      const a = this.allRooms.get(link.a)!,
-        b = this.allRooms.get(link.b)!;
-      landing.status.text = `L${a.floor + 1}–${b.floor + 1} · ${reason ? "No power" : `${usage}/${link.capacity}${hasCart ? " + cart" : ""}`}`;
+      landing.status.text = reason
+        ? "Off"
+        : usage
+          ? usage + "/" + link.capacity + (hasCart ? " · Cart" : "")
+          : hasCart
+            ? "Cart"
+            : "";
       landing.status.style.fill = reason ? 0xe4a17b : 0xcac3a5;
       landing.gate.clear();
       if (reason) {
@@ -1439,8 +1446,8 @@ export class WorldRenderer {
         this.cartCue.text =
           cargoUnits(state.cart.cargo) >
           cargoUnits(JSON.parse(this.cartSignature))
-            ? "Supplies loaded"
-            : "Supplies delivered";
+            ? "Loaded"
+            : "Delivered";
         this.transferUntil = performance.now() + 1100;
       }
       this.cartSignature = signature;
@@ -1598,7 +1605,7 @@ export class WorldRenderer {
     );
     this.cartCue.visible =
       performance.now() < this.transferUntil || c.phase === "waiting";
-    if (c.phase === "waiting") this.cartCue.text = "Route blocked";
+    if (c.phase === "waiting") this.cartCue.text = "Blocked";
     for (const [id, v] of this.rooms)
       if (
         this.playing &&
@@ -1624,6 +1631,12 @@ export class WorldRenderer {
       if (view) {
         this.camera.x = this.centerX() - view.x * this.zoom;
         this.camera.y = this.app.screen.height / 2 - view.y * this.zoom;
+        this.camera = constrainCamera(
+          this.camera,
+          this.cameraBounds,
+          this.viewport(),
+          this.zoom,
+        );
         this.transform();
       }
     }
@@ -1682,7 +1695,20 @@ export class WorldRenderer {
             : null;
     if (!pos) return;
     this.followId = follow ? id : null;
-    const zoom = Math.max(this.zoom, 1.05);
+    let zoom = Math.max(this.zoom, 1.05);
+    const view = this.viewport();
+    if (d) {
+      const outline = roomOutline(d),
+        xs = outline.map((p) => p.x),
+        ys = outline.map((p) => p.y);
+      zoom = Math.min(
+        zoom,
+        (view.right - view.left - 24) / (Math.max(...xs) - Math.min(...xs)),
+        (view.bottom - view.top - 24) / (Math.max(...ys) - Math.min(...ys)),
+      );
+      pos.x = (Math.min(...xs) + Math.max(...xs)) / 2;
+      pos.y = (Math.min(...ys) + Math.max(...ys)) / 2;
+    }
     this.moveCamera(
       this.centerX() - pos.x * zoom,
       this.app.screen.height * 0.5 - pos.y * zoom,
@@ -1690,21 +1716,40 @@ export class WorldRenderer {
     );
   }
   setInspectorOpen(open: boolean) {
+    if (this.inspectorOpen === open) return;
     this.inspectorOpen = open;
+    if (this.app.renderer) this.snapCamera();
+  }
+  private viewport(): Bounds {
+    const wide = this.app.screen.width > 740;
+    return {
+      left: wide ? 168 : 16,
+      top: 16,
+      right: this.app.screen.width - (this.inspectorOpen && wide ? 360 : 16),
+      bottom: this.app.screen.height - 16,
+    };
   }
   private centerX() {
-    return (170 + this.app.screen.width - (this.inspectorOpen ? 380 : 0)) / 2;
+    const v = this.viewport();
+    return (v.left + v.right) / 2;
   }
   private moveCamera(x: number, y: number, zoom: number, animate = true) {
+    clearTimeout(this.zoomSnap);
+    const target = constrainCamera(
+      { x, y },
+      this.cameraBounds,
+      this.viewport(),
+      zoom,
+    );
     if (animate && !this.motionPreference.matches)
       this.cameraMove = {
         from: { ...this.camera, zoom: this.zoom },
-        to: { x, y, zoom },
+        to: { ...target, zoom },
         start: performance.now(),
       };
     else {
       this.cameraMove = undefined;
-      this.camera = { x, y };
+      this.camera = target;
       this.zoom = zoom;
       this.transform();
     }
@@ -1723,23 +1768,23 @@ export class WorldRenderer {
     const top = Math.min(...points.map((p) => p.y));
     this.moveCamera(
       this.centerX() - ((left + right) / 2) * zoom,
-      115 - top * zoom,
+      24 - top * zoom,
       zoom,
       animate,
     );
   }
   recenter() {
     this.followId = null;
-    const b = this.bounds;
+    const b = this.cameraBounds;
+    const view = this.viewport();
     const zoom = Math.min(
       0.78,
-      (this.host.clientWidth - 220 - (this.inspectorOpen ? 380 : 0)) /
-        (b.right - b.left),
-      (this.host.clientHeight - 150) / (b.bottom - b.top),
+      (view.right - view.left) / (b.right - b.left),
+      (view.bottom - view.top) / (b.bottom - b.top),
     );
     this.moveCamera(
       this.centerX() - ((b.left + b.right) / 2) * zoom,
-      80 - b.top * zoom,
+      (view.top + view.bottom) / 2 - ((b.top + b.bottom) / 2) * zoom,
       Math.max(0.22, zoom),
     );
   }
@@ -1754,26 +1799,32 @@ export class WorldRenderer {
     this.camera.x = x - (x - this.camera.x) * ratio;
     this.camera.y = y - (y - this.camera.y) * ratio;
     this.zoom = next;
+    this.camera = elasticCamera(
+      this.camera,
+      this.cameraBounds,
+      this.viewport(),
+      this.zoom,
+    );
     this.transform();
+    clearTimeout(this.zoomSnap);
+    this.zoomSnap = setTimeout(() => this.snapCamera(), 120);
   }
   pan(dx: number, dy: number) {
+    clearTimeout(this.zoomSnap);
     this.cameraMove = undefined;
     this.followId = null;
     this.camera.x += dx;
     this.camera.y += dy;
+    this.camera = constrainCamera(
+      this.camera,
+      this.cameraBounds,
+      this.viewport(),
+      this.zoom,
+    );
     this.transform();
     this.onCamera();
   }
   private transform() {
-    const b = this.bounds;
-    this.camera.x = Math.max(
-      -b.right * this.zoom + 100,
-      Math.min(this.app.screen.width - 100 - b.left * this.zoom, this.camera.x),
-    );
-    this.camera.y = Math.max(
-      -b.bottom * this.zoom + 100,
-      Math.min(this.app.screen.height - 100 - b.top * this.zoom, this.camera.y),
-    );
     this.world.position.set(this.camera.x, this.camera.y);
     this.world.scale.set(this.zoom);
     for (const v of this.rooms.values()) {
@@ -1782,11 +1833,27 @@ export class WorldRenderer {
     }
     for (const text of this.districtLabels) text.visible = this.zoom < 0.6;
   }
+  private snapCamera() {
+    if (this.down || this.destroyed) return;
+    const target = constrainCamera(
+      this.camera,
+      this.cameraBounds,
+      this.viewport(),
+      this.zoom,
+    );
+    if (Math.hypot(target.x - this.camera.x, target.y - this.camera.y) > 0.5)
+      this.moveCamera(target.x, target.y, this.zoom);
+    else {
+      this.camera = target;
+      this.transform();
+    }
+  }
   private input() {
     const canvas = this.app.canvas;
     canvas.style.touchAction = "none";
     canvas.style.cursor = "grab";
     canvas.onpointerdown = (e) => {
+      clearTimeout(this.zoomSnap);
       this.cameraMove = undefined;
       this.pointerPositions.set(e.pointerId, { x: e.offsetX, y: e.offsetY });
       canvas.setPointerCapture(e.pointerId);
@@ -1798,7 +1865,10 @@ export class WorldRenderer {
         cx: this.camera.x,
         cy: this.camera.y,
       };
-      this.followId = null;
+      if (this.followId) {
+        this.followId = null;
+        this.onCamera();
+      }
       if (this.pointerPositions.size === 2) {
         const p = [...this.pointerPositions.values()];
         this.pinchDistance = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y);
@@ -1827,6 +1897,12 @@ export class WorldRenderer {
       if (this.moved) {
         this.camera.x = this.pointerStart.cx + dx;
         this.camera.y = this.pointerStart.cy + dy;
+        this.camera = elasticCamera(
+          this.camera,
+          this.cameraBounds,
+          this.viewport(),
+          this.zoom,
+        );
         this.transform();
         this.onCamera();
       }
@@ -1835,7 +1911,10 @@ export class WorldRenderer {
       this.pointerPositions.delete(e.pointerId);
       this.down = false;
       canvas.style.cursor = "grab";
-      if (this.moved) return;
+      if (this.moved) {
+        this.snapCamera();
+        return;
+      }
       const x = (e.offsetX - this.camera.x) / this.zoom,
         y = (e.offsetY - this.camera.y) / this.zoom;
       let selected: Selection | undefined;
@@ -1901,10 +1980,12 @@ export class WorldRenderer {
         }
       }
       if (selected) this.onSelect(selected);
+      this.snapCamera();
     };
     canvas.onpointercancel = () => {
       this.down = false;
       this.pointerPositions.clear();
+      this.snapCamera();
     };
     canvas.onwheel = (e) => {
       e.preventDefault();
@@ -1913,6 +1994,7 @@ export class WorldRenderer {
   }
   destroy() {
     this.destroyed = true;
+    clearTimeout(this.zoomSnap);
     this.resize?.disconnect();
     if (this.app.renderer) {
       this.app.destroy(true, { children: true });

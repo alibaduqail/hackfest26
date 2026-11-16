@@ -2,7 +2,7 @@
 
 An explorable isometric underground world, built with React, TypeScript and PixiJS. The reference scenario has three connected districts, eight depth levels, 30 furnished rooms, 180 persistent people and 60 households. Ordinary life runs autonomously; choose when to introduce an incident.
 
-This branch explores a darker Strata presentation. See the [visual experiment and current checks](STRATA_EXPERIMENT.md); the simulation and save formats are unchanged.
+The Strata view uses a full-window canvas with floating tools and a compact corner playback dial. See the [desktop visual checks](STRATA_EXPERIMENT.md) and [compact UI checks](qa/COMPACT_UI.md).
 
 ## Start locally
 
@@ -18,13 +18,13 @@ Open [http://127.0.0.1:4174](http://127.0.0.1:4174). For a production static bui
 
 ## Explore
 
-- Drag to pan; scroll/pinch to zoom. Arrow keys pan, `+`/`−` zoom, Space pauses, Escape closes the inspector.
-- Choose a district shortcut or **Explore** to find a room, person, or duty. Click a resident and **Follow** them; drag to stop following.
-- Follow the supply cart with the bottom-right button. Stock is loaded, carried, retained during obstruction, then unloaded into household inventories.
+- Drag to pan; scroll/pinch to zoom. Dragging past a map edge adds resistance and eases back on release; wheel zoom settles after the gesture. Arrow keys pan, `+`/`−` zoom, Space pauses, Escape closes the inspector.
+- The floating tools at the upper left provide Find, History, Incidents, Help/saves, Cart and Overview. District shortcuts and zoom sit in the same panel. Find supports room, person and duty searches; **Follow** and its small stop chip track residents or the cart.
+- Find the supply cart from the cart icon in the floating tools. Stock is loaded, carried, retained during obstruction, then unloaded into household inventories.
 - **Incidents** introduces a lower blackout, communication loss, or checkpoint closure. These are explicitly scenario-author controls.
 - The lower feeder keeps the upper clinic lit. Battery backup initially prioritizes a lower ventilation fan; seepage eventually floods the only crossing to twelve households. A pump assignment drains it at the cost of cooling service. You can request backup from the selected pump/fan inspector while communications work.
 - Inspect **History** for deliveries, staff arrivals, care, harvests, disruptions and household access intervals. The 12-household fixture accrues 60 household-minutes for each five minutes of complete isolation, counting each household once.
-- Pause, step exactly 60 simulated seconds, or choose 1×, 10×, 60×, 300×. The renderer never advances engine time. Going to the background pauses the world intentionally.
+- The lower-left dial groups play/pause and 1×, 10×, 60×, 300× speeds. Its clock row contains **+1m** for exactly 60 simulated seconds. Going to the background pauses the world intentionally.
 
 ## A two-minute demonstration
 
@@ -69,7 +69,7 @@ const receipt = engine.act({
 engine.step(); // execute accepted request on the next tick
 ```
 
-Observations expose only delivered reports, with original sample/delivery timestamps and `fresh`, `stale`, or `unknown` status. The cutaway is an explicitly labeled observer truth view. Manual operator buttons use the same `act()` validation. Commands reject unknown targets, unauthorized actors, old run IDs, lost communications, infeasible power ratings, and conflicting queued actions; accepted command IDs are idempotent. An acknowledgement schedules a request; execution/failure appears separately in history.
+Observations expose only delivered reports, with original sample/delivery timestamps and `fresh`, `stale`, or `unknown` status. The cutaway shows live observer state; controller-report disclosures are separately marked with their freshness and sample age. Manual operator buttons use the same `act()` validation. Commands reject unknown targets, unauthorized actors, old run IDs, lost communications, infeasible power ratings, and conflicting queued actions; accepted command IDs are idempotent. An acknowledgement schedules a request; execution/failure appears separately in history.
 
 The worker protocol is in [`src/engine/types.ts`](src/engine/types.ts). Future controller integration should use observations and requests, not direct mutation of `engine.state` or author incidents. This release supplies the world and interface; it does not select or optimize the team's solution.
 

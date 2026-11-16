@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type {
   IncidentKind,
-  RoomDef,
   Scenario,
   WorkerRequest,
   WorkerResponse,
@@ -20,6 +19,7 @@ import {
   cargoUnits,
   importantEvent,
   subjectRoom,
+  roomStockItems,
 } from "./world/presentation";
 import "./style.css";
 const districts = ["The Exchange", "The Works", "The Sump"];
@@ -51,11 +51,6 @@ function App() {
       tick?: number;
     }>(),
     [activeDistrict, setActiveDistrict] = useState<number | null>(1),
-    [performanceStats, setPerformanceStats] = useState({
-      tickMs: 0,
-      achievedSpeed: 0,
-    }),
-    [reportView, setReportView] = useState(false),
     [filter, setFilter] = useState("all");
   const worker = useRef<Worker | null>(null),
     canvas = useRef<HTMLDivElement>(null),
@@ -76,7 +71,6 @@ function App() {
       renderer.current.setInspectorOpen(true);
     }
     setFollowing(false);
-    setReportView(false);
     if (scenario && stateRef.current) {
       const location =
         subjectRoom(scenario, stateRef.current, s.id) ??
@@ -114,10 +108,6 @@ function App() {
         setState(m.state);
         setPlaying(m.playing);
         setSpeed(m.speed);
-        setPerformanceStats({
-          tickMs: m.tickMs,
-          achievedSpeed: m.achievedSpeed,
-        });
         setLoading(false);
       } else if (m.type === "error") {
         notify(m.message);
@@ -130,22 +120,19 @@ function App() {
                 ok: m.receipt.ok,
                 tick: m.receipt.scheduledTick,
                 message: m.receipt.ok
-                  ? "Request acknowledged; queued for the next simulation tick."
+                  ? "Queued for next tick."
                   : (m.receipt.reason ?? "Request rejected"),
               }
             : previous,
         );
         notify(
           m.receipt.ok
-            ? "Request accepted; scheduled for the next simulation tick."
+            ? "Queued for next tick."
             : (m.receipt.reason ?? "Request rejected"),
         );
       }
     };
-    w.onerror = () =>
-      notify(
-        "The simulation worker stopped. Export the current state before reloading.",
-      );
+    w.onerror = () => notify("Simulation stopped. Export before reloading.");
     const abort = new AbortController();
     fetch("/scenario.json", { signal: abort.signal })
       .then((r) => {
@@ -186,7 +173,7 @@ function App() {
       })
       .catch((e) =>
         notify(
-          `Graphics could not start: ${e.message}. Your simulation remains available through Explore.`,
+          `Graphics could not start: ${e.message}. Use Find to inspect the run.`,
         ),
       );
     return () => {
@@ -244,7 +231,7 @@ function App() {
     const visibility = () => {
       if (document.hidden && playingRef.current) {
         send({ type: "play", playing: false });
-        notify("Simulation paused while this tab was in the background.");
+        notify("Paused in background.");
       }
     };
     window.addEventListener("keydown", handler);
@@ -258,9 +245,7 @@ function App() {
     if (scenario && state)
       try {
         await saveLocal({ format: "hollow-save-v1", scenario, state });
-        notify(
-          "World saved locally, including people, cargo and report history.",
-        );
+        notify("Saved.");
       } catch (e) {
         notify((e as Error).message);
       }
@@ -270,12 +255,14 @@ function App() {
       throw new Error("Unsupported save format");
     validateSave(file.scenario, file.state);
     setScenario(file.scenario);
+    setActiveDistrict(1);
+    setActiveLevel(null);
     setSelection(null);
     setPanel(null);
     setFollowing(false);
     setLastRequest(undefined);
     send({ type: "load", scenario: file.scenario, state: file.state });
-    notify("Saved world restored, paused at the recorded time.");
+    notify("Loaded. Paused.");
   }
   async function importFile(file: File) {
     try {
@@ -292,17 +279,25 @@ function App() {
         )
           throw new Error("Replay limit is seven simulated days");
         setScenario(input.scenario);
+        setActiveDistrict(1);
+        setActiveLevel(null);
+        setFollowing(false);
+        setLastRequest(undefined);
         setSelection(null);
         setPanel(null);
         send({ type: "replay", replay: input });
-        notify("Replaying the same authored events and operator decisions…");
+        notify("Replaying…");
       } else {
         validateScenario(input);
         setScenario(input);
+        setActiveDistrict(1);
+        setActiveLevel(null);
+        setFollowing(false);
+        setLastRequest(undefined);
         setSelection(null);
         setPanel(null);
         send({ type: "init", scenario: input });
-        notify("Scenario validated and loaded.");
+        notify("Scenario loaded.");
       }
     } catch (e) {
       notify(`Import rejected: ${(e as Error).message}`);
@@ -348,7 +343,6 @@ function App() {
       ? scenario?.rooms.find((r) => r.id === selection.id)
       : undefined;
   const pumpRoom = scenario?.rooms.find((r) => r.kind === "pump");
-  const pumpState = state?.rooms.find((r) => r.id === pumpRoom?.id);
   const selectedPerson =
     selection?.kind === "person"
       ? scenario?.residents.find((p) => p.id === selection.id)
@@ -424,9 +418,6 @@ function App() {
       : "FRESH";
   const connectedHomes =
     state?.households.filter((h) => !h.accessClosed).length ?? 0;
-  const currentTemp = state
-    ? state.rooms.reduce((n, r) => n + r.temperature, 0) / state.rooms.length
-    : 0;
   const backupIssue =
     !state || !scenario || !selectedRoom
       ? "World is loading"
@@ -459,689 +450,680 @@ function App() {
             : "room";
     select({ kind, id }, true);
   }
+
+  function closeInspector() {
+    setPanel(null);
+    setSelection(null);
+    renderer.current?.select({ kind: "room", id: "" });
+  }
+  function overview() {
+    closeInspector();
+    if (renderer.current) {
+      renderer.current.followId = null;
+      renderer.current.setInspectorOpen(false);
+      renderer.current.recenter();
+    }
+    setFollowing(false);
+    setActiveDistrict(null);
+    setActiveLevel(null);
+  }
+  function follow(id: string) {
+    const view = renderer.current;
+    if (!view) return;
+    if (view.followId === id) {
+      view.followId = null;
+      setFollowing(false);
+    } else {
+      view.focus(id, true);
+      setFollowing(true);
+    }
+  }
+  const followingName =
+    scenario?.residents.find((p) => p.id === renderer.current?.followId)
+      ?.name ?? "Cart";
+  const stockItems =
+    selectedRoom && room ? roomStockItems(selectedRoom.kind, room.stock) : [];
+  const machine =
+    selectedRoom &&
+    (selectedRoom.kind === "pump" || selectedRoom.kind === "fan");
+  const machineProblem = Boolean(
+    machine &&
+    room &&
+    (!room.powered ||
+      (selectedRoom?.kind === "pump" && state?.closedLinks.length)),
+  );
   return (
-    <div className="shell">
-      <header className="topbar">
-        <a
-          className="brand"
-          href="#"
-          onClick={(e) => {
-            e.preventDefault();
-            renderer.current?.recenter();
-            setActiveDistrict(null);
-            setActiveLevel(null);
-            setFollowing(false);
-          }}
-        >
-          <span>
-            Hollow<small>Sector 07</small>
-          </span>
-        </a>
-        <div className="world-indicator">
-          <i /> District network <span>/</span> Observer view
-        </div>
-        <nav aria-label="World tools">
+    <main className="world-stage">
+      <div ref={canvas} className="world-canvas" />
+      <aside className="world-tools" aria-label="World controls">
+        <nav className="tool-grid" aria-label="World tools">
           <button
+            title="Find rooms and residents"
             aria-label="Explore"
-            className={panel === "explore" ? "active" : ""}
+            aria-pressed={panel === "explore"}
             onClick={() => togglePanel("explore")}
           >
-            ⌕ <span>Explore</span>
+            <span aria-hidden="true">⌕</span>
           </button>
           <button
+            title="History"
             aria-label="History"
-            className={panel === "history" ? "active" : ""}
+            aria-pressed={panel === "history"}
             onClick={() => togglePanel("history")}
           >
-            ◷ <span>History</span>
+            <span aria-hidden="true">◷</span>
           </button>
           <button
+            title="Incidents"
             aria-label="Incidents"
-            className={panel === "experiment" ? "active" : ""}
+            aria-pressed={panel === "experiment"}
             onClick={() => togglePanel("experiment")}
           >
-            ⚡ <span>Incidents</span>
+            <span aria-hidden="true">ϟ</span>
           </button>
           <button
+            title="Help and saves"
             aria-label="Help and saves"
+            aria-pressed={panel === "help"}
             onClick={() => togglePanel("help")}
           >
-            ⋯
+            <span aria-hidden="true">⋯</span>
+          </button>
+          <button
+            title="Find cart"
+            aria-label="Find the supply cart"
+            onClick={() => select({ kind: "cart", id: "cart" }, true)}
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M3 4h2l3 12h11l2-8H6M9 20h.01M18 20h.01" />
+            </svg>
+          </button>
+          <button
+            title="Overview"
+            aria-label="Recenter world"
+            onClick={overview}
+          >
+            <span aria-hidden="true">⌖</span>
           </button>
         </nav>
-      </header>
-      <main
-        className={`world-stage ${panel || selection ? "inspector-open" : ""}`}
-      >
-        <div ref={canvas} className="world-canvas" />
-        <div className={`world-title ${selection || panel ? "compact" : ""}`}>
-          <span className="eyebrow">
-            Fictional settlement · sealed for thirty years
-          </span>
-          <h1>
-            {activeDistrict === null ? "The Hollow" : districts[activeDistrict]}
-          </h1>
-          <p>
-            {activeLevel
-              ? `Level ${activeLevel}${following ? " · Following across the settlement" : ""}`
-              : "The next shift begins beneath the surface."}
-          </p>
-        </div>
-        <div className="district-nav" aria-label="District navigation">
+        <nav className="district-nav" aria-label="District navigation">
           {districts.map((d, i) => (
             <button
               key={d}
-              className={activeDistrict === i ? "active" : ""}
+              aria-label={d}
               aria-pressed={activeDistrict === i}
               onClick={() => {
-                renderer.current?.district(i);
+                closeInspector();
+                if (renderer.current) {
+                  renderer.current.followId = null;
+                  renderer.current.setInspectorOpen(false);
+                  renderer.current.district(i);
+                }
                 setActiveDistrict(i);
-                setFollowing(false);
                 setActiveLevel(null);
+                setFollowing(false);
               }}
             >
-              <span>0{i + 1}</span>
-              <strong>{d}</strong>
-              <small>
-                {
-                  ["Civic & supply", "Industry & growing", "Homes & drainage"][
-                    i
-                  ]
-                }
-              </small>
-              <b>↗</b>
+              {d.replace("The ", "")}
+              {activeDistrict === i && activeLevel && (
+                <small>L{activeLevel}</small>
+              )}
             </button>
           ))}
-        </div>
-        <div className="world-stats">
-          <span>
-            <b>{state?.people.length ?? scenario?.residents.length ?? 0}</b>{" "}
-            residents
-          </span>
-          <span>
-            <b>
-              {connectedHomes}/
-              {state?.households.length ?? scenario?.households.length ?? 0}
-            </b>{" "}
-            homes connected
-          </span>
-          <span>
-            <b>{currentTemp.toFixed(1)}°</b> average temperature
-          </span>
-        </div>
-        <div className="camera-controls">
+        </nav>
+        <div className="zoom-controls" aria-label="Camera controls">
           <button
-            aria-label="Zoom in"
-            onClick={() => renderer.current?.zoomBy(1.25)}
-          >
-            +
-          </button>
-          <button
+            title="Zoom out (−)"
             aria-label="Zoom out"
             onClick={() => renderer.current?.zoomBy(0.8)}
           >
             −
           </button>
           <button
-            aria-label="Recenter world"
-            onClick={() => {
-              renderer.current?.recenter();
-              setActiveDistrict(null);
-              setFollowing(false);
-              setActiveLevel(null);
-            }}
+            title="Zoom in (+)"
+            aria-label="Zoom in"
+            onClick={() => renderer.current?.zoomBy(1.25)}
           >
-            ⌖
+            +
           </button>
         </div>
         {following && (
           <button
-            className="following"
+            className="follow-chip"
+            title={"Stop following " + followingName}
+            aria-label={"Stop following " + followingName}
             onClick={() => {
               if (renderer.current) renderer.current.followId = null;
               setFollowing(false);
             }}
           >
-            ◎ Following{" "}
-            {scenario?.residents.find(
-              (p) => p.id === renderer.current?.followId,
-            )?.name ?? "the supply cart"}{" "}
-            <span>×</span>
+            <span aria-hidden="true">◎</span>
+            <span>{followingName}</span>
+            <span aria-hidden="true">×</span>
           </button>
         )}
         {state?.blackout && (
-          <div className="incident-banner">
-            <span>⚡</span>
-            <div>
-              <strong>Lower feeder offline</strong>
-              <small>
-                {state.closedLinks.length
-                  ? `${state.closedLinks.length} flooded passage${state.closedLinks.length === 1 ? "" : "s"} · ${state.households.filter((h) => h.accessClosed).length} homes isolated`
-                  : `Lower lifts unavailable · drainage pump ${pumpState?.powered ? "operating" : "offline"}`}
-              </small>
-            </div>
-            <button
-              disabled={!pumpRoom}
-              onClick={() => {
-                if (pumpRoom) select({ kind: "room", id: pumpRoom.id }, true);
-              }}
-            >
-              Drainage & backup ↗
-            </button>
-          </div>
-        )}
-        {loading && (
-          <div className="loading">
-            <span className="brand-mark">H</span>
-            <h2>Opening the Hollow</h2>
-            <p>Bringing the next shift to life…</p>
-          </div>
-        )}
-        {(panel || selection) && (
-          <aside
-            key={panel ?? `${selection?.kind}:${selection?.id}`}
-            className="drawer"
-            aria-label="World inspector"
+          <button
+            className="incident-chip"
+            disabled={!pumpRoom}
+            title="Lower feeder offline · Open drainage"
+            aria-label="Locate drainage outage"
+            onClick={() =>
+              pumpRoom && select({ kind: "room", id: pumpRoom.id }, true)
+            }
           >
-            <div className="drawer-top">
-              <span className="eyebrow">
-                {panel === "explore"
-                  ? "DISTRICT DIRECTORY"
-                  : panel === "history"
-                    ? "WORLD HISTORY"
-                    : panel === "experiment"
-                      ? "SCENARIO AUTHOR"
-                      : panel === "help"
-                        ? "FIELD GUIDE"
-                        : "LIVE WORLD · OBSERVER TRUTH"}
-              </span>
-              <button
-                aria-label="Close inspector"
-                onClick={() => {
-                  setPanel(null);
-                  setSelection(null);
-                  renderer.current?.select({ kind: "room", id: "" });
-                }}
-              >
-                ×
-              </button>
-            </div>
-            {panel === "explore" && (
-              <>
-                <h2>Find your way.</h2>
-                <p className="muted">
-                  Every person has a home, a duty, and somewhere to be.
-                </p>
-                <input
-                  autoFocus
-                  aria-label="Search rooms and residents"
-                  placeholder="Search a place, person, or duty…"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                />
-                <div className="tabs">
-                  {["all", "rooms", "people"].map((f) => (
-                    <button
-                      className={filter === f ? "selected" : ""}
-                      key={f}
-                      onClick={() => setFilter(f)}
-                    >
-                      {f}
-                    </button>
-                  ))}
-                </div>
-                <div className="directory">
-                  {filter !== "people" &&
-                    scenario?.rooms
-                      .filter((r) =>
-                        `${r.name} ${r.kind} ${districts[r.district]}`
-                          .toLowerCase()
-                          .includes(query.toLowerCase()),
-                      )
-                      .map((r) => (
-                        <button
-                          key={r.id}
-                          onClick={() =>
-                            select({ kind: "room", id: r.id }, true)
-                          }
-                        >
-                          <span className="entry-icon">▦</span>
-                          <span>
-                            <strong>{r.name}</strong>
-                            <small>
-                              {districts[r.district]} · Level {r.floor + 1}
-                            </small>
-                          </span>
-                          <b>↗</b>
-                        </button>
-                      ))}
-                  {filter !== "rooms" &&
-                    scenario?.residents
-                      .filter((p) =>
-                        `${p.name} ${p.role}`
-                          .toLowerCase()
-                          .includes(query.toLowerCase()),
-                      )
-                      .map((p) => (
-                        <button
-                          key={p.id}
-                          onClick={() =>
-                            select({ kind: "person", id: p.id }, true)
-                          }
-                        >
-                          <ResidentPortrait person={p} />
-                          <span>
-                            <strong>{p.name}</strong>
-                            <small>
-                              {p.role} ·{" "}
-                              {state?.people.find((s) => s.id === p.id)?.task}
-                            </small>
-                          </span>
-                          <b>↗</b>
-                        </button>
-                      ))}
-                </div>
-              </>
+            <span aria-hidden="true">ϟ</span>
+            {state.closedLinks.length
+              ? state.households.length - connectedHomes + " homes isolated"
+              : "Power outage"}
+          </button>
+        )}
+        {state && !state.comms && (
+          <span className="offline-status" role="status">
+            Comms offline
+          </span>
+        )}
+      </aside>
+
+      <section className="playback" aria-label="Playback">
+        <div className="clock-row">
+          <time
+            className="clock"
+            title={
+              "Day " +
+              (1 + Math.floor((state?.tick ?? 0) / 86400)) +
+              " · " +
+              clock(state?.tick ?? 0, scenario?.startHour) +
+              ":" +
+              String((state?.tick ?? 0) % 60).padStart(2, "0") +
+              " · " +
+              (playing ? "Running" : "Paused")
+            }
+          >
+            {(state?.tick ?? 0) >= 86400 && (
+              <small>D{1 + Math.floor((state?.tick ?? 0) / 86400)} </small>
             )}
-            {panel === "history" && (
-              <>
-                <h2>The city remembers.</h2>
-                <p className="muted">
-                  Recorded events from this run. Select one to find where it
-                  happened.
-                </p>
-                <div className="tabs" aria-label="History filter">
+            {clock(state?.tick ?? 0, scenario?.startHour)}
+          </time>
+          <button
+            title="Advance one minute"
+            aria-label="Advance one minute"
+            onClick={() => send({ type: "step" })}
+          >
+            +1m
+          </button>
+        </div>
+        <div className="playback-dial">
+          <button
+            className="play-button"
+            title={playing ? "Pause (Space)" : "Play (Space)"}
+            aria-label={playing ? "Pause simulation" : "Play simulation"}
+            onClick={() => send({ type: "play", playing: !playing })}
+          >
+            {playing ? "Ⅱ" : "▶"}
+          </button>
+          {[1, 10, 60, 300].map((s, i) => (
+            <button
+              key={s}
+              className="speed-button"
+              data-slot={i}
+              title={"Speed: " + s + "×"}
+              aria-pressed={speed === s}
+              onClick={() => send({ type: "speed", speed: s })}
+            >
+              {s}×
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {loading && (
+        <div className="loading" role="status">
+          Loading…
+        </div>
+      )}
+
+      {(panel || selection) && (
+        <aside
+          key={panel ?? selection?.kind + ":" + selection?.id}
+          className="drawer"
+          aria-label="World inspector"
+        >
+          <button
+            className="drawer-close"
+            title="Close (Esc)"
+            aria-label="Close inspector"
+            onClick={closeInspector}
+          >
+            ×
+          </button>
+
+          {panel === "explore" && (
+            <>
+              <h2>Find</h2>
+              <input
+                autoFocus
+                aria-label="Search rooms and residents"
+                placeholder="Search…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+              <div className="tabs">
+                {["all", "rooms", "people"].map((f) => (
                   <button
-                    className={historyFilter === "important" ? "selected" : ""}
-                    aria-pressed={historyFilter === "important"}
-                    onClick={() => setHistoryFilter("important")}
+                    key={f}
+                    aria-pressed={filter === f}
+                    onClick={() => setFilter(f)}
                   >
-                    Outages & deliveries
+                    {f}
                   </button>
-                  <button
-                    className={historyFilter === "all" ? "selected" : ""}
-                    aria-pressed={historyFilter === "all"}
-                    onClick={() => setHistoryFilter("all")}
-                  >
-                    All events ({state?.events.length ?? 0})
-                  </button>
-                </div>
-                <div className="summary-row">
-                  <span>
-                    Supply delivered
-                    <strong>{decimal(state?.cart.delivered ?? 0)} units</strong>
-                  </span>
-                  <span>
-                    Depot isolation<strong>{decimal(deficits)} hh·min</strong>
-                  </span>
-                </div>
-                <div className="event-list">
-                  {state?.events
-                    .filter((e) => historyFilter === "all" || importantEvent(e))
-                    .slice()
-                    .reverse()
-                    .map((e) => (
+                ))}
+              </div>
+              <div className="directory">
+                {filter !== "people" &&
+                  scenario?.rooms
+                    .filter((r) =>
+                      (r.name + " " + r.kind + " " + districts[r.district])
+                        .toLowerCase()
+                        .includes(query.toLowerCase()),
+                    )
+                    .map((r) => (
                       <button
-                        key={e.id}
-                        onClick={() => selectEvent(e.subjectId)}
+                        key={r.id}
+                        onClick={() => select({ kind: "room", id: r.id }, true)}
                       >
-                        <time>{clock(e.tick, scenario?.startHour)}</time>
-                        <span>
-                          <small>
-                            {e.kind === "access" ? "Household access" : e.kind}
-                          </small>
-                          {e.text}
+                        <span className="entry-icon" aria-hidden="true">
+                          ▦
                         </span>
-                        <b>↗</b>
+                        <span>
+                          <strong>{r.name}</strong>
+                          <small>
+                            {districts[r.district].replace("The ", "")} · L
+                            {r.floor + 1}
+                          </small>
+                        </span>
                       </button>
                     ))}
-                </div>
-                <h3>Household access intervals</h3>
-                <p className="muted">
-                  {state?.households.filter((h) => h.accessClosed).length ?? 0}{" "}
-                  households currently isolated; {decimal(deficits)}{" "}
-                  household-minutes of access lost. Concurrent closures count
-                  each household once.
-                </p>
-                {state?.deficits.slice(-24).map((d, i) => (
-                  <div className="deficit" key={i}>
-                    <strong>
-                      {
-                        scenario?.households.find((h) => h.id === d.householdId)
-                          ?.name
-                      }
-                    </strong>
-                    <span>
-                      {clock(d.start, scenario?.startHour)} →{" "}
-                      {d.end === null
-                        ? "ongoing"
-                        : clock(d.end, scenario?.startHour)}{" "}
-                      · {decimal(((d.end ?? state.tick) - d.start) / 60)} min
-                    </span>
-                  </div>
-                ))}
-              </>
-            )}
-            {panel === "experiment" && (
-              <>
-                <h2>A fragile balance.</h2>
-                <p className="muted">
-                  Introduce a disruption into this living world. These are
-                  scenario-author controls; residents and future controllers use
-                  the constrained request channel.
-                </p>
-                <div className="incident-card">
-                  <span>01 / POWER</span>
-                  <h3>The lower feeder</h3>
-                  <p>
-                    The clinic stays lit. The lower lift, pump and fans depend
-                    on scarce backup power.
-                  </p>
-                  <button
-                    className="gold-button"
-                    onClick={() =>
-                      incident(state?.blackout ? "restore" : "blackout")
-                    }
-                  >
-                    {state?.blackout
-                      ? "Restore lower feeder"
-                      : "Trigger a lower blackout"}{" "}
-                    ↗
-                  </button>
-                </div>
-                <div className="incident-card">
-                  <span>02 / INFORMATION</span>
-                  <h3>The Directorate network</h3>
-                  <p>
-                    Physical life continues. Readings retain their original
-                    sample time when the network goes dark.
-                  </p>
-                  <button
-                    onClick={() =>
-                      incident(state?.comms ? "comms" : "reconnect")
-                    }
-                  >
-                    {state?.comms
-                      ? "Cut communications"
-                      : "Restore communications"}{" "}
-                    ↗
-                  </button>
-                </div>
-                <div className="incident-card">
-                  <span>03 / MOVEMENT</span>
-                  <h3>The service checkpoint</h3>
-                  <p>
-                    Close a permitted shortcut and watch workers find a route or
-                    wait.
-                  </p>
-                  <button
-                    onClick={() =>
-                      incident(state?.lockdown ? "unlock" : "lockdown")
-                    }
-                  >
-                    {state?.lockdown
-                      ? "Reopen checkpoint"
-                      : "Seal the checkpoint"}{" "}
-                    ↗
-                  </button>
-                </div>
-                <button
-                  className="text-button"
-                  onClick={() => {
-                    send({ type: "reset" });
-                    setSelection(null);
-                    notify(
-                      "World reset to the same initial conditions, paused.",
-                    );
-                  }}
-                >
-                  ↺ Reset the world
-                </button>
-              </>
-            )}
-            {panel === "help" && (
-              <>
-                <h2>Look a little closer.</h2>
-                <p className="muted">
-                  Drag the city to explore. Scroll or pinch to zoom. Click a
-                  room or person; follow them to see where they go.
-                </p>
-                <div className="key-guide">
-                  <span>Pan</span>
-                  <kbd>← ↑ ↓ →</kbd>
-                  <span>Pause / resume</span>
-                  <kbd>Space</kbd>
-                  <span>Zoom</span>
-                  <kbd>+ / −</kbd>
-                  <span>Close inspector</span>
-                  <kbd>Esc</kbd>
-                </div>
-                <h3>Keep this world</h3>
-                <div className="save-actions">
-                  <button onClick={save}>Save locally</button>
-                  <button
-                    onClick={() =>
-                      loadLocal()
-                        .then(restore)
-                        .catch((e) => notify(e.message))
-                    }
-                  >
-                    Load local save
-                  </button>
-                  <button
-                    onClick={() =>
-                      scenario &&
-                      state &&
-                      download("hollow-world-save.json", {
-                        format: "hollow-save-v1",
-                        scenario,
-                        state,
-                      })
-                    }
-                  >
-                    Export snapshot
-                  </button>
-                  <button onClick={() => upload.current?.click()}>
-                    Import save / scenario / replay
-                  </button>
-                  <button
-                    onClick={() =>
-                      scenario &&
-                      state &&
-                      download("hollow-world-replay.json", {
-                        format: "hollow-replay-v1",
-                        scenario,
-                        finalTick: state.tick,
-                        actions: state.actions,
-                        commands: state.commandLog,
-                      })
-                    }
-                  >
-                    Export deterministic replay
-                  </button>
-                  <button
-                    onClick={() =>
-                      scenario && download("hollow-scenario.json", scenario)
-                    }
-                  >
-                    Export scenario
-                  </button>
-                  <button
-                    onClick={() => {
-                      send({ type: "reset" });
-                      setSelection(null);
-                      notify(
-                        "World reset, paused at the same starting conditions.",
-                      );
-                    }}
-                  >
-                    Reset world
-                  </button>
-                </div>
-                <h3>Under the surface</h3>
-                <p className="muted">
-                  {scenario?.rooms.length} rooms · {scenario?.residents.length}{" "}
-                  residents · {scenario?.households.length} households ·{" "}
-                  {new Set(scenario?.rooms.map((r) => r.floor)).size} levels.
-                  All populations, capacities, needs and exposure rules are
-                  fictional inputs.
-                </p>
-                <p className="muted">
-                  One fixed simulation-second per tick. Rendering never advances
-                  time. Offscreen districts keep running.
-                </p>
-                <p className="muted">
-                  Engine: {performanceStats.tickMs.toFixed(2)} ms/tick ·
-                  observed {performanceStats.achievedSpeed}× · renderer{" "}
-                  {Math.round(renderer.current?.fps ?? 0)} FPS
-                </p>
-                <a href="/scenario.json" target="_blank" rel="noreferrer">
-                  Open editable scenario ↗
-                </a>
-              </>
-            )}
-            {selectedRoom && room && (
-              <>
-                <span className="location-meta">
-                  {districts[selectedRoom.district]} / LEVEL{" "}
-                  {selectedRoom.floor + 1}
-                </span>
-                <h2>{selectedRoom.name}</h2>
-                {(selectedRoom.kind === "pump" ||
-                  selectedRoom.kind === "fan") &&
-                  state &&
-                  scenario && (
-                    <section
-                      className={`recovery-action ${!room.powered || state.closedLinks.length ? "has-problem" : ""}`}
-                      aria-label="Current problem and backup action"
-                    >
-                      <h3>
-                        {selectedRoom.kind === "pump"
-                          ? state.closedLinks.length
-                            ? "Crossing flooded"
-                            : !room.powered
-                              ? "Drainage pump has no power"
-                              : state.backupTarget === selectedRoom.id &&
-                                  state.blackout
-                                ? "Pump running on backup"
-                                : "Drainage pump running"
-                          : room.powered
-                            ? "Ventilation running"
-                            : "Ventilation has no power"}
-                      </h3>
-                      <p>
-                        Live observer ·{" "}
-                        {selectedRoom.kind === "pump"
-                          ? `${(state.waterL / (scenario.settings.tunnelAreaM2 * 1000)).toFixed(2)} m water; crossing closes at ${scenario.settings.closeDepthM} m. ${connectedHomes}/${state.households.length} homes connected.`
-                          : `${room.temperature.toFixed(1)}°C · air burden ${room.air.toFixed(1)}/100.`}
-                      </p>
+                {filter !== "rooms" &&
+                  scenario?.residents
+                    .filter((p) =>
+                      (p.name + " " + p.role)
+                        .toLowerCase()
+                        .includes(query.toLowerCase()),
+                    )
+                    .map((p) => (
                       <button
-                        className="gold-button"
-                        disabled={Boolean(backupIssue)}
+                        key={p.id}
                         onClick={() =>
-                          request(
-                            "assignBackup",
-                            selectedRoom.id,
-                            selectedRoom.kind,
-                          )
+                          select({ kind: "person", id: p.id }, true)
                         }
                       >
-                        {state.backupTarget === selectedRoom.id
-                          ? "Backup assigned"
-                          : `Request ${selectedRoom.kind} backup`}
+                        <ResidentPortrait person={p} />
+                        <span>
+                          <strong>{p.name}</strong>
+                          <small>{p.role}</small>
+                        </span>
                       </button>
-                      <p className="action-prerequisite">
-                        {backupIssue ||
-                          `${selectedRoom.demandW} W device · ${scenario.settings.batteryMaxW} W backup limit · ${decimal(state.batteryMilliWh / 1000)} Wh remaining. Transfers backup from the current ${state.backup}.`}
-                      </p>
-                      {lastRequest?.target === selectedRoom.id && (
-                        <p className="command-feedback" role="status">
-                          {lastRequest.ok &&
-                          lastRequest.tick &&
-                          state.tick >= lastRequest.tick &&
-                          !state.commands.some(
-                            (c) => c.commandId === lastRequest.id,
-                          )
-                            ? `Executed at ${clock(lastRequest.tick, scenario.startHour)}:${String(lastRequest.tick % 60).padStart(2, "0")}. ${lastRequest.type === "assignBackup" ? `Backup assigned to ${selectedRoom.name}.` : "Operator request executed."}`
-                            : `${lastRequest.message}${lastRequest.ok && !playing ? " Resume or step one minute to execute." : ""}`}
-                        </p>
-                      )}
-                      {!state.comms && (
-                        <p className="action-prerequisite">
-                          Observer view remains live. Controller readings below
-                          are retained samples; operator requests need
-                          communications.
-                        </p>
-                      )}
-                      <button
-                        className="text-button"
-                        onClick={() => setReportView(!reportView)}
-                      >
-                        {reportView ? "Hide" : "View"} controller report ·{" "}
-                        {reportStatus.toLowerCase()}
-                      </button>
-                      {reportView && (
-                        <ControllerReport
-                          status={reportStatus}
-                          report={report}
-                          tick={state.tick}
-                          startHour={scenario.startHour}
-                        />
-                      )}
-                    </section>
-                  )}
-                <p className="room-description">{describe(selectedRoom)}</p>
-                <div className="status-pill">
-                  <i className={room.powered ? "" : "off"} />
-                  {room.reason}
-                </div>
-                <div className="inspector-grid">
-                  <span>
-                    Residents here<strong>{room.occupants}</strong>
-                  </span>
-                  <span>
-                    Working staff<strong>{room.staff}</strong>
-                  </span>
-                  <span>
-                    Temperature<strong>{room.temperature.toFixed(1)}°C</strong>
-                  </span>
-                  <span>
-                    Air burden
-                    <strong>
-                      {room.air.toFixed(1)} <small>/ 100</small>
-                    </strong>
-                  </span>
-                </div>
-                <h3>Shared stores</h3>
-                <div className="stocks">
-                  {(["food", "water", "medicine", "parts"] as const).map(
-                    (k) => (
-                      <span key={k}>
-                        {k}
-                        <strong>
-                          {decimal(room.stock[k])}
-                          {k === "water" ? " L" : ""}
-                        </strong>
+                    ))}
+              </div>
+            </>
+          )}
+
+          {panel === "history" && (
+            <>
+              <h2>History</h2>
+              <div className="tabs" aria-label="History filter">
+                <button
+                  aria-pressed={historyFilter === "important"}
+                  onClick={() => setHistoryFilter("important")}
+                >
+                  Key events
+                </button>
+                <button
+                  aria-pressed={historyFilter === "all"}
+                  onClick={() => setHistoryFilter("all")}
+                >
+                  All ({state?.events.length ?? 0})
+                </button>
+              </div>
+              <div className="summary-row">
+                <span>
+                  Food delivered
+                  <strong>{decimal(state?.cart.delivered ?? 0)}</strong>
+                </span>
+                <span>
+                  Access lost<strong>{decimal(deficits)} hh·min</strong>
+                </span>
+              </div>
+              <div className="event-list">
+                {state?.events
+                  .filter((e) => historyFilter === "all" || importantEvent(e))
+                  .slice()
+                  .reverse()
+                  .map((e) => (
+                    <button key={e.id} onClick={() => selectEvent(e.subjectId)}>
+                      <time>{clock(e.tick, scenario?.startHour)}</time>
+                      <span>{e.text}</span>
+                    </button>
+                  ))}
+              </div>
+              {Boolean(state?.deficits.length) && (
+                <details>
+                  <summary>Access history ({state?.deficits.length})</summary>
+                  {state?.deficits.slice(-24).map((d, i) => (
+                    <div className="deficit" key={i}>
+                      <strong>
+                        {
+                          scenario?.households.find(
+                            (h) => h.id === d.householdId,
+                          )?.name
+                        }
+                      </strong>
+                      <span>
+                        {clock(d.start, scenario?.startHour)}–
+                        {d.end === null
+                          ? "now"
+                          : clock(d.end, scenario?.startHour)}{" "}
+                        · {decimal(((d.end ?? state.tick) - d.start) / 60)} min
                       </span>
-                    ),
+                    </div>
+                  ))}
+                </details>
+              )}
+            </>
+          )}
+
+          {panel === "experiment" && (
+            <>
+              <h2>Incidents</h2>
+              <div className="incident-row">
+                <span>Lower power</span>
+                <button
+                  aria-label={
+                    state?.blackout
+                      ? "Restore lower feeder"
+                      : "Trigger a lower blackout"
+                  }
+                  onClick={() =>
+                    incident(state?.blackout ? "restore" : "blackout")
+                  }
+                >
+                  {state?.blackout ? "Restore" : "Cut power"}
+                </button>
+              </div>
+              <div className="incident-row">
+                <span>Comms</span>
+                <button
+                  aria-label={
+                    state?.comms
+                      ? "Cut communications"
+                      : "Restore communications"
+                  }
+                  onClick={() => incident(state?.comms ? "comms" : "reconnect")}
+                >
+                  {state?.comms ? "Disconnect" : "Reconnect"}
+                </button>
+              </div>
+              <div className="incident-row">
+                <span>Checkpoint</span>
+                <button
+                  aria-label={
+                    state?.lockdown ? "Reopen checkpoint" : "Seal checkpoint"
+                  }
+                  onClick={() =>
+                    incident(state?.lockdown ? "unlock" : "lockdown")
+                  }
+                >
+                  {state?.lockdown ? "Open" : "Close"}
+                </button>
+              </div>
+            </>
+          )}
+
+          {panel === "help" && (
+            <>
+              <h2>Help & saves</h2>
+              <div className="key-guide">
+                <span>Pan</span>
+                <kbd>← ↑ ↓ →</kbd>
+                <span>Play / pause</span>
+                <kbd>Space</kbd>
+                <span>Zoom</span>
+                <kbd>+ / −</kbd>
+                <span>Close</span>
+                <kbd>Esc</kbd>
+              </div>
+              <div className="save-actions">
+                <button onClick={save}>Save</button>
+                <button
+                  onClick={() =>
+                    loadLocal()
+                      .then(restore)
+                      .catch((e) => notify(e.message))
+                  }
+                >
+                  Load
+                </button>
+                <button
+                  onClick={() =>
+                    scenario &&
+                    state &&
+                    download("hollow-world-save.json", {
+                      format: "hollow-save-v1",
+                      scenario,
+                      state,
+                    })
+                  }
+                >
+                  Export save
+                </button>
+                <button
+                  aria-label="Import save, scenario or replay"
+                  onClick={() => upload.current?.click()}
+                >
+                  Import
+                </button>
+                <button
+                  onClick={() =>
+                    scenario &&
+                    state &&
+                    download("hollow-world-replay.json", {
+                      format: "hollow-replay-v1",
+                      scenario,
+                      finalTick: state.tick,
+                      actions: state.actions,
+                      commands: state.commandLog,
+                    })
+                  }
+                >
+                  Export replay
+                </button>
+                <button
+                  onClick={() =>
+                    scenario && download("hollow-scenario.json", scenario)
+                  }
+                >
+                  Export scenario
+                </button>
+                <button
+                  onClick={() => {
+                    closeInspector();
+                    if (renderer.current) renderer.current.followId = null;
+                    setFollowing(false);
+                    send({ type: "reset" });
+                    notify("Reset. Paused.");
+                  }}
+                >
+                  Reset world
+                </button>
+              </div>
+              <details>
+                <summary>Settlement</summary>
+                <p>
+                  {state?.people.length ?? 0} people ·{" "}
+                  {scenario?.rooms.length ?? 0} rooms ·{" "}
+                  {new Set(scenario?.rooms.map((r) => r.floor)).size} levels
+                </p>
+                <p>
+                  {connectedHomes}/{state?.households.length ?? 0} homes
+                  connected
+                </p>
+                <a href="/scenario.json" target="_blank" rel="noreferrer">
+                  Scenario
+                </a>
+              </details>
+            </>
+          )}
+
+          {selectedRoom && room && state && scenario && (
+            <>
+              <span className="location-meta">
+                {districts[selectedRoom.district].replace("The ", "")} · L
+                {selectedRoom.floor + 1}
+              </span>
+              <h2>{selectedRoom.name}</h2>
+              {machine && (
+                <details
+                  className={
+                    "machine-controls" + (machineProblem ? " has-problem" : "")
+                  }
+                  open={machineProblem || undefined}
+                >
+                  <summary>
+                    {machineProblem
+                      ? selectedRoom.kind === "pump"
+                        ? state.closedLinks.length
+                          ? "Crossing flooded"
+                          : "Pump offline"
+                        : "Fan offline"
+                      : "Power & backup"}
+                  </summary>
+                  {machineProblem && (
+                    <p className="live-reading">
+                      Live ·{" "}
+                      {selectedRoom.kind === "pump"
+                        ? (
+                            state.waterL /
+                            (scenario.settings.tunnelAreaM2 * 1000)
+                          ).toFixed(2) +
+                          " m / " +
+                          scenario.settings.closeDepthM +
+                          " m limit · " +
+                          connectedHomes +
+                          "/" +
+                          state.households.length +
+                          " connected"
+                        : room.temperature.toFixed(1) +
+                          "°C · Air " +
+                          room.air.toFixed(1) +
+                          "/100"}
+                    </p>
                   )}
-                </div>
-                {selectedRoom.kind === "farm" && (
-                  <p className="muted">
-                    Crop progress:{" "}
-                    {Math.round(
-                      (room.growth / (scenario?.settings.cropSeconds ?? 1)) *
-                        100,
+                  <button
+                    className="gold-button"
+                    aria-label={"Request " + selectedRoom.kind + " backup"}
+                    disabled={Boolean(backupIssue)}
+                    onClick={() =>
+                      request(
+                        "assignBackup",
+                        selectedRoom.id,
+                        selectedRoom.kind,
+                      )
+                    }
+                  >
+                    {state.backupTarget === selectedRoom.id
+                      ? "Backup assigned"
+                      : "Assign backup"}
+                  </button>
+                  <p
+                    className="action-prerequisite"
+                    title="Device draw / output limit · battery energy"
+                  >
+                    {selectedRoom.demandW}/{scenario.settings.batteryMaxW} W ·{" "}
+                    {decimal(state.batteryMilliWh / 1000)} Wh
+                  </p>
+                  {state.backupTarget !== selectedRoom.id && (
+                    <p className="action-prerequisite">
+                      Replaces {state.backup} backup
+                    </p>
+                  )}
+                  {backupIssue &&
+                    backupIssue !== "Backup is assigned to this machine" && (
+                      <p className="command-feedback">{backupIssue}</p>
                     )}
-                    % · harvested {room.output} food units.
-                  </p>
+                  {lastRequest?.target === selectedRoom.id && (
+                    <p className="command-feedback" role="status">
+                      {lastRequest.ok &&
+                      lastRequest.tick &&
+                      state.tick >= lastRequest.tick &&
+                      !state.commands.some(
+                        (c) => c.commandId === lastRequest.id,
+                      )
+                        ? "Applied " +
+                          clock(lastRequest.tick, scenario.startHour) +
+                          ":" +
+                          String(lastRequest.tick % 60).padStart(2, "0") +
+                          (lastRequest.type === "assignBackup"
+                            ? " · Backup assigned."
+                            : ".")
+                        : lastRequest.message +
+                          (lastRequest.ok && !playing ? " +1m to apply." : "")}
+                    </p>
+                  )}
+                </details>
+              )}
+              <div className="room-metrics">
+                <span className={room.powered ? "" : "warning"}>
+                  {room.powered ? "Powered" : room.reason}
+                </span>
+                <span>{room.occupants} people</span>
+                <span>{room.staff} staff</span>
+                {!(machineProblem && selectedRoom.kind === "fan") && (
+                  <>
+                    <span title="Temperature">
+                      {room.temperature.toFixed(1)}°C
+                    </span>
+                    <span title="Air burden">
+                      Air {room.air.toFixed(1)}/100
+                    </span>
+                  </>
                 )}
-                <h3>People in this room</h3>
-                {occupants.length === 0 ? (
-                  <p className="muted">
-                    No one is currently here. People may be on the way.
-                  </p>
-                ) : (
+              </div>
+              {selectedRoom.kind === "pump" && !machineProblem && (
+                <p className="compact-reading">
+                  Live ·{" "}
+                  {(
+                    state.waterL /
+                    (scenario.settings.tunnelAreaM2 * 1000)
+                  ).toFixed(2)}{" "}
+                  m water · {connectedHomes}/{state.households.length} connected
+                </p>
+              )}
+              {stockItems.length > 0 && (
+                <div className="stocks">
+                  {stockItems.map((item) => (
+                    <span key={item}>
+                      {item}
+                      <strong>
+                        {decimal(room.stock[item])}
+                        {item === "water" ? " L" : ""}
+                      </strong>
+                    </span>
+                  ))}
+                </div>
+              )}
+              {selectedRoom.kind === "farm" && (
+                <p className="compact-reading">
+                  Crop{" "}
+                  {Math.round(
+                    (room.growth / scenario.settings.cropSeconds) * 100,
+                  )}
+                  % · {decimal(room.output)} harvested
+                </p>
+              )}
+              {occupants.length > 0 && (
+                <>
+                  <h3>People</h3>
                   <div className="people-list">
                     {occupants.map((p) => (
                       <button
@@ -1151,7 +1133,7 @@ function App() {
                         }
                       >
                         <strong>
-                          {scenario?.residents.find((d) => d.id === p.id)?.name}
+                          {scenario.residents.find((d) => d.id === p.id)?.name}
                         </strong>
                         <small>
                           {p.taskState === "queued"
@@ -1159,19 +1141,20 @@ function App() {
                             : p.taskState === "blocked"
                               ? "Blocked · "
                               : ""}
-                          {p.task} ↗
+                          {p.task}
                         </small>
                       </button>
                     ))}
                   </div>
-                )}
-                <h3>Connections & dependencies</h3>
-                <p className="muted">
-                  Feeder level{" "}
-                  {(selectedRoom.feederFloor ?? selectedRoom.floor) + 1} ·
-                  demand {selectedRoom.demandW} W · {room.suppliedW} W supplied
+                </>
+              )}
+              <details>
+                <summary>Connections</summary>
+                <p>
+                  {room.suppliedW}/{selectedRoom.demandW} W · Feeder L
+                  {(selectedRoom.feederFloor ?? selectedRoom.floor) + 1}
                 </p>
-                {scenario?.links
+                {scenario.links
                   .filter(
                     (l) => l.a === selectedRoom.id || l.b === selectedRoom.id,
                   )
@@ -1181,140 +1164,144 @@ function App() {
                       key={l.id}
                       onClick={() => select({ kind: "link", id: l.id })}
                     >
-                      {
-                        scenario.rooms.find(
-                          (r) => r.id === (l.a === selectedRoom.id ? l.b : l.a),
-                        )?.name
-                      }
-                      <small>{(state && blocked(l, state)) || l.kind} ↗</small>
+                      <span>
+                        {
+                          scenario.rooms.find(
+                            (r) =>
+                              r.id === (l.a === selectedRoom.id ? l.b : l.a),
+                          )?.name
+                        }
+                      </span>
+                      <small>{blocked(l, state) || l.kind}</small>
                     </button>
                   ))}
-                <h3>Households depending on this room</h3>
-                {dependents.map((h) => {
-                  const hs = state?.households.find((x) => x.id === h.id);
-                  return (
-                    <div className="deficit" key={h.id}>
-                      <strong>{h.name}</strong>
-                      <span>
-                        {h.members.length} people ·{" "}
-                        {hs?.accessClosed
-                          ? "Depot route closed"
-                          : "Depot route open"}
-                      </span>
-                      <small>
-                        {decimal((hs?.cutoffSeconds ?? 0) / 60)} min access lost
-                        · {decimal((hs?.coolingSeconds ?? 0) / 60)} min cooling
-                        lost
-                      </small>
-                    </div>
-                  );
-                })}
-                {selectedRoom.kind !== "pump" &&
-                  selectedRoom.kind !== "fan" && (
-                    <>
-                      <button
-                        className="text-button"
-                        onClick={() => setReportView(!reportView)}
-                      >
-                        {reportView ? "Hide" : "View"} controller report{" "}
-                        {reportStatus === "STALE" ? "· STALE" : ""} ↓
-                      </button>
-                      {reportView && (
-                        <ControllerReport
-                          status={reportStatus}
-                          report={report}
-                          tick={state!.tick}
-                          startHour={scenario!.startHour}
-                        />
-                      )}
-                    </>
-                  )}
+              </details>
+              {dependents.length > 0 && (
+                <details>
+                  <summary>Households ({dependents.length})</summary>
+                  {dependents.map((h) => {
+                    const hs = state.households.find((x) => x.id === h.id);
+                    return (
+                      <div className="deficit" key={h.id}>
+                        <strong>{h.name}</strong>
+                        <span>
+                          {h.members.length} people ·{" "}
+                          {hs?.accessClosed ? "Route closed" : "Route open"}
+                        </span>
+                        <small>
+                          {decimal((hs?.cutoffSeconds ?? 0) / 60)} min access
+                          lost · {decimal((hs?.coolingSeconds ?? 0) / 60)} min
+                          cooling lost
+                        </small>
+                      </div>
+                    );
+                  })}
+                </details>
+              )}
+              <details>
+                <summary>
+                  Controller report · {reportStatus.toLowerCase()}
+                </summary>
+                <ControllerReport
+                  status={reportStatus}
+                  report={report}
+                  tick={state.tick}
+                  startHour={scenario.startHour}
+                />
+              </details>
+              <details>
+                <summary>Device</summary>
                 <button
                   className="text-button"
+                  disabled={!state.comms}
+                  title={!state.comms ? "Command channel disconnected" : ""}
                   onClick={() =>
                     request(
                       "setDeviceEnabled",
                       selectedRoom.id,
-                      state?.disabled.includes(selectedRoom.id),
+                      state.disabled.includes(selectedRoom.id),
                     )
                   }
                 >
-                  Request{" "}
-                  {state?.disabled.includes(selectedRoom.id)
-                    ? "device on"
-                    : "device off"}
+                  {state.disabled.includes(selectedRoom.id)
+                    ? "Enable device"
+                    : "Disable device"}
                 </button>
-              </>
-            )}
-            {selectedPerson && person && (
-              <>
-                <span className="location-meta">
-                  RESIDENT / {selectedPerson.role.toUpperCase()}
+              </details>
+            </>
+          )}
+
+          {selectedPerson && person && (
+            <>
+              <span className="location-meta">{selectedPerson.role}</span>
+              <h2>{selectedPerson.name}</h2>
+              <div className="resident-portrait">
+                <ResidentPortrait person={selectedPerson} />
+                <div>
+                  <b>{person.task}</b>
+                  {person.taskState !== "active" && (
+                    <small>{person.taskState}</small>
+                  )}
+                </div>
+              </div>
+              {(person.taskState === "blocked" ||
+                person.taskState === "queued") && (
+                <p className="command-feedback">{person.reason}</p>
+              )}
+              <button
+                className="gold-button"
+                aria-label={"Follow " + selectedPerson.name}
+                aria-pressed={
+                  following && renderer.current?.followId === selectedPerson.id
+                }
+                onClick={() => follow(selectedPerson.id)}
+              >
+                {following && renderer.current?.followId === selectedPerson.id
+                  ? "Stop following"
+                  : "Follow"}
+              </button>
+              <div className="route-info">
+                <span>
+                  Home
+                  <strong>
+                    {
+                      scenario?.rooms.find(
+                        (r) => r.id === selectedPerson.homeId,
+                      )?.name
+                    }
+                  </strong>
                 </span>
-                <h2>{selectedPerson.name}</h2>
-                <div className="resident-portrait">
-                  <ResidentPortrait person={selectedPerson} />
-                  <div>
-                    <b>{person.task}</b>
-                    <small>{person.taskState.toUpperCase()}</small>
-                  </div>
+                <span>
+                  To
+                  <strong>
+                    {
+                      scenario?.rooms.find((r) => r.id === person.destination)
+                        ?.name
+                    }
+                  </strong>
+                </span>
+              </div>
+              <h3>Needs</h3>
+              {[
+                ["Hunger", person.hunger],
+                ["Thirst", person.thirst],
+                ["Fatigue", person.fatigue],
+              ].map(([name, value]) => (
+                <div className="need" key={name}>
+                  <span>{name}</span>
+                  <meter
+                    min={0}
+                    max={100}
+                    value={Number(value)}
+                    aria-label={String(name)}
+                  />
+                  <b>{Math.round(Number(value))}</b>
                 </div>
-                <p className="room-description">{person.reason}</p>
-                <button
-                  className="gold-button"
-                  onClick={() => {
-                    renderer.current?.focus(selectedPerson.id, true);
-                    setFollowing(true);
-                  }}
-                >
-                  ◎ Follow {selectedPerson.name.split(" ")[0]}
-                </button>
-                <h3>Today's route</h3>
-                <div className="route-info">
-                  <span>
-                    Home
-                    <strong>
-                      {
-                        scenario?.rooms.find(
-                          (r) => r.id === selectedPerson.homeId,
-                        )?.name
-                      }
-                    </strong>
-                  </span>
-                  <span>
-                    Duty<strong>{selectedPerson.role}</strong>
-                  </span>
-                  <span>
-                    Heading to
-                    <strong>
-                      {
-                        scenario?.rooms.find((r) => r.id === person.destination)
-                          ?.name
-                      }
-                    </strong>
-                  </span>
-                </div>
-                <h3>Needs & exposure</h3>
-                {[
-                  ["Hunger", person.hunger],
-                  ["Thirst", person.thirst],
-                  ["Fatigue", person.fatigue],
-                ].map(([name, value]) => (
-                  <div className="need" key={name}>
-                    <span>{name}</span>
-                    <div>
-                      <i style={{ width: `${value}%` }} />
-                    </div>
-                    <b>{Math.round(Number(value))}</b>
-                  </div>
-                ))}
-                <p className="muted">
-                  Heat exposure: {decimal(person.heatExposure / 60)} min ·
-                  poor-air exposure: {decimal(person.airExposure / 60)} min.
-                  These are fictional model indices.
-                </p>
-                <h3>{household?.name}</h3>
-                <p className="muted">
+              ))}
+              <details>
+                <summary>Household & exposure</summary>
+                <p>{household?.name}</p>
+                <p>
                   {household?.members
                     .map(
                       (id) =>
@@ -1322,223 +1309,171 @@ function App() {
                     )
                     .join(" · ")}
                 </p>
-                <div className="summary-row">
+                <div className="stocks">
                   <span>
-                    Food reserve
+                    Food
                     <strong>{decimal(householdState?.stock.food ?? 0)}</strong>
                   </span>
                   <span>
-                    Water reserve
+                    Water
                     <strong>
                       {decimal(householdState?.stock.water ?? 0)} L
                     </strong>
                   </span>
                 </div>
-                <div className="report">
-                  <b>
-                    {householdState?.accessClosed
-                      ? "DEPOT ACCESS LOST"
-                      : "DEPOT ROUTE OPEN"}
-                  </b>
-                  <p>
-                    {decimal((householdState?.cutoffSeconds ?? 0) / 60)}{" "}
-                    household-minutes cut off ·{" "}
-                    {decimal((householdState?.coolingSeconds ?? 0) / 60)}{" "}
-                    minutes without cooling.
-                  </p>
-                </div>
-                <h3>What this person knows</h3>
-                <p className="muted">
+                <p>
+                  {householdState?.accessClosed
+                    ? "Depot route closed"
+                    : "Depot route open"}
+                </p>
+                <p>
+                  {decimal((householdState?.cutoffSeconds ?? 0) / 60)} min
+                  access lost ·{" "}
+                  {decimal((householdState?.coolingSeconds ?? 0) / 60)} min
+                  cooling lost
+                </p>
+                <p>
+                  Heat {decimal(person.heatExposure / 60)} min · Poor air{" "}
+                  {decimal(person.airExposure / 60)} min
+                </p>
+              </details>
+              <details>
+                <summary>Known routes ({person.knownClosed.length})</summary>
+                <p>
                   {person.knownClosed.length
-                    ? `Encountered blocked links: ${person.knownClosed.join(", ")}.`
-                    : "No locally known blocked route."}{" "}
-                  Remote information{" "}
-                  {state?.comms
-                    ? "can arrive through the network."
-                    : "is unavailable during the communications cut."}
+                    ? person.knownClosed.join(", ")
+                    : "No known closures"}
                 </p>
-              </>
-            )}
-            {selection?.kind === "cart" && state && (
-              <>
-                <span className="location-meta">SUPPLY RUN / ACTUAL CARGO</span>
-                <h2>A lifeline on wheels.</h2>
-                <p className="room-description">{state.cart.reason}</p>
-                <div className="status-pill">
-                  {state.cart.phase === "waiting"
-                    ? "Blocked · cargo retained"
-                    : state.cart.phase === "traveling"
-                      ? cargoUnits(state.cart.cargo) > 0
-                        ? "Loaded delivery"
-                        : "Empty return"
-                      : state.cart.phase === "loading"
-                        ? "Loading supplies"
-                        : "Unloading supplies"}
-                </div>
-                <button
-                  className="gold-button"
-                  onClick={() => {
-                    renderer.current?.focus("cart", true);
-                    setFollowing(true);
-                  }}
-                >
-                  ◎ Follow the supply cart
-                </button>
-                <div className="inspector-grid">
-                  <span>
-                    Food on board
-                    <strong>{decimal(state.cart.cargo.food)}</strong>
-                  </span>
-                  <span>
-                    Medicine
-                    <strong>{decimal(state.cart.cargo.medicine)}</strong>
-                  </span>
-                  {(["water", "parts", "waste"] as const)
-                    .filter((item) => state.cart.cargo[item] > 0)
-                    .map((item) => (
-                      <span key={item}>
-                        {item}
-                        <strong>{decimal(state.cart.cargo[item])}</strong>
-                      </span>
-                    ))}
-                  <span>
-                    Food delivered
-                    <strong>{decimal(state.cart.delivered)}</strong>
-                  </span>
-                  <span>
-                    Destination
-                    <strong className="small-value">
-                      {
-                        scenario?.rooms.find(
-                          (r) => r.id === state.cart.targetId,
-                        )?.name
-                      }
-                    </strong>
-                  </span>
-                </div>
-                <p className="muted">
-                  Goods count as delivered only after unloading into household
-                  stores. Flooding leaves the cargo on the cart.
-                </p>
-                {(state.cart.phase === "loading" ||
-                  state.cart.phase === "unloading") && (
-                  <p className="command-feedback">
-                    Transfer in {Math.max(0, state.cart.until - state.tick)}{" "}
-                    simulated seconds.
-                  </p>
-                )}
-              </>
-            )}
-            {link && (
-              <>
-                <span className="location-meta">
-                  CONNECTION / {link.kind.toUpperCase()}
+              </details>
+            </>
+          )}
+
+          {selection?.kind === "cart" && state && (
+            <>
+              <h2>Supply cart</h2>
+              <div className="status-pill">
+                {state.cart.phase === "waiting"
+                  ? "Blocked"
+                  : state.cart.phase === "traveling"
+                    ? cargoUnits(state.cart.cargo) > 0
+                      ? "Loaded"
+                      : "Empty return"
+                    : state.cart.phase === "loading"
+                      ? "Loading"
+                      : "Unloading"}
+              </div>
+              {state.cart.phase === "waiting" && (
+                <p className="command-feedback">{state.cart.reason}</p>
+              )}
+              <button
+                className="gold-button"
+                aria-label="Follow the supply cart"
+                aria-pressed={
+                  following && renderer.current?.followId === "cart"
+                }
+                onClick={() => follow("cart")}
+              >
+                {following && renderer.current?.followId === "cart"
+                  ? "Stop following"
+                  : "Follow"}
+              </button>
+              <div className="inspector-grid">
+                <span>
+                  Food<strong>{decimal(state.cart.cargo.food)}</strong>
                 </span>
-                <h2>
-                  {link.kind === "sump"
-                    ? "The lower crossing"
-                    : link.kind === "lift"
-                      ? "Service lift"
-                      : "A way through"}
-                </h2>
-                <p className="room-description">
-                  {scenario?.rooms.find((r) => r.id === link.a)?.name} ↔{" "}
-                  {scenario?.rooms.find((r) => r.id === link.b)?.name}
+                <span>
+                  Medicine<strong>{decimal(state.cart.cargo.medicine)}</strong>
+                </span>
+                {(["water", "parts", "waste"] as const)
+                  .filter((item) => state.cart.cargo[item] > 0)
+                  .map((item) => (
+                    <span key={item}>
+                      {item}
+                      <strong>{decimal(state.cart.cargo[item])}</strong>
+                    </span>
+                  ))}
+                <span>
+                  Delivered<strong>{decimal(state.cart.delivered)}</strong>
+                </span>
+                <span>
+                  To
+                  <strong className="small-value">
+                    {
+                      scenario?.rooms.find((r) => r.id === state.cart.targetId)
+                        ?.name
+                    }
+                  </strong>
+                </span>
+              </div>
+              {(state.cart.phase === "loading" ||
+                state.cart.phase === "unloading") && (
+                <p className="compact-reading">
+                  {state.cart.until > state.tick
+                    ? "Transfer in " + (state.cart.until - state.tick) + "s"
+                    : "Transfer pending"}
                 </p>
-                <div className="status-pill">
-                  {(state && blocked(link, state)) || "Passage open"}
-                </div>
-                <p className="muted">
-                  Travel: {link.seconds}s · simultaneous capacity:{" "}
-                  {link.capacity}
-                  {link.permit ? " · service permit required" : ""}.
+              )}
+            </>
+          )}
+
+          {link && state && scenario && (
+            <>
+              <span className="location-meta">{link.kind}</span>
+              <h2>
+                {link.kind === "sump"
+                  ? "Lower crossing"
+                  : link.kind === "lift"
+                    ? "Lift"
+                    : "Connection"}
+              </h2>
+              <p>
+                {scenario.rooms.find((r) => r.id === link.a)?.name} ↔{" "}
+                {scenario.rooms.find((r) => r.id === link.b)?.name}
+              </p>
+              <div className="status-pill">
+                {blocked(link, state) || "Open"}
+              </div>
+              <p className="compact-reading">
+                {link.seconds}s · Capacity {link.capacity}
+                {link.permit ? " · Permit required" : ""}
+              </p>
+              {link.kind === "lift" && (
+                <p>
+                  {state.people.filter((p) => p.edgeId === link.id).length}/
+                  {link.capacity} crossing
                 </p>
-                {link.kind === "lift" && (
-                  <p className="muted">
-                    {state?.people.filter((p) => p.edgeId === link.id).length ??
-                      0}{" "}
-                    residents crossing. Landing lights and moving platforms show
-                    these powered, capacity-limited traversals.
-                  </p>
-                )}
-                {link.kind === "sump" && (
-                  <>
-                    <h3>Water against the markings</h3>
-                    <div className="big-value">
-                      {(
-                        (state?.waterL ?? 0) /
-                        (scenario!.settings.tunnelAreaM2 * 1000)
-                      ).toFixed(2)}{" "}
-                      <small>m</small>
-                    </div>
-                    <p className="muted">
-                      Closes at {scenario?.settings.closeDepthM}m. Inflow{" "}
-                      {scenario?.settings.seepLps} L/s; powered pump{" "}
-                      {scenario?.settings.pumpLps} L/s.
-                    </p>
-                  </>
-                )}
-                <h3>Who depends on it?</h3>
-                {linkDependents.map((h) => (
-                  <div className="deficit" key={h.id}>
-                    <strong>{h.name}</strong>
-                    <span>{h.members.length} residents</span>
+              )}
+              {link.kind === "sump" && (
+                <>
+                  <div className="big-value">
+                    {(
+                      state.waterL /
+                      (scenario.settings.tunnelAreaM2 * 1000)
+                    ).toFixed(2)}{" "}
+                    <small>m</small>
                   </div>
-                ))}
-              </>
-            )}
-          </aside>
-        )}
-        <div className="bottom-hint">
-          <span>Drag to explore</span>
-          <span>Scroll to zoom</span>
-          <span>Select a resident to follow</span>
-        </div>
-      </main>
-      <footer className="timebar">
-        <div className="clock">
-          <span className="eyebrow">
-            DISTRICT TIME · DAY {1 + Math.floor((state?.tick ?? 0) / 86400)}
-          </span>
-          <strong>
-            {clock(state?.tick ?? 0, scenario?.startHour)}
-            <small>:{String((state?.tick ?? 0) % 60).padStart(2, "0")}</small>
-            <i>{playing ? "LIVE" : "PAUSED"}</i>
-          </strong>
-        </div>
-        <div className="time-controls">
-          <button
-            className="play-button"
-            onClick={() => send({ type: "play", playing: !playing })}
-            aria-label={playing ? "Pause simulation" : "Play simulation"}
-          >
-            {playing ? "Ⅱ" : "▶"}
-          </button>
-          <button onClick={() => send({ type: "step" })}>+1 min</button>
-          <span className="separator" />
-          {[1, 10, 60, 300].map((s) => (
-            <button
-              key={s}
-              className={speed === s ? "selected" : ""}
-              aria-pressed={speed === s}
-              onClick={() => send({ type: "speed", speed: s })}
-            >
-              {s}×
-            </button>
-          ))}
-        </div>
-        <div className="bottom-state">
-          <i className={state?.comms ? "" : "offline"} />
-          {state?.comms ? "Network connected" : "Network silent"}
-          <button
-            onClick={() => {
-              select({ kind: "cart", id: "cart" }, true);
-            }}
-          >
-            ▣ Find the supply cart ↗
-          </button>
-        </div>
-      </footer>
+                  <p>
+                    Closes {scenario.settings.closeDepthM} m · In{" "}
+                    {scenario.settings.seepLps} L/s · Pump{" "}
+                    {scenario.settings.pumpLps} L/s
+                  </p>
+                </>
+              )}
+              {linkDependents.length > 0 && (
+                <details>
+                  <summary>Households ({linkDependents.length})</summary>
+                  {linkDependents.map((h) => (
+                    <div className="deficit" key={h.id}>
+                      <strong>{h.name}</strong>
+                      <span>{h.members.length} people</span>
+                    </div>
+                  ))}
+                </details>
+              )}
+            </>
+          )}
+        </aside>
+      )}
       <input
         className="hidden"
         ref={upload}
@@ -1561,7 +1496,7 @@ function App() {
           </button>
         </div>
       )}
-    </div>
+    </main>
   );
 }
 function ControllerReport({
@@ -1576,13 +1511,26 @@ function ControllerReport({
   startHour: number;
 }) {
   return (
-    <div className="report">
-      <b>{status.toLowerCase()} · Controller report</b>
-      <p>
-        {report
-          ? `Sample at ${clock(report.sampledAtTick, startHour)}:${String(report.sampledAtTick % 60).padStart(2, "0")} · ${tick - report.sampledAtTick}s old. Water ${report.waterM.toFixed(2)} m · ${report.temperature.toFixed(1)}°C · ${report.powered ? "powered" : "unpowered"}`
-          : "No sample delivered. Values are unknown."}
-      </p>
+    <div
+      className="report"
+      aria-label={"Controller report: " + status.toLowerCase()}
+    >
+      {report ? (
+        <>
+          <p>
+            {clock(report.sampledAtTick, startHour)}:
+            {String(report.sampledAtTick % 60).padStart(2, "0")} ·{" "}
+            {tick - report.sampledAtTick}s old
+          </p>
+          <p>
+            {report.waterM.toFixed(2)} m water · {report.temperature.toFixed(1)}
+            °C · Air {report.air.toFixed(1)}/100 ·{" "}
+            {report.powered ? "Powered" : "Unpowered"}
+          </p>
+        </>
+      ) : (
+        <p>No sample</p>
+      )}
     </div>
   );
 }
@@ -1652,33 +1600,5 @@ function ResidentPortrait({ person }: { person: PersonDef }) {
       )}
     </svg>
   );
-}
-function describe(room: RoomDef) {
-  const descriptions: Record<RoomDef["kind"], string> = {
-    home: "Shared beds, stored meals, and lives carried on between shifts. Every resident belongs to a persistent household.",
-    clinic:
-      "Care depends on staff, medicine, powered equipment, and a route patients can actually reach.",
-    depot:
-      "Finite food, water, medicine and parts. Supplies leave these shelves as real cargo.",
-    farm: "Communal beds under grow lamps. Harvests require water, power, and growers at work.",
-    plant:
-      "Aging geothermal machinery supplies a finite grid. Directorate allocations serve upper feeders first.",
-    switchgear:
-      "Feeder distribution connects the district to the geothermal grid.",
-    recycler:
-      "Reclaims water from a finite waste stock. Operators and powered treatment determine output.",
-    tap: "Residents queue to collect actual water for shared household stores.",
-    fan: "Air exchange and cooling keep surrounding homes livable. A stopped fan changes conditions gradually.",
-    pump: "Seepage keeps entering the lower crossing. This pump needs power to remove it.",
-    workshop:
-      "Technicians, finite spare parts, and ordinary maintenance duties.",
-    mess: "A communal place to pause, meet neighbors, and finish the day.",
-    checkpoint:
-      "The Directorate controls this route between levels. Access can depend on permits and orders.",
-    relay:
-      "The district network carries timestamped reports. A lost connection leaves old readings behind.",
-    gate: "The surface has been closed for thirty years. Machine activity is visible; claims of safety remain unverified.",
-  };
-  return descriptions[room.kind];
 }
 createRoot(document.getElementById("root")!).render(<App />);

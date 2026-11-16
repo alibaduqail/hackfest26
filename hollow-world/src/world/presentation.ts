@@ -1,5 +1,6 @@
 import type {
   PersonDef,
+  Item,
   PersonState,
   RoomDef,
   Scenario,
@@ -123,6 +124,21 @@ export function fixtureSpot(
 
 export function cargoUnits(stock: Stock) {
   return Object.values(stock).reduce((a, n) => a + n, 0);
+}
+export function roomStockItems(kind: RoomDef["kind"], stock: Stock): Item[] {
+  const relevant: Partial<Record<RoomDef["kind"], Item[]>> = {
+    home: ["food", "water"],
+    depot: ["food", "water", "medicine", "parts"],
+    clinic: ["medicine"],
+    farm: ["food", "water"],
+    workshop: ["parts"],
+    recycler: ["water", "waste"],
+    tap: ["water"],
+    mess: ["food", "water"],
+  };
+  return (["food", "water", "medicine", "parts", "waste"] as Item[]).filter(
+    (item) => stock[item] > 0 || relevant[kind]?.includes(item),
+  );
 }
 export function subjectRoom(scenario: Scenario, state: WorldState, id: string) {
   const actor =
