@@ -10,10 +10,19 @@ import {
   importantEvent,
   residentPose,
   subjectRoom,
+  roomStockItems,
 } from "./presentation";
 const scenario: Scenario = JSON.parse(
   readFileSync(new URL("../../public/scenario.json", import.meta.url), "utf8"),
 );
+test("stock summaries omit irrelevant zeros while keeping essential shortages and positive stock", () => {
+  assert.deepEqual(roomStockItems("fan", emptyStock()), []);
+  assert.deepEqual(roomStockItems("clinic", emptyStock()), ["medicine"]);
+  assert.deepEqual(roomStockItems("farm", emptyStock()), ["food", "water"]);
+  assert.deepEqual(roomStockItems("pump", { ...emptyStock(), water: 42 }), [
+    "water",
+  ]);
+});
 
 test("clothing follows a resident's role; poses follow their actual task and bag", () => {
   const engine = new HollowEngine(scenario),
