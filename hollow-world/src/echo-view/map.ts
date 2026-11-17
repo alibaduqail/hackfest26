@@ -350,6 +350,11 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
       if (!at) continue;
       // keep clear of city names and Mara's own label: first spot (above, above-left, below, below-left, higher) that hits none
       const avoid: Box[] = obs.cities.map((c) => { const [lx, ly, lw] = labelAt(ctx, c, project([c.x, c.y])); return [lx - 2, ly - 8, lw + 4, 16]; });
+      for (const st of fx.stamps) { // SEALED stamps (drawn at the seal's midpoint + (8, 24), about 64x24 once popped)
+        const sec = byId.get(st.sectorId); if (!sec) continue;
+        const [sa, sb] = lane(project, sec); const sm = lerp(sa, sb, 0.5);
+        avoid.push([sm[0] + 8 - 34, sm[1] + 24 - 14, 68, 28]);
+      }
       if (pos.has(podId)) { ctx.font = "11px ui-monospace, Menlo, monospace"; avoid.push([at[0] + 8, at[1] + 7, ctx.measureText(p.label).width + 4, 16]); }
       ctx.font = "12px system-ui, -apple-system, sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
       const tw = ctx.measureText(sp.text).width + 16, th = 24;
