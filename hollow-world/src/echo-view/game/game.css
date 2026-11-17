@@ -11,13 +11,13 @@ html, body, #root { margin: 0; height: 100%; background: var(--bg); color: var(-
 .g-btn:focus-visible, .g-card:focus-visible, .g-skip:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 .g-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
 .g-muted { color: var(--muted); }
-.g-kicker { font-family: var(--mono); color: var(--muted); font-size: 12px; letter-spacing: .16em; text-transform: uppercase; }
+.g-kicker { font-family: var(--mono); color: var(--text2); font-size: 12px; letter-spacing: .16em; text-transform: uppercase; }
 .g-stars { color: var(--amber); letter-spacing: .12em; }
 .g-stars .off { color: var(--line2); }
 
 /* the Strata scene behind the story screens: dimmed and softened so panels and text stay readable */
 .g-backdrop { position: fixed; inset: 0; z-index: 0; overflow: hidden; background: var(--stage); pointer-events: none; }
-.g-backdrop canvas { width: 100%; height: 100%; display: block; filter: blur(1.5px) brightness(.62) saturate(.9); transform: scale(1.03); }
+.g-backdrop canvas { width: 100%; height: 100%; display: block; filter: blur(1.5px) brightness(.58) saturate(.9); transform: scale(1.03); }
 .g-backdrop::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 45%, rgba(13,22,28,.1) 0, rgba(13,22,28,.6) 100%); }
 
 /* debrief: let the scene show through the end card (echo.html keeps the near-opaque one) */
@@ -30,7 +30,7 @@ html, body, #root { margin: 0; height: 100%; background: var(--bg); color: var(-
 .g-title h1 { margin: 0; font-size: clamp(64px, 14vw, 148px); line-height: 1; letter-spacing: .32em; margin-right: -.32em; font-weight: 700; color: var(--head); text-shadow: 0 0 32px rgba(210,167,106,.3); font-family: var(--sans); }
 .g-title .sub { font-size: clamp(14px, 2.2vw, 20px); color: var(--text2); letter-spacing: .14em; }
 .g-title .g-row { justify-content: center; margin-top: 18px; }
-.g-title .foot { position: absolute !important; bottom: 18px; left: 16px; right: 16px; font-size: 12px; color: var(--dim); }
+.g-title .foot { position: absolute !important; bottom: 18px; left: 16px; right: 16px; font-size: 12px; color: var(--text2); }
 
 /* shared page layout */
 .g-page { max-width: 1040px; margin: 0 auto; padding: 40px 24px 32px; }
@@ -87,7 +87,7 @@ html, body, #root { margin: 0; height: 100%; background: var(--bg); color: var(-
 .g-debrief-top { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: -14px; }
 .g-debrief-top .g-stars { font-size: 40px; line-height: 1; }
 .g-debrief-top .verdict { font-size: 16px; color: var(--text); text-align: center; }
-.g-debrief-objs { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 20px; font-size: 13px; color: var(--muted); }
+.g-debrief-objs { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 20px; font-size: 13px; color: var(--text2); }
 .g-debrief-objs .met { color: var(--good); }
 
 @keyframes g-blink { 50% { opacity: .35; } }
@@ -159,3 +159,6 @@ html, body, #root { margin: 0; height: 100%; background: var(--bg); color: var(-
   .g-screen .echo-end-grid .v.sm { font-size: 20px; white-space: normal; }
   .g-screen .echo-end button { min-height: 44px; }
 }
+
+/* text that sits directly on the Strata backdrop uses text2, not muted: AA (4.5:1) even under the brightest lamps */
+.g-debrief-top .g-muted, .g-screen .echo-end-note { color: var(--text2); }
