@@ -1,5 +1,5 @@
 // The Directorate tower: clears flights while it is up, then goes dark. It keeps claiming flights it no longer clears.
-import { say } from "./engine";
+import { say, sealsOf } from "./engine";
 import type { Sim } from "./engine";
 import type { Pod, Sector } from "./types";
 
@@ -19,10 +19,12 @@ export function towerPhase(s: Sim) {
   const m = s.m;
   for (const p of s.pods) if (p.status === "scheduled" && p.departTick <= s.tick) p.status = "waiting";
 
-  if (s.mode !== "normal" && m.sealAt === s.tick && m.sealSectorId) {
-    s.sec.get(m.sealSectorId)!.sealed = true;
-    say(s, "seal", `Directorate seals ${m.sealSectorId}`, undefined, m.sealSectorId);
-  }
+  if (s.mode !== "normal")
+    for (const { at, sectorId } of sealsOf(m))
+      if (at === s.tick) {
+        s.sec.get(sectorId)!.sealed = true;
+        say(s, "seal", `Directorate seals ${sectorId}`, undefined, sectorId);
+      }
 
   if (s.towerUp && s.mode !== "normal" && s.tick >= m.towerDownAt) {
     s.towerUp = false;
