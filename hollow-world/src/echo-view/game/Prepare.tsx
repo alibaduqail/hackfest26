@@ -2,6 +2,7 @@
 // Placement edits a copy of the mission's sectors; Begin hands a new Mission object to the run (the engines never see this screen).
 import { useEffect, useRef, useState } from "react";
 import type { Mission, Sector } from "../../echo/types";
+import { hasBeacon, sealsOf } from "../../echo/engine";
 import { findPath } from "../../echo/world";
 import { drawMap, sectorAt, type Pop } from "../map";
 import { play } from "./audio";
@@ -46,9 +47,8 @@ const placedCount = (ss: Sector[]) => ss.filter((s) => s.beacon !== false).lengt
 export function deadOnMaraRoute(m: Mission, sectors: Sector[]): number | null {
   const mara = m.pods.find((p) => p.id === "MED-1");
   if (!mara) return null;
-  const blocked = new Set(m.sealAt !== null && m.sealSectorId ? [m.sealSectorId] : []);
-  const route = findPath(mara.origin, mara.dest, blocked, m.world) ?? mara.path;
-  const dead = new Set(sectors.filter((s) => s.beacon === false).map((s) => s.id));
+  const route = findPath(mara.origin, mara.dest, new Set(sealsOf(m).slice(0, 1).map((x) => x.sectorId)), m.world) ?? mara.path;
+  const dead = new Set(sectors.filter((s) => !hasBeacon(s)).map((s) => s.id));
   return route.filter((id) => dead.has(id)).length;
 }
 
