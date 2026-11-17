@@ -1,6 +1,6 @@
 // Echo game sound: Web Audio synthesis only, no asset files. Muted by default; the choice is kept in localStorage.
 // Every access is guarded: with storage blocked the choice lives in memory, with no AudioContext (Node, old browsers) every call is a no-op.
-// The context is created or resumed inside the first user click (autoplay policy). The video-capture page (echo.html) never imports the toggle, so it stays silent.
+// The context is created or resumed on the first user gesture only (autoplay policy); play() never creates it, so a page that loads with sound left on stays silent and context-free until then. The video-capture page (echo.html) never imports the toggle, so it stays silent.
 const KEY = "echo-sound-v1";
 const MASTER = 0.5;
 const MIN_GAP_MS = 80; // the same sound never fires more than ~12x a second (fast-forward)
@@ -84,7 +84,6 @@ const VOICES: Record<Sound, (t: number, i: number) => void> = {
 export function play(name: Sound, i = 0) {
   if (isMuted()) return;
   try {
-    unlock();
     if (!ctx || ctx.state !== "running") return;
     const now = performance.now();
     if (now - (last.get(name) ?? -Infinity) < MIN_GAP_MS && name !== "star") return;
