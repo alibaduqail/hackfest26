@@ -1,0 +1,139 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Echo Council Report</title><style>
+:root{--bg:#fff;--fg:#1d2329;--muted:#5f6b75;--line:#e3e7ea;--card:#f7f9fa;--accent:#b07a2e}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#12171b;--fg:#e7ecef;--muted:#9aa6af;--line:#2a333a;--card:#1a2126;--accent:#d2a76a}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+main{max-width:880px;margin:0 auto;padding:32px 16px 64px}
+h1{font-size:28px;margin:0 0 6px} h2{font-size:20px;margin:36px 0 12px;border-bottom:1px solid var(--line);padding-bottom:6px}
+h3{font-size:17px;margin:26px 0 8px;color:var(--accent)} code{background:var(--card);padding:1px 5px;border-radius:4px;font-size:.9em}
+.q{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;color:var(--muted)}
+.verdict{border:2px solid var(--accent);border-radius:12px;padding:4px 20px 12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+.cell{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;font-size:14px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:7px;vertical-align:middle}
+.tag{display:inline-block;margin-left:6px;font-size:11px;padding:1px 7px;border-radius:9px;background:var(--line)}
+.t-build{background:#2e8b5733} .t-reframe{background:#c0533a33}
+.muted{color:var(--muted);margin-top:6px} details{border:1px solid var(--line);border-radius:10px;margin:8px 0;background:var(--card)}
+summary{cursor:pointer;padding:12px 14px;font-weight:600} .body{padding:0 16px 10px;font-size:15px}
+footer{margin-top:40px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:12px}
+</style></head><body><main>
+<h1>Echo: LLM Council report</h1><div class="muted">Patriot HackFest Fall 2026 · Mon Nov 16, 2026 · round 2</div>
+<h2>The question</h2><div class="q">Is the revised Echo (worldwide network of tunnel pods still called "flights", cleared by one Directorate tower; a new world-map module with the existing Strata city as a zoom-in; showcased as missions) the right way to win? Pressure-test it and spec the tightest MVP for Fri Nov 20.</div>
+<h2>Chairman's verdict</h2><div class="verdict"><h3>Where the Council Agrees</h3>
+<ul>
+<li><strong>Scope is the enemy.</strong> Four of five advisors said the team&#x27;s history of not finishing is the main risk. Build one mission, not three.</li>
+<li><strong>One mission, same seed, Echo off vs on.</strong> &quot;Tower Down&quot; on a split screen, ending on one big number. The Contrarian, Outsider and Executor reached this on their own.</li>
+<li><strong>Cut Ghost Flight.</strong> Everyone except the Expansionist cut it.</li>
+<li><strong>No live Strata integration.</strong> Show the nurse in Strata with a 10 to 15 second video hard cut. Write no zoom code across Ali&#x27;s renderer.</li>
+<li><strong>&quot;Flights&quot; underground survives with one spoken line.</strong> &quot;Pods through the deep tunnels are still called flights, and one tower clears them all.&quot; Don&#x27;t say CTAF on screen.</li>
+<li><strong>Don&#x27;t rig it.</strong> The tower throttles and lies. It does not drop to zero. Echo has to lose somewhere on screen.</li>
+<li><strong>Use the FAA event only as a hook.</strong> Five seconds, no stated cause.</li>
+</ul>
+<h3>Where the Council Clashes</h3>
+<p><strong>Worldwide vs in-Strata.</strong> The Contrarian and First Principles argued for running Echo on Strata&#x27;s lift shaft. It stays on-lore (levels), reuses the engine and needs no second renderer. The Expansionist, Outsider and Executor accepted the world map. Both sides are reasonable: one guards against overbuilding, the other wants the scale the brief describes.</p>
+<p>The extra facts settle it. Round 1 already tried the lift version. Stairs bypass the lift, the lift exists only in Works, every nurse holds a permit, and people and the cart don&#x27;t share capacity. Fixing that means surgery on the 33-test engine. The official brief says &quot;a network of cities, two billion people.&quot; And M chose worldwide. The in-Strata option is not the cheap path. It is dead.</p>
+<p><strong>Ambition.</strong> The Expansionist wanted live WebRTC peers, a protocol spec, three log views and Ghost Flight as the climax. All five reviewers flagged this as the biggest blind spot. Keep one idea from it: present Echo as a protocol, not a game feature.</p>
+<h3>Blind Spots the Council Caught</h3>
+<ul>
+<li><strong>Script the video first.</strong> Plan it shot by shot on Monday and build only what appears on screen.</li>
+<li><strong>Video production takes a full day.</strong> That means script, capture, voiceover and edit. Recording it Friday evening is too late.</li>
+<li><strong>No tripwire existed.</strong> And the fallback the reviewers suggested (Strata lift) is the broken one.</li>
+<li><strong>What carries broadcasts?</strong> &quot;Peer-to-peer&quot; is hand-waving until this has an answer.</li>
+<li><strong>The review bottleneck.</strong> One reviewer gates five workers, so a Thursday PR pile-up could stall merges.</li>
+<li><strong>Ali was never consulted,</strong> and every plan spends his time.</li>
+<li><strong>Other teams may use the FAA hook.</strong> Echo must stand without it.</li>
+<li><strong>The hosted build&#x27;s first 10 seconds.</strong> A cold judge needs to land straight on the mission.</li>
+</ul>
+<h3>The Recommendation</h3>
+<p><strong>Form:</strong> a worldwide tunnel-pod network, built as a new headless deterministic <code>echo-engine/</code>. Show about 12 cities as dots on a dark map and routes as lines with sector ticks. The 33-test Strata engine is untouched.</p>
+<p><strong>Tightest MVP:</strong></p>
+<ul>
+<li>The &quot;Tower Down&quot; mission: 40 pods, same seed, Echo off vs on, shown as a split screen.</li>
+<li>An Echo toggle and a medical dispatch from a named nurse.</li>
+<li>A visible yield: a pulse goes out and a pod stops.</li>
+<li>A tower-claimed vs real counter (&quot;84 authorized&quot; over 6 moving).</li>
+<li>A three-number scoreboard: nurses reaching patients, medicine delivered to deep cities, passenger delay.</li>
+<li>A hosted build that opens on that mission, paused, with one Run button.</li>
+</ul>
+<p><strong>Cut:</strong> Ghost Flight, live peers, three log views, the Strata zoom code, family claims, real crypto. Stretch goal only: a 20-second time-lapse of &quot;The Grounding&quot; on the same engine.</p>
+<p><strong>Tripwire:</strong> if Ali&#x27;s map isn&#x27;t drawing live engine data with a working toggle by <strong>Wed Nov 18, 11 PM ET</strong>, M&#x27;s agents ship a bare SVG map against the same contract. The idea does not change, and there is no third council.</p>
+<p><strong>Ownership:</strong> M&#x27;s agents own <code>echo-engine/</code>, its tests and the <code>observe()</code> contract. Ali&#x27;s agent owns the map, toggle, scoreboard and log panel. Ali must agree today.</p>
+<p><strong>Judge-defense one-liners:</strong></p>
+<ul>
+<li><strong>Why the tower, why not just a mutex?</strong> &quot;One pod per sector is a lock. The tower is the lock server. Echo is what grants locks when that server is gone: claims with priority, expiry and yield.&quot;</li>
+<li><strong>Who verifies nurses?</strong> &quot;Clinics issue credentials before any outage. Pods check them locally with no network. The signature is a stand-in in this build.&quot;</li>
+<li><strong>What carries broadcasts?</strong> &quot;Short-range trackside beacons, hop to hop along the tunnel. Never the Directorate&#x27;s network.&quot;</li>
+<li><strong>Where does Echo do worse?</strong> &quot;Lower total throughput than a working tower, and passengers wait longer.&quot; Show that number on the scoreboard.</li>
+</ul>
+<p><strong>Honest problem claims:</strong></p>
+<ul>
+<li>#7 is the core.</li>
+<li>#2: medicine reaches deep cities.</li>
+<li>#9 partial: nurses and medicine reach the outbreak city. Don&#x27;t claim tracking.</li>
+<li>Lore: the Directorate controls movement and fakes its numbers.</li>
+<li>Don&#x27;t claim #8 or #10.</li>
+</ul>
+<p><strong>Schedule (ET):</strong></p>
+<ul>
+<li><strong>Mon Nov 16:</strong> M and Ali take a 30-minute call to confirm the form and the split. Write the shot-by-shot script. Freeze <code>observe() → {pods, sectors, towerClaimed, actual, log, score}</code>. The lead files 5 issues. Host the current build.</li>
+<li><strong>Tue:</strong> The engine runs Tower Down off vs on with honest, different numbers, including the passenger penalty. At least 5 tests. Ali builds the map against mock data.</li>
+<li><strong>Wed:</strong> Wire the map to the engine. 11 PM tripwire. Rough-cut video, ugly is fine. Show it to one outsider cold.</li>
+<li><strong>Thu:</strong> Polish whatever the rough cut showed weak. Feature PR cutoff at 4 PM, hotfixes only after that. Feature freeze at 8 PM. Capture final footage that night.</li>
+<li><strong>Fri Nov 20:</strong> Voiceover and edit until 5 PM. Write-up until 7 PM. Submit by 8 PM, leaving 3 hours of buffer.</li>
+</ul>
+<h3>The One Thing to Do First</h3>
+<p>Today, M and Ali agree on worldwide Echo and the ownership split. Then M posts the frozen <code>observe()</code> contract on the board.</p></div>
+<h2>Where each advisor landed</h2><div class="grid"><div class="cell"><span class="dot" style="background:#2f6fb0"></span><b>Executor</b><span class="tag t-build">Build</span><div class="muted">Accept map; dated plan, frozen contract</div></div><div class="cell"><span class="dot" style="background:#b8860b"></span><b>Outsider</b><span class="tag t-build">Build</span><div class="muted">Map as home; one mission, one number</div></div><div class="cell"><span class="dot" style="background:#2e8b57"></span><b>Expansionist</b><span class="tag t-build">Build big</span><div class="muted">Protocol + live peers + Ghost climax</div></div><div class="cell"><span class="dot" style="background:#c0533a"></span><b>Contrarian</b><span class="tag t-reframe">Reframe</span><div class="muted">Bolted-on second product; Strata lifts</div></div><div class="cell"><span class="dot" style="background:#6a5acd"></span><b>First Principles Thinker</b><span class="tag t-reframe">Reframe</span><div class="muted">World map is a costume; Strata lifts</div></div></div>
+<p class="muted">Peer review: Contrarian ranked strongest by 4 of 5 reviewers (real judge questions plus a finishable MVP); First Principles by 1. Expansionist flagged as biggest blind spot by 5 of 5 (scope four days out). Chairman sided with the worldwide form: round 1 showed the in-Strata lift version needs engine surgery, and the team chose worldwide.</p>
+<h2>Advisor responses</h2><details><summary><span class="dot" style="background:#c0533a"></span>The Contrarian</summary><div class="body"><p>The fatal flaw: you already have a finished, polished product, and this plan bolts a second one onto it. A new world engine, a world-map renderer, a zoom transition into Ali&#x27;s renderer, mission scaffolding and a scoreboard, in 4 days with classes. Your known failure mode is not finishing, and this plan walks straight into it.</p>
+<p>&quot;Flights&quot; underground breaks in a 3-minute video. Pods, vacuum tubes, a &quot;tower&quot;, flights between Lagos and São Paulo under an ocean. Every second explaining vocabulary is a second not showing the product. The track is about levels: deep vs. shallow, the Directorate controlling movement between levels. Intercontinental tunnels drift away from the track. Strata already has a powered lift shaft and freight routes. Make those the sectors. Echo becomes CTAF for lifts and carts inside a stacked city. Stays on-lore, reuses the 33-test engine, never touches a world map.</p>
+<p>Questions judges will ask that you can&#x27;t answer: Who verifies &quot;healthcare worker&quot; when the Directorate&#x27;s network is down? With crypto cut to a stand-in, that&#x27;s hand-waving, and Ghost Flight is unconvincing. One pod per sector with claim/yield is just a mutex; why did anyone need the tower? Have a one-line answer. Echo off vs. on still wins by construction; show at least one thing Echo does worse (slower throughput, a wrong yield) or it reads as rigged. Overclaiming #9/#10 with the illness sim cut; claim #7 and #2, name #9 only as &quot;medicine reaches the deep levels.&quot;</p>
+<p>The seam is the risk. The zoom into Ali&#x27;s renderer is a cross-owner integration that won&#x27;t work until Thursday. If you keep the world map, fake the zoom with a video cut and write no integration code.</p>
+<p>MVP: one mission (&quot;Tower Down&quot;), one seed, an Echo toggle, a three-number scoreboard, tower-claimed vs real log, hosted build. Rough cut Wednesday night, feature freeze Thursday noon. Ali polishes; M writes the protocol module and tests. Everything else is a stretch goal you won&#x27;t reach.</p></div></details><details><summary><span class="dot" style="background:#6a5acd"></span>The First Principles Thinker</summary><div class="body"><p>You&#x27;re answering the wrong question. &quot;Is the worldwide pod network the right form?&quot; assumes the FAA event is the core. It isn&#x27;t; it&#x27;s a news hook. What judges score: a 2–4 minute video showing a real Hollow problem solved in a world that feels alive. You already have that world, and Echo walks away from it.</p>
+<p>The real underground problem isn&#x27;t flights between Lagos and Tokyo. The brief says the Directorate controls movement between levels, blackouts hit the bottom first. Strata already has a powered lift shaft, a checkpoint, a relay room, a supply cart, 15 nurses, and an incident (&quot;comms cut: remote commands rejected&quot;) that is literally the Nov 13 failure. The lift shaft and checkpoint are your control tower. CTAF maps onto them with no new world: when the relay dies, the cart, the lift and the nurses announce intent and claim or yield lift cycles and corridor segments, peer to peer. Medical first. Only verified nurses file medical.</p>
+<p>The world map adds a second simulation, a second renderer, a new vocabulary judges must accept, and a zoom transition across Ali&#x27;s code. No new track problem. It&#x27;s a costume, and building it four days out with a habit of not finishing is the biggest risk.</p>
+<p>Tightest MVP: Echo is a small deterministic module on the existing step/observe/act API issuing only act() calls; 33 tests untouched. One mission, &quot;Relay Down.&quot; Same seed, Echo off vs on. Scoreboard: nurses reaching the Sump aid station, medicine delivered to the deep levels, lift cycles the tower claimed vs real. Ali adds one Echo log panel and one toggle. World map becomes a 10-second opening shot (&quot;this is happening in 400 cities&quot;), nothing more.</p>
+<p>FAA framing one sentence in the write-up. Decide today; a third council is a failure.</p></div></details><details><summary><span class="dot" style="background:#2e8b57"></span>The Expansionist</summary><div class="body"><p>The revised form is right, and you&#x27;re underselling it. The biggest upside you&#x27;re missing: Echo is a protocol, not just a sim feature. Present it that way.</p>
+<p>1. Ship the protocol as a real artifact. Write a one-page &quot;Echo v0.1&quot; spec, five message types: INTENT, CLAIM, YIELD, RELEASE, MEDEVAC. Then let two browser tabs or phones run it live over BroadcastChannel or WebRTC, so the demo shows real peers negotiating a sector with no server. The pitch becomes &quot;we built a fallback that works today, and the Hollow is where we tested it.&quot; That lifts Track Impact. The same idea applies to drone traffic, disaster convoys, and ambulance coordination when cell networks fail. The FAA hook stops being decoration and becomes proof that this need exists.</p>
+<p>2. Claim several problems with one log. The Echo public log is a ledger of everything that moved. Medical dispatches clustered by city show the outbreak (#9). Medicine delivered per deep city shows fair sharing (#2). Passenger manifests across cities point toward reuniting families (#8). Build these as three filtered views of one log, not three features. A few hours of UI work for four claimed problems.</p>
+<p>3. Promote Ghost Flight. It&#x27;s your most original beat: the Directorate lies, and the signed log exposes it. Fold it into The Grounding as the climax. A running &quot;tower-claimed vs Echo-verified&quot; counter that diverges is the shot people remember. One beat inside that mission, not a separate one.</p>
+<p>4. Make the nurse the spine. One named Strata nurse files a medical flight from the clinic. The camera pulls out to the world map and follows her pod while others yield, and she arrives. The city zoom isn&#x27;t a cost; it&#x27;s what makes the demo feel like more than a network diagram.</p>
+<p>5. Open the video big. &quot;3,500 planes. Four hours. Now imagine the tower never comes back.&quot; Use the real headline and state no cause.</p>
+<p>&quot;Flights&quot; underground holds up as long as you commit to it fully. Judges reward a confident world.</p></div></details><details><summary><span class="dot" style="background:#b8860b"></span>The Outsider</summary><div class="body"><p>I&#x27;m watching this cold, as a judge with 3 minutes who never read your docs.</p>
+<p>&quot;Flights&quot; underground will throw me for about 10 seconds, survivable only if you explain it in those 10 seconds. One spoken line fixes it: &quot;Down here, pods through the deep tunnels are still called flights, and one tower clears them all.&quot; The FAA tie-in only works if I already know about Nov 13. Don&#x27;t build on that; use it as a 5-second hook (&quot;Last week one comms failure grounded every US flight&quot;).</p>
+<p>Too many names: Hollow, Strata, Sector 07, Echo, Directorate, DTC, CTAF, sectors, pods, missions, Ghost Flight. A cold viewer keeps maybe four: the Hollow, the Tower, Echo, the nurse. Cut the rest from video and UI labels. Nobody knows &quot;CTAF&quot;; in the video it&#x27;s &quot;pods talk to each other directly.&quot;</p>
+<p>World map plus city zoom-in risks looking like two apps glued together. I won&#x27;t know which screen is the product. Make the map the home screen. Use the Strata zoom-in once, for 15 seconds: &quot;this is the nurse, this is her terminal.&quot; Flavor, not a second system.</p>
+<p>One mission, not three. Three missions in 3 minutes gives 40 seconds each and nothing sticks. Do &quot;Tower Down&quot; as a split screen on the same seed: left Echo off, pods frozen, tower banner &quot;84 flights authorized&quot; over 6 moving dots; right Echo on, pods yielding to a red medical pod. End on one big number: &quot;Nurses reaching patients: 3 vs 11.&quot; That frame is the pitch. The Grounding maybe one 20-second time-lapse. Cut Ghost Flight.</p>
+<p>Make the peer-to-peer visible. Claims and yields mean nothing unless I see a pod stop, a pulse go out, and the medical pod pass.</p>
+<p>Biggest risk: I finish thinking &quot;nice game&quot;, not &quot;solution&quot;. Say out loud, early: &quot;Echo is a fallback protocol. This simulator proves it works when the tower fails or lies.&quot;</p></div></details><details><summary><span class="dot" style="background:#2f6fb0"></span>The Executor</summary><div class="body"><p>Stop deliberating. Second council; the idea is good enough. Handle &quot;flights underground&quot; with one voiceover line (&quot;pods, cleared like flights, by one tower&quot;) and move on.</p>
+<p>Monday: Lead files 5 issues tonight. Freeze one contract: observe() returns {pods[], sectors[], towerClaimed, actual, log[], score}. Post it on the board. Deploy the existing Strata build to a host today. Workers start echo-engine/: headless deterministic sector-claim loop, ~12 cities, 40 pods. Tower mode throttles new grants and lies about the count; Echo mode does claim/yield by priority; both off one seed. 5 tests.</p>
+<p>Tuesday: engine passes Mission 1 (Tower Down) Echo off vs on, numbers differ honestly. Ali&#x27;s agent starts the world-map renderer against the frozen contract with mock data, using his PixiJS stack.</p>
+<p>Wednesday: hook renderer to engine. Scoreboard and Echo toggle. Record a rough-cut video Wednesday night, even ugly.</p>
+<p>Thursday: Mission 2 (The Grounding) = same engine, longer outage, 300x time-lapse. Polish what the rough cut showed weak.</p>
+<p>Friday: code freeze 5 PM. Record, write up, submit by 9 PM. Two hours buffer.</p>
+<p>Cuts: Ghost Flight entirely. The live Strata zoom: don&#x27;t integrate the two sims; video hard cut to &quot;Sector 07&quot; with one nurse walking to the terminal (10 seconds, zero code risk). Medical verification is a hardcoded flag, not a system.</p>
+<p>Biggest risk: world-map render turning into an art project. Cities as dots on a dark equirectangular map, routes as lines with sector ticks.</p>
+<p>Ownership: M&#x27;s agents own echo-engine/, Ali&#x27;s agent owns rendering, nobody touches the 33 tests.</p></div></details>
+<h2>Peer reviews</h2><details><summary>All five peer reviews</summary><div class="body"><p><strong>Reviewer 1:</strong></p>
+<p>1. Strongest: B. Only response that both challenges the plan and still gives a finishable MVP (one mission, one seed, three-number scoreboard, rough cut Wednesday, freeze Thursday). Names the questions judges will ask: who verifies a nurse when the network is down, why claim/yield is more than a mutex, where Echo does worse. Flags #9/#10 overreach and the zoom into Ali&#x27;s renderer as the risky seam. D is the best schedule but accepts the premise untested.</p>
+<p>2. Biggest blind spot: A. Adds scope (live WebRTC peers, protocol spec, three log views, Ghost Flight as climax) without weighing it against 4 days, classes and the habit of not finishing. Ignores the cross-owner integration risk and the &quot;wins by construction&quot; problem.</p>
+<p>3. All missed: B and E override the humans: the worldwide form came from the team&#x27;s own feedback, and the council should surface that conflict, not quietly overrule it. Nobody says write the video storyboard first and build only what&#x27;s on screen. Ali was never consulted; every split assigns his time and renderer.</p>
+<p><strong>Reviewer 2:</strong></p>
+<p>1. Strongest: B. Calls out scope against the team&#x27;s failure mode, asks the real judge questions (verification with the network down, why a one-pod-per-sector rule needs a tower, show something Echo does worse), cuts #9/#10 claims, gives a dated MVP with a freeze. E reaches the same reframe with less judge defense. D has the best schedule but never questions the premise.</p>
+<p>2. Biggest blind spot: A. Adds a live WebRTC/BroadcastChannel protocol, three log views, and Ghost Flight in the main mission four days out. Ignores classes/jobs, the second-council fatigue, the cross-owner integration. &quot;A few hours of UI work&quot; is the estimate that sinks teams.</p>
+<p>3. All missed: the FAA event was a week ago; other teams likely use the same hook, which may hurt Originality, so test whether Echo stands without it. Nobody said to script/storyboard the video first. Nobody proposed a cold-viewer test with a real outsider before Wednesday. World map vs Strata is a decision for M and Ali today, not the agents.</p>
+<p><strong>Reviewer 3:</strong></p>
+<p>1. Strongest: B. The only real pressure-test: verification with the network down, claim/yield vs a mutex, Echo-on winning by construction unless shown doing something worse. Calls out #9/#10 overclaiming and the zoom into Ali&#x27;s renderer as cross-owner risk. Still offers a usable MVP and freeze dates. D close second for its day plan and frozen observe() contract.</p>
+<p>2. Biggest blind spot: A. Ignores not-finishing and the 4-day limit; adds live peers, three log views, Ghost Flight as climax; never says what gets cut to pay for them or what happens if the world module slips.</p>
+<p>3. All missed: what carries the broadcasts? If the Directorate owns the network, what medium does Echo use? Without an answer &quot;peer-to-peer&quot; is as hand-wavy as verification. No kill switch: e.g. &quot;if the world map isn&#x27;t rendering live data by Wednesday night, fall back to Strata-only Echo.&quot; The worldwide map came from team feedback and B/E override it without saying so; humans settle it today.</p>
+<p><strong>Reviewer 4:</strong></p>
+<p>1. Strongest: B. Confronts not-finishing, answers judge questions (verification with crypto cut, mutex, show Echo doing worse or it looks rigged), gives a concrete MVP with freeze dates. D best schedule, B sharper judgment. E makes the same lift-shaft pivot less rigorously.</p>
+<p>2. Biggest blind spot: A. Live WebRTC peers, three log views, Ghost Flight back in, four days out. Also claims #8 (families) though family messaging was cut. Never asks whether it can ship.</p>
+<p>3. All missed: no tripwire: &quot;if the world engine isn&#x27;t rendering against real data by Wednesday night, switch to E&#x27;s in-Strata lift version&quot;; pre-commit instead of a third debate. Video production time: script, voiceover, capture, edit take a full day; D&#x27;s &quot;record Friday&quot; squeezes it into one evening. Hosted-build first impression: nobody specified what loads in the first 10 seconds for a judge who clicks cold.</p>
+<p><strong>Reviewer 5:</strong></p>
+<p>1. Strongest: E. Goes after the premise: the brief is about levels, Strata already has a lift shaft, checkpoint, relay room and a &quot;comms cut&quot; incident matching Nov 13. Mapping claim/yield onto lift cycles keeps the 33-test engine, needs no second renderer, drops extra vocabulary. Tightest MVP, already on-lore. Add B&#x27;s judge questions to it.</p>
+<p>2. Biggest blind spot: A. Adds scope at every step and never names an MVP, a cut, a schedule or an owner.</p>
+<p>3. All missed: write the video script first, shot by shot Monday, build only what appears (C comes closest). The pipeline: one reviewer agent gates every PR from five workers; a Thursday PR backlog could stall merges; nobody planned review capacity or hotfixes near the freeze. The humans: M and Ali have to agree on world map vs Strata-only today; Ali owns the renderer and an agent&#x27;s plan isn&#x27;t that agreement.</p>
+<p>Tally: strongest = B (4 of 5), E (1). Biggest blind spot = A (5 of 5).</p></div></details>
+<footer>Council of 5 advisors, anonymized peer review, chairman synthesis · Spec: docs/specs/echo/SPEC.md · Round 1: council-report-2026-11-15.html · Transcript: docs/council/council-transcript-2026-11-16.md</footer>
+</main></body></html>
