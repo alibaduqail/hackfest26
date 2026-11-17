@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "harness": "tsx scenarios/tower-down.ts",
+    "harness:all": "tsx scenarios/tower-down.ts --all",
     "dev": "vite --host 127.0.0.1 --port 4174",
     "start": "vite --host 127.0.0.1 --port 4174",
     "build": "tsc --noEmit && vite build",
