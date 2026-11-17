@@ -64,11 +64,11 @@ function makePods(seed: number): Pod[] {
   free.forEach((p, i) => {
     p.departTick = i < 8 ? 1 + i : 20 + Math.floor(rnd() * 40); // ticks 1-8: always a waiting pod when the tower has a grant to give
   });
-  // MED-1 leaves just after the seal; PAX-1 shares her first sector after she reroutes, so it must yield.
+  // MED-1 and PAX-1 both leave Sector 07 at t31, right after the seal: they announce the same sector (MED-1 re-planned via São Paulo) in the same tick, so PAX-1 must yield.
   const med1 = pods[0];
   med1.departTick = 31;
   const pax1 = pods.find((p) => p.id === "PAX-1")!;
-  Object.assign(pax1, { origin: "s07", dest: "sao", path: findPath("s07", "sao")!, label: "PAX-1 · Passenger", departTick: 33 });
+  Object.assign(pax1, { origin: "s07", dest: "sao", path: findPath("s07", "sao")!, label: "PAX-1 · Passenger", departTick: 31 });
   return pods;
 }
 
