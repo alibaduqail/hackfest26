@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 
 import { createEngine } from "../echo/engine";
 import { towerDown } from "../echo/missions";
 import type { EchoEngineApi, LogEvent, LogKind, Mission, Observation } from "../echo/types";
-import { drawMap, makeProjection, PULSE_MS, type Fx, type Variant } from "./map";
+import { drawMap, makeProjection, PULSE_MS, shakeOffset, type Fx, type Variant } from "./map";
+import { play, type Sound } from "./game/audio";
 
 const STRATA_URL = "/strata.html"; // the Strata city sim, home of Sector 07
 import { EchoLog, Scoreboard, TowerBanner } from "./panels";
@@ -40,11 +41,14 @@ html,body,#root{margin:0;height:100%;background:#0a1013;color:#cfe3e8;font:13px 
 .echo-ticker{display:flex;gap:8px;align-items:center;margin-bottom:8px;padding:5px 10px;background:#1a0d0d;border:1px solid #7a2522;border-radius:4px;color:#ff6a5f;font-size:12px;letter-spacing:.06em;animation:echo-tick .5s ease-out}
 .echo-ticker b{flex:none;background:#ff3b3b;color:#1a0d0d;padding:0 6px;font-size:10px;letter-spacing:.25em}
 @keyframes echo-tick{from{opacity:0;transform:translateY(4px)}}
+.echo-hint{position:absolute;left:14px;bottom:14px;z-index:3;max-width:calc(100% - 28px);display:flex;flex-direction:column;gap:2px;text-align:left;background:#1a1405;color:#f4e3b4;border:1px solid #f2b84b;border-radius:6px;padding:10px 14px;font:inherit;font-size:16px;line-height:1.35;cursor:pointer;animation:echo-hint .35s ease-out;text-wrap:balance;hyphens:none}
+.echo-hint small{color:#a68f55;font-size:11px;letter-spacing:.08em}
+@keyframes echo-hint{from{opacity:0;transform:translateY(6px)}}
 .echo-flash{position:absolute;inset:0;z-index:4;pointer-events:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(90,8,6,.38);box-shadow:inset 0 0 160px rgba(255,59,59,.55);animation:echo-flash 2s forwards}
 .echo-flash b{font-size:clamp(36px,7vw,84px);letter-spacing:.2em;color:#ff5a52;text-shadow:0 0 24px rgba(255,59,59,.6)}
 .echo-flash span{color:#ffd5d2;letter-spacing:.12em}
 @keyframes echo-flash{0%{opacity:0}8%{opacity:1}70%{opacity:1}100%{opacity:0;visibility:hidden}}
-@media (prefers-reduced-motion:reduce){.echo-flash{animation-duration:2.5s}.echo-ticker{animation:none}}
+@media (prefers-reduced-motion:reduce){.echo-flash{animation-duration:2.5s}.echo-ticker,.echo-hint{animation:none}}
 @media (max-width:1100px){.echo-main{grid-template-columns:1fr 1fr;grid-template-rows:minmax(0,3fr) minmax(0,2fr)}.echo-side{grid-column:1 / -1}}
 @media (max-width:760px){.echo-main{grid-template-columns:1fr;grid-template-rows:repeat(3,minmax(0,1fr))}.echo-side{grid-column:auto}}
 `;
@@ -61,7 +65,7 @@ function makeWorld(mission: Mission): World {
   normal.step(mission.endTick);
   return { mission, tower: createEngine(mission, "tower"), echo: createEngine(mission, "echo"), normal: normal.observe() };
 }
-const newFx = (): Fx => ({ pulses: [], yields: [], oldPaths: {}, frac: 0, blind: {}, rejected: {}, speech: [], stamps: [], flashAt: 0 });
+const newFx = (): Fx => ({ pulses: [], yields: [], oldPaths: {}, frac: 0, blind: {}, rejected: {}, speech: [], stamps: [], flashAt: 0, arrivals: [], cues: [] });
 
 /** In-run story beats (the game passes them; echo.html doesn't, so the video capture stays clean). */
 export interface Story {
@@ -75,6 +79,16 @@ const SCENE_KINDS = new Set<LogKind>(["tower-down", "credential-reject"]); // Ma
 /** Is this event one Mara speaks to? Her own events, a pod yielding to her, or a scene-wide one. */
 const forMara = (e: LogEvent, yieldTo: string) =>
   SCENE_KINDS.has(e.kind) || (e.kind === "yield" ? yieldTo === DISPATCH_POD : e.podId === DISPATCH_POD);
+const SOUND: Record<string, Sound> = { down: "down", seal: "seal", yield: "yield", "yield-med": "yield", "arrive-med": "chime" };
+// Mission 1 is the tutorial: one hint card at a time, 5 s or click (2.5 s when another is waiting). Dismissal lasts for the page session.
+const HINTS: Record<string, string> = {
+  start: "Run the clock. Watch the tower on the left.",
+  down: "The tower is dark. On the right, Echo takes over.",
+  seal: "The Directorate sealed the tunnel. Watch Mara re-plan.",
+  "yield-med": "A passenger yields. Medicine goes first.",
+};
+const HINT_MS = 5000, HINT_MIN_MS = 2500;
+const hintsSeen = new Set<string>();
 const BEAT_TICKS = 25; // a ticker line stays this many ticks after its event
 
 function tickerLine(story: Story, o: Observation, m: Mission): [beat: string, text: string] {
@@ -100,6 +114,12 @@ function collectFx(fx: Fx, history: LogEvent[], o: Observation, mission: Mission
       const prev = fx.speech.at(-1);
       fx.speech.push({ podId: DISPATCH_POD, text: line, born: Math.max(now, (prev?.born ?? -Infinity) + SPEECH_GAP_MS) });
     }
+    if (story) { // sound and hint cues (drained by the screen, so the sim never waits on them)
+      const cue = e.kind === "tower-down" ? "down" : e.kind === "seal" ? "seal" : e.kind === "yield" ? (to === DISPATCH_POD ? "yield-med" : "yield") : e.kind === "arrive" && e.podId === DISPATCH_POD ? "arrive-med" : "";
+      if (cue) fx.cues.push(cue);
+      const path = e.kind === "arrive" && e.podId === DISPATCH_POD ? o.pods.find((p) => p.id === DISPATCH_POD)?.path : undefined;
+      if (path) fx.arrivals.push({ path, born: now });
+    }
     if (!e.podId) continue;
     if (e.kind === "blind" && e.sectorId) fx.blind[e.podId] = e.sectorId;
     if (e.kind === "credential-reject") fx.rejected[e.podId] = true;
@@ -124,6 +144,8 @@ function MapPane({ obsRef, fxRef, variant, title, sub, children }: {
       const w = Math.max(1, Math.round(r.width)), h = Math.max(1, Math.round(r.height));
       if (cv.width !== w * dpr || cv.height !== h * dpr) { cv.width = w * dpr; cv.height = h * dpr; }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const [sx, sy] = shakeOffset(fxRef.current, t); // seal impact: a short decaying shake (view only)
+      if (sx || sy) { ctx.fillStyle = "#0a1013"; ctx.fillRect(0, 0, w, h); ctx.translate(sx, sy); }
       drawMap(ctx, obsRef.current, { variant, width: w, height: h, time: t, fx: fxRef.current });
       raf = requestAnimationFrame(loop);
     };
@@ -184,6 +206,44 @@ export function MissionScreen({ mission: missionProp, allowDispatch = true, spee
   const speedRef = useRef(speed);
   speedRef.current = speed;
 
+  // sound cues and Mission 1 hints (game only: `story` is missing on echo.html)
+  const tutorial = !!story && missionRef.current.id === "tower-down";
+  const [hint, setHint] = useState<{ id: string; text: string } | null>(null);
+  const hintQ = useRef<string[]>([]);
+  const hintAt = useRef(0);
+  const nextHint = useCallback(() => {
+    const id = hintQ.current.shift();
+    hintAt.current = performance.now();
+    setHint(id ? { id, text: HINTS[id] } : null);
+  }, []);
+  const pushHints = useCallback((ids: string[], idle: boolean) => {
+    const fresh = ids.filter((id, i) => HINTS[id] && !hintsSeen.has(id) && ids.indexOf(id) === i);
+    fresh.forEach((id) => hintsSeen.add(id));
+    hintQ.current.push(...fresh);
+    if (idle && fresh.length) nextHint();
+  }, [nextHint]);
+  const hintOn = useRef(false);
+  hintOn.current = !!hint;
+  const drain = useCallback((live: boolean) => {
+    const cues = fxRef.current.cues.splice(0);
+    if (!story) return;
+    if (live) for (const c of new Set(cues)) if (SOUND[c]) play(SOUND[c]);
+    if (tutorial) pushHints(live ? cues : cues.slice(-1), !hintOn.current); // a deep link (?t=N) shows only the latest beat
+  }, [story, tutorial, pushHints]);
+  useEffect(() => { // on mount: the start swell and the first hint (a fresh run only)
+    if (!story) return;
+    if (echoRef.current.tick === 0) { play("start"); if (tutorial) pushHints(["start"], true); }
+    drain(false);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!hint) return;
+    const id = setInterval(() => {
+      const age = performance.now() - hintAt.current;
+      if (age >= HINT_MS || (hintQ.current.length && age >= HINT_MIN_MS)) nextHint();
+    }, 250);
+    return () => clearInterval(id);
+  }, [hint, nextHint]);
+
   useEffect(() => {
     if (!running) return;
     let raf = 0, last = performance.now(), acc = 0;
@@ -198,6 +258,7 @@ export function MissionScreen({ mission: missionProp, allowDispatch = true, spee
         w.echo.step(1);
         collectFx(fx, historyRef.current, w.echo.observe(), w.mission, now, story);
       }
+      if (fx.cues.length) drainRef.current(true);
       fx.pulses = fx.pulses.filter((p) => now - p.born < PULSE_MS);
       fx.frac = acc;
       if (n > 0) {
@@ -212,6 +273,8 @@ export function MissionScreen({ mission: missionProp, allowDispatch = true, spee
     return () => cancelAnimationFrame(raf);
   }, [running]);
 
+  const drainRef = useRef(drain);
+  drainRef.current = drain;
   const reset = useCallback(() => {
     world.current = makeWorld(missionRef.current);
     towerRef.current = world.current.tower.observe();
@@ -250,7 +313,9 @@ export function MissionScreen({ mission: missionProp, allowDispatch = true, spee
             <TowerBanner obs={tower} />
           </div>
         </MapPane>
-        <MapPane obsRef={echoRef} fxRef={fxRef} variant="echo" title="Echo" sub="every pod navigates, beacons relay, three rules" />
+        <MapPane obsRef={echoRef} fxRef={fxRef} variant="echo" title="Echo" sub="every pod navigates, beacons relay, three rules">
+          {hint && <button className="echo-hint" key={hint.id} onClick={nextHint}>{hint.text}<small>click to dismiss</small></button>}
+        </MapPane>
         <div className="echo-side">
           <div className="echo-panels">
             <EchoLog obs={echo} log={historyRef.current} />

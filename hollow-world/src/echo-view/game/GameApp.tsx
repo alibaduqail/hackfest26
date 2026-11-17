@@ -13,6 +13,7 @@ import { Debrief, type RunResult } from "./Debrief";
 import { MissionSelect } from "./MissionSelect";
 import { Prepare } from "./Prepare";
 import { hasSeen, isUnlocked, loadProgress, markSeen, saveStars, type Progress } from "./progress";
+import { SoundToggle } from "./SoundToggle";
 import { Title } from "./Title";
 import "./game.css";
 
@@ -50,7 +51,9 @@ function initial(): State {
   return { screen, cm, base, placed: base, run: 0 };
 }
 
-export function GameApp() {
+export const GameApp = () => <><Game /><SoundToggle /></>;
+
+function Game() {
   const [st, setSt] = useState<State>(initial);
   const [progress, setProgress] = useState<Progress>(loadProgress);
   const go = (patch: Partial<State>) => setSt((s) => ({ ...s, ...patch }));
