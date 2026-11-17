@@ -69,7 +69,7 @@ export function makeProjection(obs: Observation, w: number, h: number): Projecti
   const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
   const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
   // fill the pane (equirectangular, so a stretch is fine); bottom inset keeps room for the tower card, top for the caption
-  const ml = Math.min(112, w * 0.16), mr = Math.min(104, w * 0.15), mt = 72, mb = Math.min(124, h * 0.2);
+  const ml = Math.min(112, Math.max(76, w * 0.16)), mr = Math.min(104, w * 0.15), mt = 72, mb = Math.min(124, h * 0.2);
   const kx = (w - ml - mr) / (x1 - x0 || 1), ky = (h - mt - mb) / (y1 - y0 || 1);
   const ox = ml - kx * x0, oy = mt - ky * y0;
   return ([x, y]) => [ox + kx * x, oy + ky * y];
@@ -200,7 +200,7 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
     const dead = echo && s.beacon === false;
     ctx.lineCap = "round";
     if (o.hover === s.id) {
-      ctx.strokeStyle = "rgba(242,184,75,0.35)"; ctx.lineWidth = 7;
+      ctx.strokeStyle = "rgba(242,184,75,0.5)"; ctx.lineWidth = 9;
       ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
     }
     if (s.sealed) {
@@ -404,7 +404,12 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
       }
       if (pos.has(podId)) { ctx.font = "11px ui-monospace, Menlo, monospace"; avoid.push([at[0] + 8, at[1] + 7, ctx.measureText(p.label).width + 4, 16]); }
       ctx.font = "12px system-ui, -apple-system, sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
-      const tw = ctx.measureText(sp.text).width + 16, th = 24;
+      let lines = [sp.text];
+      if (ctx.measureText(sp.text).width + 24 > w) { // narrow pane (phone): wrap onto two lines at the space nearest the middle
+        const mid = sp.text.length / 2, cut = [...sp.text.matchAll(/ /g)].map((m) => m.index!).sort((a, b) => Math.abs(a - mid) - Math.abs(b - mid))[0];
+        if (cut !== undefined) lines = [sp.text.slice(0, cut), sp.text.slice(cut + 1)];
+      }
+      const tw = Math.max(...lines.map((l) => ctx.measureText(l).width)) + 16, th = lines.length > 1 ? 40 : 24;
       const fit = ([bx, by]: [number, number]): Box => [Math.min(Math.max(4, bx), w - tw - 4), Math.min(Math.max(4, by), h - th - 4), tw, th];
       const spots = [[at[0] - 12, at[1] - 44], [at[0] - tw + 12, at[1] - 44], [at[0] - 12, at[1] + 28], [at[0] - tw + 12, at[1] + 28], [at[0] - 12, at[1] - 72]].map((xy) => fit(xy as [number, number]));
       const [x, y] = spots.find((b) => !avoid.some((a) => overlaps(a, b))) ?? spots[0];
@@ -413,7 +418,7 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
       ctx.beginPath(); ctx.roundRect(x, y, tw, th, 6); ctx.fill(); ctx.stroke();
       const above = y + th <= at[1], edge = above ? y + th : y, tx = Math.min(Math.max(at[0], x + 10), x + tw - 10); // tail toward the pod
       ctx.beginPath(); ctx.moveTo(tx - 3, edge); ctx.lineTo(tx + 3, edge); ctx.lineTo(at[0], at[1] + (above ? -8 : 8)); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = "#3a1512"; ctx.fillText(sp.text, x + 8, y + 12.5);
+      ctx.fillStyle = "#3a1512"; lines.forEach((l, i) => ctx.fillText(l, x + 8, y + 12.5 + i * 15));
       ctx.globalAlpha = 1;
     }
   }
