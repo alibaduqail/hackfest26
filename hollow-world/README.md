@@ -44,7 +44,7 @@ Echo is worse than a normal day on purpose and the scoreboard shows it: passenge
 - Core: organize movement without the central network (problem #7).
 - Water, food and medicine reach the deep cities, shared by need rather than by who is first in line (#2).
 - Partly: nurses and supplies reach the outbreak city (#9). There is no outbreak tracking.
-- Lore: the Directorate controls movement and its numbers are fake. The banner says 84 flights authorized while 5 are actually moving.
+- Lore: the Directorate controls movement and its numbers are fake. The banner says 84 flights authorized while 5 are actually flying.
 - Not claimed: #8 and #10.
 
 The engine is headless and deterministic in `src/echo/` (contract in `src/echo/types.ts`; tests in `src/echo/echo.test.ts`, run by `npm test`). The map and mission screen are in `src/echo-view/`. The plan and acceptance criteria are in [`docs/specs/echo/PLAN.md`](../docs/specs/echo/PLAN.md).
