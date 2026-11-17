@@ -1,0 +1,85 @@
+/* Echo game shell. Same tokens as the mission screen (echo.css, MissionScreen): dark tunnel blue, teal beacons, amber lights, red Directorate. */
+html, body, #root { margin: 0; height: 100%; background: #0a1013; color: #cfe3e8; font: 15px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.g-screen { position: relative; height: 100%; overflow: auto; box-sizing: border-box; }
+.g-screen *, .g-screen *::before, .g-screen *::after { box-sizing: border-box; }
+.g-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+.g-btn { background: #14222a; color: #cfe3e8; border: 1px solid #2a3d46; border-radius: 4px; padding: 8px 18px; font: inherit; cursor: pointer; }
+.g-btn:hover:not(:disabled) { border-color: #45d1c4; }
+.g-btn:disabled { opacity: .4; cursor: default; }
+.g-btn.primary { background: #1d5f7a; border-color: #45d1c4; color: #fff; }
+.g-btn:focus-visible, .g-card:focus-visible, .g-skip:focus-visible { outline: 2px solid #f2b84b; outline-offset: 2px; }
+.g-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.g-muted { color: #7f979f; }
+.g-kicker { color: #7f979f; font-size: 12px; letter-spacing: .16em; text-transform: uppercase; }
+.g-stars { color: #f2b84b; letter-spacing: .12em; }
+.g-stars .off { color: #2a3d46; }
+
+/* title */
+.g-title { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; text-align: center; padding: 24px 16px; }
+.g-title::before { content: ""; position: absolute; inset: 0; z-index: 1; background: radial-gradient(ellipse 46% 40% at center, rgba(10,16,19,.94) 0, rgba(10,16,19,.8) 55%, rgba(10,16,19,.35) 100%); pointer-events: none; }
+.g-title > :not(canvas) { position: relative; z-index: 2; }
+.g-title h1 { margin: 0; font-size: clamp(64px, 14vw, 148px); line-height: 1; letter-spacing: .32em; margin-right: -.32em; font-weight: 700; color: #e9f4f6; text-shadow: 0 0 32px rgba(69,209,196,.35); }
+.g-title .sub { font-size: clamp(14px, 2.2vw, 20px); color: #9fb6bd; letter-spacing: .14em; }
+.g-title .g-row { justify-content: center; margin-top: 18px; }
+.g-title .foot { position: absolute !important; bottom: 18px; left: 16px; right: 16px; font-size: 12px; color: #4f646b; }
+
+/* shared page layout */
+.g-page { max-width: 1040px; margin: 0 auto; padding: 40px 24px 32px; }
+.g-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 28px; }
+.g-head h2 { margin: 0; font-size: 26px; letter-spacing: .06em; font-weight: 600; }
+
+/* mission select: centered on the screen */
+.g-select { display: flex; flex-direction: column; justify-content: center; min-height: 100%; }
+.g-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+.g-card { display: flex; flex-direction: column; gap: 10px; min-height: 210px; text-align: left; background: #0d161a; color: inherit; border: 1px solid #23343b; border-radius: 8px; padding: 18px; font: inherit; cursor: pointer; }
+.g-card:hover:not(:disabled) { border-color: #45d1c4; background: #0f1c21; }
+.g-card:disabled { cursor: default; opacity: .55; }
+.g-card .num { font-size: 40px; line-height: 1; font-weight: 700; color: #2d4249; }
+.g-card:not(:disabled) .num { color: #45d1c4; }
+.g-card .name { font-size: 18px; font-weight: 600; letter-spacing: .03em; }
+.g-card .hook { color: #9fb6bd; font-size: 14px; flex: 1; }
+.g-card .state { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: #7f979f; }
+
+/* briefing */
+.g-brief { max-width: 760px; }
+.g-type { min-height: 13em; cursor: pointer; font-size: 17px; line-height: 1.65; color: #d7e7eb; }
+.g-type p { margin: 0 0 14px; }
+.g-type .caret { display: inline-block; width: .6em; height: 1.1em; vertical-align: text-bottom; background: #45d1c4; animation: g-blink 1s steps(1) infinite; }
+.g-skip { background: none; border: 0; color: #4f646b; font: inherit; font-size: 12px; cursor: pointer; padding: 0; }
+.g-broadcast { margin: 22px 0; border: 1px solid #7a2522; background: #1a0d0d; color: #ff6a5f; padding: 14px 18px 16px; border-radius: 4px; transition: opacity .6s; }
+.g-broadcast b { display: inline-block; font-size: 11px; letter-spacing: .3em; background: #ff3b3b; color: #1a0d0d; padding: 1px 8px; margin-bottom: 8px; animation: g-blink 2s steps(1) infinite; }
+.g-broadcast div { font-size: 16px; letter-spacing: .06em; }
+.g-objs { list-style: none; margin: 0 0 26px; padding: 0; display: grid; gap: 8px; }
+.g-objs li { display: grid; grid-template-columns: 70px 1fr; gap: 12px; }
+.g-objs li.met { color: #45d1c4; }
+
+/* prepare */
+.g-prep { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+.g-prep-bar { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: center; padding: 14px 20px; border-bottom: 1px solid #1a272c; }
+.g-prep-bar h2 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: .04em; }
+.g-meter { display: flex; align-items: center; gap: 10px; }
+.g-meter b { font-size: 26px; color: #f2b84b; font-variant-numeric: tabular-nums; }
+.g-meter b.over { color: #ff5a52; }
+.g-meter .track { width: 140px; height: 6px; background: #1a272c; border-radius: 3px; overflow: hidden; }
+.g-meter .fill { height: 100%; background: #f2b84b; }
+.g-prep-map { position: relative; flex: 1; min-height: 0; }
+.g-prep-map canvas { cursor: crosshair; }
+.g-prep-tip { position: absolute; left: 20px; bottom: 16px; color: #7f979f; font-size: 13px; pointer-events: none; }
+.g-legend { display: inline-flex; gap: 16px; align-items: center; font-size: 12px; color: #7f979f; }
+.g-legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #f2b84b; box-shadow: 0 0 6px #f2b84b; margin-right: 6px; }
+.g-legend s { display: inline-block; width: 18px; border-top: 1px dashed #4f646b; margin-right: 6px; vertical-align: middle; }
+
+/* run: the mission screen fills the page */
+.g-run { height: 100%; }
+
+/* debrief extras on the end card */
+.g-debrief-top { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: -14px; }
+.g-debrief-top .g-stars { font-size: 40px; line-height: 1; }
+.g-debrief-top .verdict { font-size: 16px; color: #d7e7eb; text-align: center; }
+.g-debrief-objs { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 20px; font-size: 13px; color: #7f979f; }
+.g-debrief-objs .met { color: #45d1c4; }
+
+@keyframes g-blink { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .g-type .caret, .g-broadcast b { animation: none; } }
+@media (max-width: 640px) { .g-page { padding: 24px 16px; } .g-objs li { grid-template-columns: 56px 1fr; } }
