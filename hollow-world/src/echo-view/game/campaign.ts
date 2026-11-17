@@ -43,11 +43,11 @@ export const STARS: Record<string, Goal[]> = {
     { all: [{ what: "mara", by: 145 }] },
     { all: [{ what: "mara", by: 148 }, { what: "supplies", by: 172 }] },
   ],
-  // beacon search best: Mara t143, median supply t140, delay 3.04x; detour-first: 137 / 131 / 3.31x
+  // beacon search best: Mara t143, median supply t140, delay 3.04x; detour-first: 137 / 131 / 3.31x (so it stops at 2 stars)
   grounding: [
     { all: [{ what: "mara", by: 160 }] },
     { all: [{ what: "mara", by: 148 }, { what: "supplies", by: 145, half: true }] },
-    { all: [{ what: "mara", by: 148 }, { what: "supplies", by: 145, half: true }], maxDelay: 3.4 },
+    { all: [{ what: "mara", by: 148 }, { what: "supplies", by: 145, half: true }], maxDelay: 3.2 },
   ],
   "ghost-flight": [
     { all: [{ what: "mara" }], ghost: true },
