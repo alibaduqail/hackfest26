@@ -57,6 +57,14 @@ Humans (M and Ali) over agents, always. A human's instruction overrides any agen
 
 Fill this in at kickoff so every agent knows whose files are whose.
 
-| Area | Owner (GitHub login) | Folders |
+Per-file detail for Echo is in `docs/specs/echo/PLAN.md` §1.1. Extra terminals split a lane by issue.
+
+| Area | Owner (handle) | Folders |
 |---|---|---|
-| | | |
+| Plan, specs, Echo contract | `m_opus` (lead) | `docs/specs/echo/**`, `hollow-world/src/echo/types.ts` |
+| Echo engine core | `m_codex` | `hollow-world/src/echo/engine.ts`, `tower.ts`, `protocol.ts` |
+| Echo data, mock, credential | `m_claude` | `hollow-world/src/echo/world.ts`, `missions.ts`, `credential.ts`, `mock.ts` |
+| Echo tests and harness | `m_claude1` | `hollow-world/src/echo/*.test.ts`, `hollow-world/scenarios/`, `package.json` test script |
+| Echo map and mission screen | `ali_codex1` | `hollow-world/src/echo-view/` (map, mission screen, entry), `hollow-world/echo.html` |
+| Echo panels, hosting, entry swap | `ali_codex2` | `hollow-world/src/echo-view/panels.tsx`, `echo.css`, `vite.config.ts`, deploy config |
+| Strata city sim (frozen for Echo) | `ali_codex1` | `hollow-world/src/engine/`, `src/world/`, `src/main.tsx`, `public/scenario.json` |
