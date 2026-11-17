@@ -57,6 +57,10 @@ function makePods(seed: number): Pod[] {
   const free = pods.filter((p) => !staged.has(p.id));
   // Nothing is in transit at tick 0, so only tower grants put pods in sectors: realFlights stays <= grantsEver (6) in tower mode.
   // Depart over the first two hours; the first 8 leave before the tower dies so it can spend its 6 grants.
+  for (let i = free.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [free[i], free[j]] = [free[j], free[i]]; // seeded shuffle: the tower's 6 real flights are a mix, not all nurses
+  }
   free.forEach((p, i) => {
     p.departTick = i < 8 ? 1 + i : 20 + Math.floor(rnd() * 100); // ticks 1-8: always a waiting pod when the tower has a grant to give
   });
