@@ -109,3 +109,9 @@ html, body, #root { margin: 0; height: 100%; background: #0a1013; color: #cfe3e8
 .g-prep-map canvas:focus-visible { outline: 2px solid #f2b84b; outline-offset: -3px; }
 .g-prep-keys { padding: 8px 20px; border-top: 1px solid #1a272c; color: #7f979f; font-size: 13px; }
 .g-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* debrief: stars pop in one by one */
+.g-debrief-top .g-stars > span { display: inline-block; }
+.g-debrief-top .g-stars .lit { animation: g-star .3s ease-out; }
+@keyframes g-star { 0% { transform: scale(.3); opacity: 0; } 60% { transform: scale(1.35); opacity: 1; } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .g-debrief-top .g-stars .lit { animation: none; } }

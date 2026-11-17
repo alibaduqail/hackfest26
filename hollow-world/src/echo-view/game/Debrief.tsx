@@ -1,9 +1,25 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { Observation } from "../../echo/types";
 import { EndCard } from "../EndCard";
 import { play } from "./audio";
 import { verdict, type CampaignMission } from "./campaign";
-import { Stars } from "./MissionSelect";
+
+const STAR_GAP_MS = 250;
+const reduced = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/** The earned stars light up one by one (a pop and a ping each); with reduced motion they are simply there. */
+function StarReveal({ n, of = 3 }: { n: number; of?: number }) {
+  const [shown, setShown] = useState(() => (reduced() ? n : 0));
+  useEffect(() => {
+    const ids = Array.from({ length: n }, (_, i) => setTimeout(() => { setShown(i + 1); play("star", i); }, 350 + i * STAR_GAP_MS));
+    return () => ids.forEach(clearTimeout);
+  }, [n]);
+  return (
+    <span className="g-stars" aria-label={`${n} of ${of} stars`}>
+      {Array.from({ length: of }, (_, i) => <span key={i} className={i < shown ? "lit" : "off"} aria-hidden>★</span>)}
+    </span>
+  );
+}
 
 export interface RunResult { tower: Observation; echo: Observation; normal: Observation }
 
@@ -13,17 +29,13 @@ export function Debrief({ cm, result, onRetry, onNext, nextLabel = "Next mission
   const { tower, echo, normal } = result;
   const met = cm.objectives.map((o) => o.met(echo, normal));
   const stars = met.filter(Boolean).length;
-  useEffect(() => { // one ping per star
-    const ids = Array.from({ length: stars }, (_, i) => setTimeout(() => play("star", i), 350 + i * 300));
-    return () => ids.forEach(clearTimeout);
-  }, [stars]);
   return (
     <div className="g-screen">
       <EndCard
         tower={tower} echo={echo} normal={normal} title={cm.name.toUpperCase()}
         top={
           <div className="g-debrief-top">
-            <Stars n={stars} />
+            <StarReveal n={stars} />
             {cm.verdicts?.[stars] && <div className="verdict">{cm.verdicts[stars]}</div>}
             <div className={cm.verdicts?.[stars] ? "g-muted" : "verdict"}>{verdict(echo, normal)}</div>
             <div className="g-debrief-objs">
