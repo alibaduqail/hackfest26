@@ -23,7 +23,7 @@ Press **Run**. At t+20 the tower goes dark, at t+30 the Directorate seals the di
                                   Tower failed          Echo                      Normal day
 Nurses arrived                    0/8                   8/8                       8/8
 Supplies delivered                0/10                  10/10                     10/10
-Passenger delay (min)             7161 (31.7x normal)   548 (2.4x normal)         226 (1.0x normal)
+Passenger delay (min)             7163 (31.7x normal)   550 (2.4x normal)         226 (1.0x normal)
 Network capacity vs normal day    5%                    94%                       100%
 Flights: real / claimed by tower  5 / 84                40 / 84                   40 / -
 MED-1 Nurse Mara Vale             waiting, not arrived  arrived t+137 (rerouted)  arrived t+80
