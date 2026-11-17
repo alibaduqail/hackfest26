@@ -62,7 +62,7 @@ function makePods(seed: number): Pod[] {
     [free[i], free[j]] = [free[j], free[i]]; // seeded shuffle: the tower's 6 real flights are a mix, not all nurses
   }
   free.forEach((p, i) => {
-    p.departTick = i < 8 ? 1 + i : 20 + Math.floor(rnd() * 100); // ticks 1-8: always a waiting pod when the tower has a grant to give
+    p.departTick = i < 8 ? 1 + i : 20 + Math.floor(rnd() * 40); // ticks 1-8: always a waiting pod when the tower has a grant to give
   });
   // MED-1 leaves just after the seal; PAX-1 shares her first sector after she reroutes, so it must yield.
   const med1 = pods[0];
