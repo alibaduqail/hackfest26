@@ -1,5 +1,5 @@
 import { CAMPAIGN } from "./campaign";
-import { isUnlocked, type Progress } from "./progress";
+import { hasSeen, isUnlocked, type Progress } from "./progress";
 
 export const Stars = ({ n, of = 3 }: { n: number; of?: number }) => (
   <span className="g-stars" aria-label={`${n} of ${of} stars`}>
@@ -7,7 +7,9 @@ export const Stars = ({ n, of = 3 }: { n: number; of?: number }) => (
   </span>
 );
 
-export function MissionSelect({ progress, onPick, onBack }: { progress: Progress; onPick: (id: string) => void; onBack: () => void }) {
+export function MissionSelect({ progress, onPick, onBack, onStory }: {
+  progress: Progress; onPick: (id: string) => void; onBack: () => void; onStory: (which: "prologue" | "epilogue") => void;
+}) {
   const ids = CAMPAIGN.map((m) => m.id);
   return (
     <div className="g-screen">
@@ -17,7 +19,11 @@ export function MissionSelect({ progress, onPick, onBack }: { progress: Progress
             <div className="g-kicker">Echo · campaign</div>
             <h2>Missions</h2>
           </div>
-          <button className="g-btn" onClick={onBack}>Back</button>
+          <div className="g-row">
+            <button className="g-btn" onClick={() => onStory("prologue")}>Prologue</button>
+            {hasSeen(progress, "epilogue") && <button className="g-btn" onClick={() => onStory("epilogue")}>Epilogue</button>}
+            <button className="g-btn" onClick={onBack}>Back</button>
+          </div>
         </div>
         <div className="g-cards">
           {CAMPAIGN.map((cm, i) => {

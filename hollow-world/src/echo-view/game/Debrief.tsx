@@ -5,8 +5,8 @@ import { Stars } from "./MissionSelect";
 
 export interface RunResult { tower: Observation; echo: Observation; normal: Observation }
 
-export function Debrief({ cm, result, onRetry, onNext, onMissions }: {
-  cm: CampaignMission; result: RunResult; onRetry: () => void; onNext?: () => void; onMissions: () => void;
+export function Debrief({ cm, result, onRetry, onNext, nextLabel = "Next mission", onMissions }: {
+  cm: CampaignMission; result: RunResult; onRetry: () => void; onNext?: () => void; nextLabel?: string; onMissions: () => void;
 }) {
   const { tower, echo, normal } = result;
   const met = cm.objectives.map((o) => o.met(echo, normal));
@@ -18,7 +18,8 @@ export function Debrief({ cm, result, onRetry, onNext, onMissions }: {
         top={
           <div className="g-debrief-top">
             <Stars n={stars} />
-            <div className="verdict">{verdict(echo, normal)}</div>
+            {cm.verdicts?.[stars] && <div className="verdict">{cm.verdicts[stars]}</div>}
+            <div className={cm.verdicts?.[stars] ? "g-muted" : "verdict"}>{verdict(echo, normal)}</div>
             <div className="g-debrief-objs">
               {cm.objectives.map((o, i) => <span key={i} className={met[i] ? "met" : ""}>{met[i] ? "✓" : "·"} {o.label}</span>)}
             </div>
@@ -28,7 +29,7 @@ export function Debrief({ cm, result, onRetry, onNext, onMissions }: {
         <div className="g-row">
           <button className="g-btn" onClick={onMissions}>Missions</button>
           <button className="g-btn" autoFocus={!onNext} onClick={onRetry}>Retry</button>
-          {onNext && <button className="g-btn primary" autoFocus onClick={onNext}>Next mission</button>}
+          {onNext && <button className="g-btn primary" autoFocus onClick={onNext}>{nextLabel}</button>}
         </div>
       </EndCard>
     </div>

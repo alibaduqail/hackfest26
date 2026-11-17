@@ -22,5 +22,9 @@ export function saveStars(id: string, stars: number): Progress {
   return { ...p };
 }
 
+/** One-off screens (prologue, epilogue) remembered beside the stars. */
+export const hasSeen = (p: Progress, what: string) => (p[`seen:${what}`] ?? 0) > 0;
+export const markSeen = (what: string) => saveStars(`seen:${what}`, 1);
+
 /** Mission 1 is always open; mission N+1 opens once mission N has a star. */
 export const isUnlocked = (ids: string[], i: number, p: Progress) => i === 0 || (p[ids[i - 1]] ?? 0) >= 1;

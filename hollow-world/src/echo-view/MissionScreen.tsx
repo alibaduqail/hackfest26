@@ -37,6 +37,14 @@ html,body,#root{margin:0;height:100%;background:#0a1013;color:#cfe3e8;font:13px 
 .echo-bar .echo-dispatch{border-color:#ff5a52;color:#ffd5d2}
 .echo-bar .grow{flex:1}
 .echo-bar a{color:#f2b84b;text-decoration:none}.echo-bar a:hover{text-decoration:underline}
+.echo-ticker{display:flex;gap:8px;align-items:center;margin-bottom:8px;padding:5px 10px;background:#1a0d0d;border:1px solid #7a2522;border-radius:4px;color:#ff6a5f;font-size:12px;letter-spacing:.06em;animation:echo-tick .5s ease-out}
+.echo-ticker b{flex:none;background:#ff3b3b;color:#1a0d0d;padding:0 6px;font-size:10px;letter-spacing:.25em}
+@keyframes echo-tick{from{opacity:0;transform:translateY(4px)}}
+.echo-flash{position:absolute;inset:0;z-index:4;pointer-events:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(90,8,6,.38);box-shadow:inset 0 0 160px rgba(255,59,59,.55);animation:echo-flash 2s forwards}
+.echo-flash b{font-size:clamp(36px,7vw,84px);letter-spacing:.2em;color:#ff5a52;text-shadow:0 0 24px rgba(255,59,59,.6)}
+.echo-flash span{color:#ffd5d2;letter-spacing:.12em}
+@keyframes echo-flash{0%{opacity:0}8%{opacity:1}70%{opacity:1}100%{opacity:0;visibility:hidden}}
+@media (prefers-reduced-motion:reduce){.echo-flash{animation-duration:2.5s}.echo-ticker{animation:none}}
 @media (max-width:1100px){.echo-main{grid-template-columns:1fr 1fr;grid-template-rows:minmax(0,3fr) minmax(0,2fr)}.echo-side{grid-column:1 / -1}}
 @media (max-width:760px){.echo-main{grid-template-columns:1fr;grid-template-rows:repeat(3,minmax(0,1fr))}.echo-side{grid-column:auto}}
 `;
@@ -53,18 +61,45 @@ function makeWorld(mission: Mission): World {
   normal.step(mission.endTick);
   return { mission, tower: createEngine(mission, "tower"), echo: createEngine(mission, "echo"), normal: normal.observe() };
 }
-const newFx = (): Fx => ({ pulses: [], yields: [], oldPaths: {}, frac: 0, blind: {}, rejected: {} });
+const newFx = (): Fx => ({ pulses: [], yields: [], oldPaths: {}, frac: 0, blind: {}, rejected: {}, speech: [], stamps: [], flashAt: 0 });
+
+/** In-run story beats (the game passes them; echo.html doesn't, so the video capture stays clean). */
+export interface Story {
+  ticker: { before: string; down: string; seal: string; mid: string }; // the Directorate's broadcast; {claimed} = flights it claims
+  mara: { sealHeard: string; yieldWon: string; arrive: string }; // Nurse Mara Vale's lines
+}
+const FLASH_MS = 2000; // the TOWER OFFLINE flash (the CSS animation runs the same 2s)
+const SPEECH_GAP_MS = 1800; // a line shows at least this long before the next one replaces it
+const BEAT_TICKS = 25; // a ticker line stays this many ticks after its event
+
+function tickerLine(story: Story, o: Observation, m: Mission): [beat: string, text: string] {
+  if (o.towerUp) return ["before", story.ticker.before];
+  const seals = [m.sealAt, ...(m.seals ?? []).map((x) => x.at)].filter((t): t is number => t !== null && t < o.tick);
+  const lastSeal = seals.length ? Math.max(...seals) : -Infinity;
+  if (o.tick - lastSeal <= BEAT_TICKS) return [`seal${lastSeal}`, story.ticker.seal];
+  if (o.tick - o.towerDownAt <= BEAT_TICKS) return ["down", story.ticker.down];
+  return ["mid", story.ticker.mid.replace("{claimed}", String(o.score.towerClaimed))];
+}
 
 /** Pull this tick's protocol events out of the log into wall-clock effects. */
-function collectFx(fx: Fx, history: LogEvent[], o: Observation, mission: Mission, now: number) {
+function collectFx(fx: Fx, history: LogEvent[], o: Observation, mission: Mission, now: number, story?: Story) {
   for (const p of o.pulses) fx.pulses.push({ sectorId: p.sectorId, kind: p.kind, born: now });
   for (const e of o.log) {
     if (e.tick !== o.tick - 1) continue;
     history.push(e); // the engine log keeps 60; the panel filters this full history
+    if (story && e.kind === "tower-down") fx.flashAt = now;
+    if (story && e.kind === "seal" && e.sectorId) fx.stamps.push({ sectorId: e.sectorId, born: now });
     if (!e.podId) continue;
+    const to = e.kind === "yield" ? (/ to (\S+)/.exec(e.text)?.[1] ?? "").replace(/·.*/, "") : "";
+    if (story) {
+      const mara = e.podId === DISPATCH_POD;
+      const line = mara && e.kind === "seal-heard" ? story.mara.sealHeard : mara && e.kind === "arrive" ? story.mara.arrive : to === DISPATCH_POD ? story.mara.yieldWon : "";
+      const prev = fx.speech.filter((x) => x.podId === DISPATCH_POD).at(-1);
+      if (line) fx.speech.push({ podId: DISPATCH_POD, text: line, born: Math.max(now, (prev?.born ?? -Infinity) + SPEECH_GAP_MS) });
+    }
     if (e.kind === "blind" && e.sectorId) fx.blind[e.podId] = e.sectorId;
     if (e.kind === "credential-reject") fx.rejected[e.podId] = true;
-    if (e.kind === "yield") fx.yields.push({ podId: e.podId, to: (/ to (\S+)/.exec(e.text)?.[1] ?? "").replace(/·.*/, ""), born: now });
+    if (e.kind === "yield") fx.yields.push({ podId: e.podId, to, born: now });
     if (e.kind === "reroute" && !fx.oldPaths[e.podId]) {
       const orig = mission.pods.find((p) => p.id === e.podId);
       if (orig) fx.oldPaths[e.podId] = { path: orig.path, born: now };
@@ -115,20 +150,30 @@ export interface MissionScreenProps {
   speed?: number; // starting speed; a speed above 60 (time-lapse) is added to the speed buttons
   onEnd?: (tower: Observation, echo: Observation, normal: Observation) => void; // once, when the Echo run is over; replaces the end card
   onExit?: () => void; // adds an "Abort mission" button
+  story?: Story; // in-run story beats; off when missing
 }
 
-export function MissionScreen({ mission: missionProp, allowDispatch = true, speed: speedProp, onEnd, onExit }: MissionScreenProps = {}) {
+export function MissionScreen({ mission: missionProp, allowDispatch = true, speed: speedProp, onEnd, onExit, story }: MissionScreenProps = {}) {
+  const q = new URLSearchParams(location.search); // ?run=1&speed=10&t=N for screenshots
   const missionRef = useRef<Mission>(null as unknown as Mission);
   if (!missionRef.current) missionRef.current = missionProp ?? towerDown();
+  const fxRef = useRef<Fx>(newFx());
+  const historyRef = useRef<LogEvent[]>([]);
   const world = useRef<World>(null as unknown as World);
-  if (!world.current) world.current = makeWorld(missionRef.current);
+  if (!world.current) {
+    const w = (world.current = makeWorld(missionRef.current));
+    const t = Math.max(0, Number(q.get("t")) || 0); // ?t=N starts at tick N; effects are aged as if played at 10x
+    const now = performance.now();
+    for (let i = 0; i < t && !w.echo.observe().over; i++) {
+      w.tower.step(1);
+      w.echo.step(1);
+      collectFx(fxRef.current, historyRef.current, w.echo.observe(), w.mission, now - (t - 1 - i) * 100, story);
+    }
+  }
   const speeds: readonly number[] = speedProp && speedProp > 60 ? [...SPEEDS, speedProp] : SPEEDS;
   const towerRef = useRef<Observation>(world.current.tower.observe());
   const echoRef = useRef<Observation>(world.current.echo.observe());
-  const fxRef = useRef<Fx>(newFx());
-  const historyRef = useRef<LogEvent[]>([]);
   const [snap, setSnap] = useState({ tower: towerRef.current, echo: echoRef.current });
-  const q = new URLSearchParams(location.search); // ?run=1&speed=10 for screenshots
   const [running, setRunning] = useState(q.get("run") === "1");
   const [speed, setSpeed] = useState<number>(speeds.find((s) => s === Number(q.get("speed"))) ?? speeds.find((s) => s === speedProp) ?? 10);
   const [note, setNote] = useState("");
@@ -147,7 +192,7 @@ export function MissionScreen({ mission: missionProp, allowDispatch = true, spee
       for (let i = 0; i < n; i++) {
         w.tower.step(1);
         w.echo.step(1);
-        collectFx(fx, historyRef.current, w.echo.observe(), w.mission, now);
+        collectFx(fx, historyRef.current, w.echo.observe(), w.mission, now, story);
       }
       fx.pulses = fx.pulses.filter((p) => now - p.born < PULSE_MS);
       fx.frac = acc;
@@ -196,7 +241,10 @@ export function MissionScreen({ mission: missionProp, allowDispatch = true, spee
       <style>{css}</style>
       <div className="echo-main">
         <MapPane obsRef={towerRef} fxRef={fxRef} variant="tower" title="Directorate alone" sub="one tower clears every flight">
-          <div className="echo-overlay"><TowerBanner obs={tower} /></div>
+          <div className="echo-overlay">
+            {story && (() => { const [beat, line] = tickerLine(story, tower, world.current.mission); return <div className="echo-ticker" key={beat} role="status"><b>BROADCAST</b>{line}</div>; })()}
+            <TowerBanner obs={tower} />
+          </div>
         </MapPane>
         <MapPane obsRef={echoRef} fxRef={fxRef} variant="echo" title="Echo" sub="every pod navigates, beacons relay, three rules" />
         <div className="echo-side">
@@ -222,6 +270,9 @@ export function MissionScreen({ mission: missionProp, allowDispatch = true, spee
         <span>t+{echo.tick} / {echo.endTick}</span>
         {onExit && <button onClick={onExit}>Abort mission</button>}
       </div>
+      {story && fxRef.current.flashAt > 0 && performance.now() - fxRef.current.flashAt < FLASH_MS && (
+        <div className="echo-flash" key={fxRef.current.flashAt} aria-hidden><b>TOWER OFFLINE</b><span>the Directorate's tower has gone dark</span></div>
+      )}
       {echo.over && !onEnd && <EndCard tower={tower} echo={echo} normal={world.current.normal} onReplay={reset} />}
     </div>
   );

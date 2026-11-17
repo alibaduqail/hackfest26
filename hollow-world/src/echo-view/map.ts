@@ -11,8 +11,12 @@ export interface Fx {
   frac: number; // 0..1 of a tick elapsed since the last engine step, for smooth pods
   blind: Record<string, string>; // pod id -> the unbeaconed sector it waited blind at ("?" while it still waits there)
   rejected: Record<string, true>; // pod ids whose credential-reject was logged (ghosts are revealed)
+  // story beats (game only; empty on echo.html)
+  speech: { podId: string; text: string; born: number }[]; // queued lines: born may be in the future
+  stamps: { sectorId: string; born: number }[]; // SEALED stamps
+  flashAt: number; // wall-clock ms of the TOWER OFFLINE flash, 0 = none
 }
-export const PULSE_MS = 900, YIELD_MS = 2200, FADE_MS = 8000;
+export const PULSE_MS = 900, YIELD_MS = 2200, FADE_MS = 8000, SPEECH_MS = 4000, STAMP_POP_MS = 350;
 export interface DrawOpts {
   variant: Variant; width: number; height: number; time: number; fx?: Fx;
   prepare?: boolean; // beacon placement screen: beacons always drawn as amber lights
@@ -264,6 +268,22 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
     cityLabel(ctx, c, [x, y]);
   }
 
+  // SEALED stamps: pop in, then stay on the seal
+  for (const st of fx?.stamps ?? []) {
+    const s = byId.get(st.sectorId); if (!s) continue;
+    const [a, b] = lane(project, s); const m = lerp(a, b, 0.5);
+    const k = Math.min(1, Math.max(0, (o.time - st.born) / STAMP_POP_MS));
+    ctx.save();
+    ctx.translate(m[0] + 8, m[1] + 24); // below the X, clear of the city and pod labels ctx.rotate(-0.18); ctx.scale(2.2 - 1.2 * k, 2.2 - 1.2 * k);
+    ctx.globalAlpha = 0.3 + 0.62 * k;
+    ctx.font = "bold 12px ui-monospace, Menlo, monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    const tw = ctx.measureText("SEALED").width + 12;
+    ctx.fillStyle = "rgba(26,13,13,0.85)"; ctx.fillRect(-tw / 2, -10, tw, 20);
+    ctx.strokeStyle = COLORS.seal; ctx.lineWidth = 1.6; ctx.strokeRect(-tw / 2, -10, tw, 20);
+    ctx.fillStyle = COLORS.seal; ctx.fillText("SEALED", 0, 1);
+    ctx.restore();
+  }
+
   // pods on top
   const pos = podPositions(obs, project, o.fx?.frac ?? 0);
   const order: Pod[] = [...obs.pods].sort((a, b) => rank(a.priority) - rank(b.priority));
@@ -306,6 +326,28 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
     if (p.id === nurse?.id && p.status !== "arrived") {
       ctx.fillStyle = "#ffd5d2"; ctx.font = "11px ui-monospace, Menlo, monospace"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
       ctx.fillText(p.label, xy[0] + 10, xy[1] + 15);
+    }
+  }
+
+  // speech cards (Echo pane): above the pod, or above its destination once it has arrived
+  if (echo && fx) {
+    const live = new Map<string, Fx["speech"][number]>(); // the newest line already born, per pod
+    for (const sp of fx.speech) if (o.time >= sp.born && o.time - sp.born <= SPEECH_MS) live.set(sp.podId, sp);
+    for (const [podId, sp] of live) {
+      const age = o.time - sp.born;
+      const p = podById.get(podId); if (!p) continue;
+      const city = obs.cities.find((c) => c.id === (p.status === "arrived" ? p.dest : p.origin)); // not on the map yet, or arrived
+      const at = pos.get(podId) ?? (city ? project([city.x, city.y]) : undefined);
+      if (!at) continue;
+      ctx.font = "12px system-ui, -apple-system, sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      const tw = ctx.measureText(sp.text).width + 16;
+      const x = Math.min(Math.max(4, at[0] - 12), w - tw - 4), y = Math.max(4, at[1] - 44);
+      ctx.globalAlpha = Math.min(1, (SPEECH_MS - age) / 600, age / 150);
+      ctx.fillStyle = "#f4ece4"; ctx.strokeStyle = COLORS.medical; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.roundRect(x, y, tw, 24, 6); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(at[0] - 2, y + 24); ctx.lineTo(at[0] + 4, y + 24); ctx.lineTo(at[0], at[1] - 8); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#3a1512"; ctx.fillText(sp.text, x + 8, y + 12.5);
+      ctx.globalAlpha = 1;
     }
   }
 }

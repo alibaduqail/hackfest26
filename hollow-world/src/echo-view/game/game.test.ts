@@ -4,13 +4,13 @@ import { createEngine } from "../../echo/engine";
 import { towerDown } from "../../echo/missions";
 import { lane, makeProjection, sectorAt } from "../map";
 import { CAMPAIGN, objective, starsFor, staticObs } from "./campaign";
-import { isUnlocked, loadProgress, saveStars } from "./progress";
+import { hasSeen, isUnlocked, loadProgress, markSeen, saveStars } from "./progress";
 
 test("Tower Down earns its stars from a real run", () => {
   const m = towerDown();
   const [echo, normal] = (["echo", "normal"] as const).map((mode) => { const e = createEngine(m, mode); e.step(m.endTick); return e.observe(); });
-  assert.equal(starsFor(CAMPAIGN[0], echo, normal), 3, "Tower Down's placeholder deadlines are winnable under Echo");
-  assert.equal(objective({ what: "mara", by: 100 }).met(echo, normal), false, "a deadline before Mara's arrival misses");
+  assert.equal(starsFor(CAMPAIGN[0], echo, normal), 3, "Echo earns all three Tower Down stars");
+  assert.equal(objective({ all: [{ what: "mara", by: 100 }] }).met(echo, normal), false, "a deadline before Mara's arrival misses");
   const tower = createEngine(m, "tower"); tower.step(m.endTick);
   assert.equal(starsFor(CAMPAIGN[0], tower.observe(), normal), 0, "the Directorate alone earns nothing");
 });
@@ -24,6 +24,9 @@ test("progress works with storage missing, keeps the best, unlocks in order", ()
   assert.equal(loadProgress()["tower-down"], 2);
   assert.equal(isUnlocked(ids, 1, loadProgress()), true);
   assert.equal(isUnlocked(ids, 2, loadProgress()), false);
+  assert.equal(hasSeen(loadProgress(), "prologue"), false);
+  markSeen("prologue");
+  assert.equal(hasSeen(loadProgress(), "prologue"), true, "the prologue shows once");
 });
 
 test("sectorAt picks the lane under the cursor, per direction", () => {
