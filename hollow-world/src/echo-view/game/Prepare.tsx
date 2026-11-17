@@ -92,7 +92,7 @@ export function Prepare({ cm, mission, onBegin, onBack }: { cm: CampaignMission;
         <div className="g-prep-tip">
           {hovered
             ? `${names.get(hovered.from)} → ${names.get(hovered.to)} · section ${hovered.index + 1} · ${hovered.beacon !== false ? "beacon (click to remove)" : "dead zone (click to place)"}`
-            : "Click a tunnel to bolt in a beacon. Each direction is its own tunnel. News only hops between beacons."}
+            : cm.prepTip ?? "Click a tunnel to bolt in a beacon. Each direction is its own tunnel. News only hops between beacons."}
         </div>
       </div>
     </div>

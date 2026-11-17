@@ -15,27 +15,49 @@ export interface CampaignMission {
   hook: string; // one line on the mission card
   briefing: string[]; // typewriter paragraphs
   broadcast: string; // the Directorate's line, shown in the BROADCAST frame
-  objectives: [Objective, Objective, Objective]; // one star each
+  prepTip?: string; // the Prepare screen's hint
+  objectives: Objective[]; // one star each, from STARS
   allowDispatch: boolean;
   defaultSpeed: number;
   build: (() => Mission) | null; // null = the engine lane hasn't landed it yet
 }
 
-// ---- helpers over the final observation ----
-const mara = (o: Observation): Pod | undefined => o.pods.find((p) => p.id === "MED-1");
-const maraArrives = (o: Observation) => mara(o)?.status === "arrived";
+// ---- star thresholds: tune here (placeholders; numbers from `npm run harness`) ----
+// Beacons change timing, never who arrives, so every star is a deadline on the final pods' arriveTick.
+// what: mara = MED-1 · Nurse Mara Vale; nurses = any nurse; lagosNurses = nurses bound for Lagos; supplies = cargo pods.
+// count missing = all of them. ghost: also every ghost pod's signature was rejected. maxDelay: passenger delay vs the normal day.
+export interface Goal { what: "mara" | "nurses" | "lagosNurses" | "supplies"; count?: number; by: number; maxDelay?: number; ghost?: boolean }
+export const STARS: Record<string, Goal[]> = {
+  // Tower Down Echo run (seed 20261117): Mara t137, last nurse t137, last supply t162, delay 2.4x
+  "tower-down": [{ what: "mara", by: 160 }, { what: "nurses", by: 150 }, { what: "supplies", by: 180, maxDelay: 3 }],
+  "dead-zones": [{ what: "mara", by: 175 }, { what: "lagosNurses", count: 6, by: 160 }, { what: "supplies", by: 220, maxDelay: 4 }],
+  grounding: [{ what: "lagosNurses", count: 6, by: 200 }, { what: "supplies", count: 12, by: 900 }, { what: "lagosNurses", count: 10, by: 1000, maxDelay: 4 }],
+  "ghost-flight": [{ what: "mara", by: 160, ghost: true }, { what: "nurses", by: 150 }, { what: "supplies", by: 180, maxDelay: 3 }],
+};
+
+// ---- goals -> objectives ----
+const arrivedBy = (p: Pod, t: number) => p.arriveTick !== null && p.arriveTick <= t;
 const delayX = (o: Observation, n: Observation) =>
   n.score.passengerDelayMin > 0 ? o.score.passengerDelayMin / n.score.passengerDelayMin : o.score.passengerDelayMin > 0 ? Infinity : 1;
-const nursesTo = (o: Observation, city: string) => o.pods.filter((p) => p.nurse && p.dest === city && p.status === "arrived").length;
-const ghostRejected = (o: Observation) => o.pods.filter((p) => p.ghost).every((p) => !p.credentialOk);
+const pool = (o: Observation, w: Goal["what"]) =>
+  o.pods.filter((p) => (w === "mara" ? p.id === "MED-1" : w === "supplies" ? !!p.cargo : p.nurse && (w === "nurses" || p.dest === "lagos")));
+const NOUN = { mara: "", nurses: "nurses arrive", lagosNurses: "nurses reach Lagos", supplies: "supply runs arrive" };
 
-// ---- star thresholds: tune here ----
-export const STARS = {
-  "tower-down": { maxDelay: 3 },
-  "dead-zones": { nurses: 6, supplies: 8, maxDelay: 4 },
-  grounding: { lagosNurses: 6, supplies: 8, maxDelay: 4 },
-  "ghost-flight": { maxDelay: 3 },
-} as const;
+export function objective(g: Goal): Objective {
+  const head = g.what === "mara" ? "Mara reaches Lagos" : `${g.count ?? "All"} ${NOUN[g.what]}`;
+  const label = `${g.ghost ? `The ghost is rejected and ${head}` : head} by t+${g.by}${g.maxDelay ? `, delay ≤ ${g.maxDelay}× normal` : ""}`;
+  return {
+    label,
+    met: (o, n) => {
+      const ps = pool(o, g.what);
+      const need = g.count ?? ps.length;
+      return ps.length > 0 && ps.filter((p) => arrivedBy(p, g.by)).length >= need
+        && (!g.maxDelay || delayX(o, n) <= g.maxDelay)
+        && (!g.ghost || o.pods.filter((p) => p.ghost).every((p) => !p.credentialOk));
+    },
+  };
+}
+const goals = (id: string) => (STARS[id] ?? []).map(objective);
 
 const builder = (name: string): (() => Mission) | null => {
   const f = (M as unknown as Record<string, unknown>)[name];
@@ -52,11 +74,7 @@ export const CAMPAIGN: CampaignMission[] = [
       "Tonight the tower goes dark at minute twenty. The residents already bolted a beacon into every tunnel. Watch what Echo does with them.",
     ],
     broadcast: "ALL FLIGHTS REMAIN AUTHORIZED. THE NETWORK IS STABLE. REMAIN IN YOUR SECTOR.",
-    objectives: [
-      { label: "Mara reaches Lagos", met: (o) => maraArrives(o) },
-      { label: "All nurses arrive", met: (o) => o.score.nursesArrived === o.score.nursesTotal },
-      { label: `All supplies, passenger delay ≤ ${STARS["tower-down"].maxDelay}× normal`, met: (o, n) => o.score.suppliesDelivered === o.score.suppliesTotal && delayX(o, n) <= STARS["tower-down"].maxDelay },
-    ],
+    objectives: goals("tower-down"),
     allowDispatch: true, defaultSpeed: 10, build: builder("towerDown"),
   },
   {
@@ -68,11 +86,8 @@ export const CAMPAIGN: CampaignMission[] = [
       "Place the beacons where the news has to travel. The Directorate will seal the Lagos tunnel at minute thirty.",
     ],
     broadcast: "UNLICENSED RADIOS ARE A DANGER TO ALL FLIGHTS. HAND THEM IN AT YOUR SECTOR OFFICE.",
-    objectives: [
-      { label: "Mara reaches Lagos", met: (o) => maraArrives(o) },
-      { label: `At least ${STARS["dead-zones"].nurses} nurses arrive`, met: (o) => o.score.nursesArrived >= STARS["dead-zones"].nurses },
-      { label: `${STARS["dead-zones"].supplies}+ supplies, delay ≤ ${STARS["dead-zones"].maxDelay}× normal`, met: (o, n) => o.score.suppliesDelivered >= STARS["dead-zones"].supplies && delayX(o, n) <= STARS["dead-zones"].maxDelay },
-    ],
+    prepTip: "The Directorate will seal the direct tunnel to Lagos. Beacon the detour.",
+    objectives: goals("dead-zones"),
     allowDispatch: true, defaultSpeed: 10, build: builder("deadZones"),
   },
   {
@@ -84,11 +99,7 @@ export const CAMPAIGN: CampaignMission[] = [
       "Expect more seals. First the Lagos tunnel, then Cairo, then London. Build a network that can lose a tunnel and keep talking.",
     ],
     broadcast: "THE GROUNDING PROTECTS YOU. TRAVEL WILL RESUME WHEN ORDER IS RESTORED.",
-    objectives: [
-      { label: `Lagos gets ${STARS.grounding.lagosNurses}+ nurses`, met: (o) => nursesTo(o, "lagos") >= STARS.grounding.lagosNurses },
-      { label: `${STARS.grounding.supplies}+ supplies delivered`, met: (o) => o.score.suppliesDelivered >= STARS.grounding.supplies },
-      { label: `Passenger delay ≤ ${STARS.grounding.maxDelay}× normal`, met: (o, n) => delayX(o, n) <= STARS.grounding.maxDelay },
-    ],
+    objectives: goals("grounding"),
     allowDispatch: false, defaultSpeed: 300, build: builder("grounding"),
   },
   {
@@ -100,11 +111,7 @@ export const CAMPAIGN: CampaignMission[] = [
       "There is no center to ask. Every beacon checks the signature itself.",
     ],
     broadcast: "A MEDICAL CONVOY IS EN ROUTE. ALL FLIGHTS MUST GIVE WAY.",
-    objectives: [
-      { label: "The ghost is rejected and Mara reaches Lagos", met: (o) => ghostRejected(o) && maraArrives(o) },
-      { label: "All nurses arrive", met: (o) => o.score.nursesArrived === o.score.nursesTotal },
-      { label: `All supplies, passenger delay ≤ ${STARS["ghost-flight"].maxDelay}× normal`, met: (o, n) => o.score.suppliesDelivered === o.score.suppliesTotal && delayX(o, n) <= STARS["ghost-flight"].maxDelay },
-    ],
+    objectives: goals("ghost-flight"),
     allowDispatch: true, defaultSpeed: 10, build: builder("ghostFlight"),
   },
 ];
@@ -115,7 +122,7 @@ export const starsFor = (cm: CampaignMission, echo: Observation, normal: Observa
 /** The one-line debrief verdict. Names on screen: only Mara, Echo, the Directorate, the Hollow. */
 export function verdict(echo: Observation, normal: Observation): string {
   const s = echo.score;
-  const m = maraArrives(echo) ? "Mara made it." : "Mara never made it.";
+  const m = echo.pods.find((p) => p.id === "MED-1")?.status === "arrived" ? "Mara made it." : "Mara never made it.";
   const d = delayX(echo, normal);
   const wait = Number.isFinite(d) ? ` Passengers waited ${d.toFixed(1)}× longer than on a normal day.` : "";
   return `${m} ${s.nursesArrived}/${s.nursesTotal} nurses, ${s.suppliesDelivered}/${s.suppliesTotal} supply runs.${wait}`;
