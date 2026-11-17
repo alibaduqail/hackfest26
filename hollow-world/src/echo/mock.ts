@@ -20,10 +20,10 @@ const L = (tick: number, kind: LogEvent["kind"], text: string, podId?: string, s
 
 const FRAMES: Frame[] = [
   { tick: 0 },
-  { tick: 6, log: [L(2, "grant", "Tower grants PAX-5", "PAX-5"), L(5, "grant", "Tower grants SUP-2", "SUP-2")], score: { towerClaimed: 28 } },
-  { tick: 19, log: [L(12, "grant", "Tower grants MED-3", "MED-3"), L(19, "grant", "Tower grants PAX-9", "PAX-9")], score: { towerClaimed: 84, realFlights: 0 } },
+  { tick: 6, patches: { "MED-2": { at: 0, progress: 0.5, status: "moving" }, "SUP-1": { at: 0, progress: 0.2, status: "moving" } }, log: [L(2, "grant", "Tower grants MED-2", "MED-2"), L(5, "grant", "Tower grants SUP-1", "SUP-1")], score: { towerClaimed: 28 } },
+  { tick: 19, patches: { "MED-2": { at: 2, progress: 0.3, status: "moving" }, "SUP-1": { at: 1, progress: 0.6, status: "moving" }, "MED-3": { at: 0, progress: 0.4, status: "moving" }, "MED-4": { at: 0, progress: 0.1, status: "moving" } }, log: [L(12, "grant", "Tower grants MED-3", "MED-3"), L(19, "grant", "Tower grants MED-4", "MED-4")], score: { towerClaimed: 84, realFlights: 0 } },
   { tick: 20, log: [L(20, "tower-down", "Directorate tower offline. Banner: 84 flights authorized")], score: { towerClaimed: 84 } },
-  { tick: 24, log: [L(21, "hold", "PAX-5 holds at boundary: no clearance", "PAX-5")], pulses: [{ sectorId: "lon-lagos-f1", kind: "announce", age: 0 }], score: { realFlights: 6 } },
+  { tick: 24, patches: { "MED-2": { at: 2, progress: 1, status: "holding" }, "SUP-1": { at: 1, progress: 1, status: "holding" }, "MED-3": { at: 0, progress: 1, status: "holding" }, "MED-4": { at: 0, progress: 1, status: "holding" } }, log: [L(21, "hold", "MED-5 holds at boundary: no clearance", "MED-5")], pulses: [{ sectorId: "lon-lagos-f1", kind: "announce", age: 0 }], score: { realFlights: 6 } },
   { tick: 30, log: [L(30, "seal", "Directorate seals tunnel s07-lagos-f0", undefined, SEAL_SECTOR)], pulses: [{ sectorId: SEAL_SECTOR, kind: "seal", age: 0 }] },
   {
     tick: 32,
@@ -44,7 +44,11 @@ const FRAMES: Frame[] = [
   },
   {
     tick: 60,
-    patches: { "MED-1": { at: 7, progress: 0.4, status: "moving" }, "PAX-1": { at: 0, progress: 0.7, status: "moving", waitedMin: 3 } },
+    patches: {
+      "MED-1": { at: 7, progress: 0.4, status: "moving" },
+      "PAX-1": { at: 0, progress: 0.7, status: "moving", waitedMin: 3 },
+      "MED-2": { at: 4, progress: 0.5, status: "moving" }, "MED-3": { at: 2, progress: 0.8, status: "moving" },
+    },
     log: [L(45, "release", "MED-1 releases s07-sao-f5", "MED-1", "s07-sao-f5")],
     pulses: [{ sectorId: "sao-lagos-f1", kind: "release", age: 0 }],
     score: { realFlights: 14 },
@@ -52,7 +56,7 @@ const FRAMES: Frame[] = [
   { tick: 90, patches: { "MED-1": { at: REROUTE.length - 1, progress: 0.6, status: "moving" } }, score: { realFlights: 19, suppliesDelivered: 1 } },
   {
     tick: 120,
-    patches: { "MED-1": { at: REROUTE.length - 1, progress: 1, status: "arrived", arriveTick: 118 } },
+    patches: { "MED-1": { at: REROUTE.length - 1, progress: 1, status: "arrived", arriveTick: 118 }, "MED-2": { at: 7, status: "arrived", progress: 1, arriveTick: 101 }, "MED-3": { at: 7, status: "arrived", progress: 1, arriveTick: 109 } },
     log: [L(118, "arrive", "MED-1 arrives at Lagos Deep", "MED-1")],
     score: { nursesArrived: 3, suppliesDelivered: 2, passengerDelayMin: 140, capacityPct: 62, realFlights: 22 },
   },
