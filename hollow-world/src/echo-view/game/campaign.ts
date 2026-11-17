@@ -18,6 +18,7 @@ export interface CampaignMission {
   broadcast: string; // the Directorate's line, shown in the BROADCAST frame
   prepTip?: string; // the Prepare screen's hint
   story?: { ticker?: Partial<Story["ticker"]>; mara?: Partial<Story["mara"]> }; // overrides of STORY for this mission
+  verdicts?: string[]; // debrief line by stars earned (index 0..3); missing = the computed numbers line only
   objectives: Objective[]; // one star each, from STARS
   allowDispatch: boolean;
   defaultSpeed: number;
@@ -85,6 +86,18 @@ export function objective(g: Goal): Objective {
   };
 }
 const goals = (id: string) => (STARS[id] ?? []).map(objective);
+
+// ---- prologue (once, before Mission 1) and epilogue (after the last mission). Placeholder text until STORY.md lands. ----
+export const PROLOGUE: string[] = [
+  "The Hollow runs on one voice. Every pod in every tunnel waits for the Directorate's tower to say go.",
+  "The residents have started bolting small battery radios into the tunnels. They call the network Echo.",
+  "Tonight they find out whether it works.",
+];
+export const EPILOGUE: string[] = [
+  "The tower never came back. The tunnels kept moving anyway.",
+  "Every beacon you placed is still out there, passing news from one to the next.",
+  "Echo is slower than the tower. But nobody can switch it off.",
+];
 
 // ---- in-run story beats (default lines; missions override some) ----
 export const STORY: Story = {

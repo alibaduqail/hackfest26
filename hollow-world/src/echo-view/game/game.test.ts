@@ -4,7 +4,7 @@ import { createEngine } from "../../echo/engine";
 import { towerDown } from "../../echo/missions";
 import { lane, makeProjection, sectorAt } from "../map";
 import { CAMPAIGN, objective, starsFor, staticObs } from "./campaign";
-import { isUnlocked, loadProgress, saveStars } from "./progress";
+import { hasSeen, isUnlocked, loadProgress, markSeen, saveStars } from "./progress";
 
 test("Tower Down earns its stars from a real run", () => {
   const m = towerDown();
@@ -24,6 +24,9 @@ test("progress works with storage missing, keeps the best, unlocks in order", ()
   assert.equal(loadProgress()["tower-down"], 2);
   assert.equal(isUnlocked(ids, 1, loadProgress()), true);
   assert.equal(isUnlocked(ids, 2, loadProgress()), false);
+  assert.equal(hasSeen(loadProgress(), "prologue"), false);
+  markSeen("prologue");
+  assert.equal(hasSeen(loadProgress(), "prologue"), true, "the prologue shows once");
 });
 
 test("sectorAt picks the lane under the cursor, per direction", () => {

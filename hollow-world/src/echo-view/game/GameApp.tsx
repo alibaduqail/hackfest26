@@ -1,22 +1,23 @@
 // The game shell: title -> missions -> briefing -> prepare -> run -> debrief. Esc goes back one screen.
-// QA deep links: ?screen=missions|briefing|prepare|run|debrief&mission=<id>; &story=0 turns the in-run story beats off;
+// Prologue: once, before Mission 1 (remembered in progress). Epilogue: after the last mission's debrief.
+// QA deep links: ?screen=missions|prologue|epilogue|briefing|prepare|run|debrief&mission=<id>; &story=0 turns the in-run story beats off;
 // &t=N (run) starts at tick N; &budget=N turns any mission into an empty
 // beacon-placement mission (for screenshots before the engine lane's budget missions land).
 import { useEffect, useState } from "react";
 import { createEngine } from "../../echo/engine";
 import type { Mission } from "../../echo/types";
 import { MissionScreen } from "../MissionScreen";
-import { byId, CAMPAIGN, starsFor, storyFor, type CampaignMission } from "./campaign";
-import { Briefing } from "./Briefing";
+import { byId, CAMPAIGN, EPILOGUE, PROLOGUE, starsFor, storyFor, type CampaignMission } from "./campaign";
+import { Briefing, Interlude } from "./Briefing";
 import { Debrief, type RunResult } from "./Debrief";
 import { MissionSelect } from "./MissionSelect";
 import { Prepare } from "./Prepare";
-import { isUnlocked, loadProgress, saveStars, type Progress } from "./progress";
+import { hasSeen, isUnlocked, loadProgress, markSeen, saveStars, type Progress } from "./progress";
 import { Title } from "./Title";
 import "./game.css";
 
-type Screen = "title" | "missions" | "briefing" | "prepare" | "run" | "debrief";
-interface State { screen: Screen; cm?: CampaignMission; base?: Mission; placed?: Mission; result?: RunResult; run: number }
+type Screen = "title" | "missions" | "prologue" | "epilogue" | "briefing" | "prepare" | "run" | "debrief";
+interface State { screen: Screen; cm?: CampaignMission; base?: Mission; placed?: Mission; result?: RunResult; run: number; then?: string } // then: mission to brief after the prologue
 
 const hasBudget = (m?: Mission) => typeof m?.beaconBudget === "number";
 
@@ -41,7 +42,8 @@ function initial(): State {
   const q = new URLSearchParams(location.search);
   const screen = q.get("screen") as Screen | null;
   const cm = byId(q.get("mission")) ?? CAMPAIGN[0];
-  if (!screen || screen === "title" || screen === "missions" || !cm.build) return { screen: screen === "missions" ? "missions" : "title", run: 0 };
+  if (screen === "missions" || screen === "prologue" || screen === "epilogue") return { screen, run: 0 };
+  if (!screen || screen === "title" || !cm.build) return { screen: "title", run: 0 };
   const base = build(cm);
   if (screen === "debrief") return { screen, cm, base, placed: base, result: runToEnd(base), run: 0 };
   if (screen === "prepare" && !hasBudget(base)) return { screen: "run", cm, base, placed: base, run: 0 };
@@ -54,7 +56,8 @@ export function GameApp() {
   const go = (patch: Partial<State>) => setSt((s) => ({ ...s, ...patch }));
 
   const ids = CAMPAIGN.map((m) => m.id);
-  const pick = (id: string) => {
+  const pick = (id: string, prologue = true) => {
+    if (prologue && id === ids[0] && PROLOGUE.length && !hasSeen(progress, "prologue")) return go({ screen: "prologue", then: id });
     const cm = byId(id)!;
     const base = build(cm);
     go({ screen: "briefing", cm, base, placed: base, result: undefined });
@@ -64,6 +67,8 @@ export function GameApp() {
   const back = (): Screen | null => {
     switch (st.screen) {
       case "missions": return "title";
+      case "prologue": return st.then ? "title" : "missions";
+      case "epilogue": return "missions";
       case "briefing": return "missions";
       case "prepare": return "briefing";
       case "run": return hasBudget(st.base) ? "prepare" : "briefing";
@@ -87,7 +92,16 @@ export function GameApp() {
     case "title":
       return <Title onBegin={() => { const m = nextPlayable(progress); m ? pick(m.id) : go({ screen: "missions" }); }} onMissions={() => go({ screen: "missions" })} />;
     case "missions":
-      return <MissionSelect progress={progress} onPick={pick} onBack={() => go({ screen: "title" })} />;
+      return <MissionSelect progress={progress} onPick={pick} onBack={() => go({ screen: "title" })} onStory={(s) => go({ screen: s, then: undefined })} />;
+    case "prologue":
+      return (
+        <Interlude kicker="Echo" title="Prologue" paras={PROLOGUE} onDone={() => {
+          setProgress(markSeen("prologue"));
+          if (st.then) pick(st.then, false); else go({ screen: "missions" });
+        }} />
+      );
+    case "epilogue":
+      return <Interlude kicker="Echo" title="Epilogue" paras={EPILOGUE} onDone={() => { setProgress(markSeen("epilogue")); go({ screen: "missions" }); }} />;
     case "briefing":
       return <Briefing cm={cm!} best={progress[cm!.id] ?? 0} hasBudget={hasBudget(st.base)} onNext={afterBriefing} onBack={() => go({ screen: "missions" })} />;
     case "prepare":
@@ -113,12 +127,14 @@ export function GameApp() {
       const i = CAMPAIGN.indexOf(cm!);
       const next = CAMPAIGN[i + 1];
       const canNext = next && next.build && isUnlocked(ids, i + 1, progress);
+      const finale = !next && EPILOGUE.length > 0 && (progress[cm!.id] ?? 0) >= 1; // the last mission, won
       return (
         <Debrief
           cm={cm!} result={st.result!}
           onMissions={() => go({ screen: "missions" })}
           onRetry={() => (hasBudget(st.base) ? go({ screen: "prepare" }) : go({ screen: "run", run: st.run + 1 }))}
-          onNext={canNext ? () => pick(next.id) : undefined}
+          onNext={canNext ? () => pick(next.id) : finale ? () => go({ screen: "epilogue" }) : undefined}
+          nextLabel={finale ? "Epilogue" : undefined}
         />
       );
     }

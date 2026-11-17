@@ -1,12 +1,14 @@
 // Briefing: typewriter story (click to skip), the Directorate's broadcast, objectives with their stars.
+// Also exports the typewriter and the Interlude page used by the prologue and epilogue.
 import { useEffect, useState } from "react";
 import type { CampaignMission } from "./campaign";
 import { Stars } from "./MissionSelect";
 
 const CHARS_PER_FRAME = 2;
 
-export function Briefing({ cm, best, hasBudget, onNext, onBack }: { cm: CampaignMission; best: number; hasBudget: boolean; onNext: () => void; onBack: () => void }) {
-  const total = cm.briefing.reduce((n, p) => n + p.length, 0);
+/** Types `paras` out a couple of characters per frame; instant with reduced motion. */
+export function useTypewriter(paras: string[]) {
+  const total = paras.reduce((n, p) => n + p.length, 0);
   const instant = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
   const [shown, setShown] = useState(instant ? total : 0);
   const done = shown >= total;
@@ -15,10 +17,22 @@ export function Briefing({ cm, best, hasBudget, onNext, onBack }: { cm: Campaign
     const id = requestAnimationFrame(() => setShown((n) => Math.min(total, n + CHARS_PER_FRAME)));
     return () => cancelAnimationFrame(id);
   }, [shown, done, total]);
-
   let left = shown;
-  const paras = cm.briefing.map((p) => { const t = p.slice(0, Math.max(0, left)); left -= p.length; return t; }).filter((p, i) => p || i === 0);
+  const visible = paras.map((p) => { const t = p.slice(0, Math.max(0, left)); left -= p.length; return t; }).filter((p, i) => p || i === 0);
+  return { visible, done, skip: () => setShown(total) };
+}
+type Typewriter = ReturnType<typeof useTypewriter>;
 
+const Typed = ({ tw }: { tw: Typewriter }) => (
+  <div className="g-type" onClick={tw.skip} aria-live="off">
+    {tw.visible.map((p, i) => (
+      <p key={i}>{p}{!tw.done && i === tw.visible.length - 1 && <span className="caret" />}</p>
+    ))}
+  </div>
+);
+
+export function Briefing({ cm, best, hasBudget, onNext, onBack }: { cm: CampaignMission; best: number; hasBudget: boolean; onNext: () => void; onBack: () => void }) {
+  const tw = useTypewriter(cm.briefing);
   return (
     <div className="g-screen">
       <div className="g-page g-brief">
@@ -27,14 +41,10 @@ export function Briefing({ cm, best, hasBudget, onNext, onBack }: { cm: Campaign
             <div className="g-kicker">Mission {cm.number} · briefing</div>
             <h2>{cm.name}</h2>
           </div>
-          {!done && <button className="g-skip" onClick={() => setShown(total)}>skip ▸</button>}
+          {!tw.done && <button className="g-skip" onClick={tw.skip}>skip ▸</button>}
         </div>
-        <div className="g-type" onClick={() => setShown(total)} aria-live="off">
-          {paras.map((p, i) => (
-            <p key={i}>{p}{!done && i === paras.length - 1 && <span className="caret" />}</p>
-          ))}
-        </div>
-        <div className="g-broadcast" style={{ opacity: done ? 1 : 0 }} aria-hidden={!done}>
+        <Typed tw={tw} />
+        <div className="g-broadcast" style={{ opacity: tw.done ? 1 : 0 }} aria-hidden={!tw.done}>
           <b>BROADCAST</b>
           <div>THE DIRECTORATE: {cm.broadcast}</div>
         </div>
@@ -47,6 +57,27 @@ export function Briefing({ cm, best, hasBudget, onNext, onBack }: { cm: Campaign
         <div className="g-row">
           <button className="g-btn" onClick={onBack}>Back</button>
           <button className="g-btn primary" autoFocus onClick={onNext}>{hasBudget ? "Place beacons" : "Begin"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Prologue / epilogue: a typed story page with one way on (Continue, or Skip while it types). */
+export function Interlude({ kicker, title, paras, onDone }: { kicker: string; title: string; paras: string[]; onDone: () => void }) {
+  const tw = useTypewriter(paras);
+  return (
+    <div className="g-screen">
+      <div className="g-page g-brief g-select">
+        <div className="g-head">
+          <div>
+            <div className="g-kicker">{kicker}</div>
+            <h2>{title}</h2>
+          </div>
+        </div>
+        <Typed tw={tw} />
+        <div className="g-row">
+          <button className="g-btn primary" autoFocus onClick={onDone}>{tw.done ? "Continue" : "Skip"}</button>
         </div>
       </div>
     </div>
