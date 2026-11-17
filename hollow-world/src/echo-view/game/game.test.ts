@@ -39,6 +39,17 @@ test("sectorAt picks the lane under the cursor, per direction", () => {
   assert.equal(sectorAt(obs, 1200, 800, -50, -50), null);
 });
 
+test("a finger (22 px) finds a tunnel the mouse (6 px) misses, 15 px off the lane", () => {
+  const obs = staticObs(towerDown());
+  const project = makeProjection(obs, 390, 700);
+  const s = obs.sectors[10];
+  const [a, b] = lane(project, s);
+  const dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy);
+  const x = (a[0] + b[0]) / 2 - (dy / len) * 15, y = (a[1] + b[1]) / 2 + (dx / len) * 15;
+  assert.notEqual(sectorAt(obs, 390, 700, x, y), s.id);
+  assert.equal(sectorAt(obs, 390, 700, x, y, 22), s.id);
+});
+
 test("a late Mara earns 0 stars and the debrief says when she arrived, never 'never'", () => {
   const m = towerDown();
   const [echo, normal] = (["echo", "normal"] as const).map((mode) => { const e = createEngine(m, mode); e.step(m.endTick); return e.observe(); });

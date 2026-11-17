@@ -134,14 +134,20 @@ html, body, #root { margin: 0; height: 100%; background: #0a1013; color: #cfe3e8
   /* run: the panes stack and the page scrolls; the controls stay pinned at the bottom */
   .g-run .echo-screen { height: auto; min-height: 100%; }
   .g-run .echo-main { display: flex; flex-direction: column; flex: none; }
-  .g-run .echo-pane { flex: none; height: 360px; }
+  .g-run .echo-pane { flex: none; height: auto; display: flex; flex-direction: column; }
+  .g-run .echo-pane canvas { position: static; inset: auto; height: 340px; flex: none; }
+  /* the Directorate card sits below its map, not on it */
+  .g-run .echo-overlay { position: static; width: auto; max-width: none; padding: 8px 14px 14px; }
   .g-run .echo-side { flex: none; height: 440px; }
   .g-run .echo-bar { position: sticky; bottom: 0; z-index: 6; background: #0a1013; padding-right: 62px; }
   .g-run .echo-bar button { min-height: 44px; }
   .g-run .echo-bar a { display: inline-flex; align-items: center; min-height: 44px; }
 
   /* debrief: the table becomes two columns under each label, and the card scrolls with the page */
-  .g-screen .echo-end { position: relative; min-height: 100%; justify-content: flex-start; padding: 24px 16px 72px; gap: 20px; }
+  .g-screen .echo-end { position: relative; min-height: 100%; justify-content: flex-start; padding: 24px 16px 0; gap: 20px; }
+  /* the buttons stay pinned at the bottom, with room on the right for the sound toggle */
+  .g-screen .echo-end .g-row { position: sticky; bottom: 0; z-index: 6; flex-wrap: nowrap; gap: 8px; align-self: stretch; margin: auto -16px 0; padding: 10px 62px 10px 16px; background: #0a1013; border-top: 1px solid #1a272c; }
+  .g-screen .echo-end .g-row .g-btn { padding-inline: 10px; }
   .g-screen .echo-end-grid { grid-template-columns: 1fr 1fr; gap: 2px 16px; width: 100%; }
   .g-screen .echo-end-grid > :first-child { display: none; }
   .g-screen .echo-end-grid .l { grid-column: 1 / -1; margin-top: 12px; }

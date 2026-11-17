@@ -15,7 +15,7 @@ export function MapCanvas({ draw, label, onMove, onClick, onLeave, keys }: {
   draw: Draw; label: string;
   keys?: Pick<React.HTMLAttributes<HTMLCanvasElement>, "onKeyDown" | "onFocus" | "onBlur" | "aria-describedby">; // makes the canvas a keyboard stop
   onMove?: (x: number, y: number, w: number, h: number) => void;
-  onClick?: (x: number, y: number, w: number, h: number) => void;
+  onClick?: (x: number, y: number, w: number, h: number, touch: boolean) => void;
   onLeave?: () => void;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -35,12 +35,15 @@ export function MapCanvas({ draw, label, onMove, onClick, onLeave, keys }: {
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
   }, []);
-  const at = (ev: React.MouseEvent<HTMLCanvasElement>, f?: (x: number, y: number, w: number, h: number) => void) => {
+  const at = (ev: React.MouseEvent<HTMLCanvasElement>, f?: (x: number, y: number, w: number, h: number, touch: boolean) => void) => {
     const r = ev.currentTarget.getBoundingClientRect();
-    f?.(ev.clientX - r.left, ev.clientY - r.top, r.width, r.height);
+    f?.(ev.clientX - r.left, ev.clientY - r.top, r.width, r.height, (ev.nativeEvent as PointerEvent).pointerType === "touch");
   };
   return <canvas ref={ref} className="g-canvas" role={keys ? "application" : "img"} tabIndex={keys ? 0 : undefined} aria-label={label} {...keys} onMouseMove={(e) => at(e, onMove)} onClick={(e) => at(e, onClick)} onMouseLeave={onLeave} />;
 }
+
+/** A finger is not a mouse pointer: taps pick the nearest tunnel within 22 px (the drawn tunnel stays thin). */
+const TOUCH_HIT_PX = 22;
 
 const placedCount = (ss: Sector[]) => ss.filter((s) => s.beacon !== false).length;
 
@@ -126,7 +129,7 @@ export function Prepare({ cm, mission, onBegin, onBack }: { cm: CampaignMission;
           label={`Tunnel map, ${placed} of ${budget} beacons placed`}
           draw={(ctx, w, h, t) => drawMap(ctx, obs, { variant: "echo", width: w, height: h, time: t, prepare: true, hover: hover ?? (focused ? kf : null), pops: pops.current })}
           onMove={(x, y, w, h) => { const id = sectorAt(obs, w, h, x, y); if (id !== hover) setHover(id); }}
-          onClick={(x, y, w, h) => { const id = sectorAt(obs, w, h, x, y); if (id) toggle(id); }}
+          onClick={(x, y, w, h, touch) => { const id = sectorAt(obs, w, h, x, y, touch ? TOUCH_HIT_PX : undefined); if (id) toggle(id); }}
           onLeave={() => setHover(null)}
           keys={{
             "aria-describedby": "g-prep-keys",

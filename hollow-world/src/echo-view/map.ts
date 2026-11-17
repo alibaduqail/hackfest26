@@ -68,8 +68,9 @@ export function makeProjection(obs: Observation, w: number, h: number): Projecti
   const pts: XY[] = [...obs.cities.map((c): XY => [c.x, c.y]), ...obs.sectors.flatMap((s) => [s.a, s.b])];
   const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
   const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
-  // fill the pane (equirectangular, so a stretch is fine); bottom inset keeps room for the tower card, top for the caption
-  const ml = Math.min(112, Math.max(76, w * 0.16)), mr = Math.min(104, w * 0.15), mt = 72, mb = Math.min(124, h * 0.2);
+  // fill the pane (equirectangular, so a stretch is fine); bottom inset keeps room for the tower card, top for the caption.
+  // mr never drops under 72 so the right-most label ("Tokyo Deep") fits on a phone; panes over ~480px are unchanged.
+  const ml = Math.min(112, Math.max(76, w * 0.16)), mr = Math.max(72, Math.min(104, w * 0.15)), mt = 72, mb = Math.min(124, h * 0.2);
   const kx = (w - ml - mr) / (x1 - x0 || 1), ky = (h - mt - mb) / (y1 - y0 || 1);
   const ox = ml - kx * x0, oy = mt - ky * y0;
   return ([x, y]) => [ox + kx * x, oy + ky * y];
