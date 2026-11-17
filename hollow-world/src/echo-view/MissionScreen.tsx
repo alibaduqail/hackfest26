@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from "react";
 import { createEngine } from "../echo/engine";
 import { towerDown } from "../echo/missions";
-import type { EchoEngineApi, LogEvent, Mission, Observation } from "../echo/types";
+import type { EchoEngineApi, LogEvent, LogKind, Mission, Observation } from "../echo/types";
 import { drawMap, makeProjection, PULSE_MS, type Fx, type Variant } from "./map";
 
 const STRATA_URL = "/strata.html"; // the Strata city sim, home of Sector 07
@@ -66,10 +66,15 @@ const newFx = (): Fx => ({ pulses: [], yields: [], oldPaths: {}, frac: 0, blind:
 /** In-run story beats (the game passes them; echo.html doesn't, so the video capture stays clean). */
 export interface Story {
   ticker: { before: string; down: string; seal: string; mid: string }; // the Directorate's broadcast; {claimed} = flights it claims
-  mara: { sealHeard: string; yieldWon: string; arrive: string }; // Nurse Mara Vale's lines
+  mara: Partial<Record<LogKind, string>>; // Nurse Mara Vale's line per event kind, said the first time it happens
 }
 const FLASH_MS = 2000; // the TOWER OFFLINE flash (the CSS animation runs the same 2s)
-const SPEECH_GAP_MS = 1800; // a line shows at least this long before the next one replaces it
+const SPEECH_GAP_MS = 2600; // a line shows at least this long before the next one replaces it
+const SCENE_KINDS = new Set<LogKind>(["tower-down", "credential-reject"]); // Mara reacts to these whoever they happen to
+
+/** Is this event one Mara speaks to? Her own events, a pod yielding to her, or a scene-wide one. */
+const forMara = (e: LogEvent, yieldTo: string) =>
+  SCENE_KINDS.has(e.kind) || (e.kind === "yield" ? yieldTo === DISPATCH_POD : e.podId === DISPATCH_POD);
 const BEAT_TICKS = 25; // a ticker line stays this many ticks after its event
 
 function tickerLine(story: Story, o: Observation, m: Mission): [beat: string, text: string] {
@@ -89,14 +94,13 @@ function collectFx(fx: Fx, history: LogEvent[], o: Observation, mission: Mission
     history.push(e); // the engine log keeps 60; the panel filters this full history
     if (story && e.kind === "tower-down") fx.flashAt = now;
     if (story && e.kind === "seal" && e.sectorId) fx.stamps.push({ sectorId: e.sectorId, born: now });
-    if (!e.podId) continue;
     const to = e.kind === "yield" ? (/ to (\S+)/.exec(e.text)?.[1] ?? "").replace(/·.*/, "") : "";
-    if (story) {
-      const mara = e.podId === DISPATCH_POD;
-      const line = mara && e.kind === "seal-heard" ? story.mara.sealHeard : mara && e.kind === "arrive" ? story.mara.arrive : to === DISPATCH_POD ? story.mara.yieldWon : "";
-      const prev = fx.speech.filter((x) => x.podId === DISPATCH_POD).at(-1);
-      if (line) fx.speech.push({ podId: DISPATCH_POD, text: line, born: Math.max(now, (prev?.born ?? -Infinity) + SPEECH_GAP_MS) });
+    const line = story?.mara[e.kind];
+    if (line && forMara(e, to) && !fx.speech.some((x) => x.text === line)) { // first occurrence only
+      const prev = fx.speech.at(-1);
+      fx.speech.push({ podId: DISPATCH_POD, text: line, born: Math.max(now, (prev?.born ?? -Infinity) + SPEECH_GAP_MS) });
     }
+    if (!e.podId) continue;
     if (e.kind === "blind" && e.sectorId) fx.blind[e.podId] = e.sectorId;
     if (e.kind === "credential-reject") fx.rejected[e.podId] = true;
     if (e.kind === "yield") fx.yields.push({ podId: e.podId, to, born: now });
