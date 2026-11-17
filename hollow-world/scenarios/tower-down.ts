@@ -1,7 +1,7 @@
 // Headless Tower Down: runs the same mission with the tower failing, with Echo, and on a normal day, and prints the scoreboard.
 // Usage: npm run harness. Exits 1 if the shape is wrong (AC-9): Echo must beat the failed tower and cost something vs a normal day.
 // npm run harness:all (--all): every campaign mission, Echo with each beacon layout, to set star thresholds.
-import { createEngine } from "../src/echo/engine";
+import { createEngine, sealsOf } from "../src/echo/engine";
 import { MISSIONS, towerDown, validateMission } from "../src/echo/missions";
 import type { Mission, Mode, Observation } from "../src/echo/types";
 import { findPath } from "../src/echo/world";
@@ -55,8 +55,27 @@ function heuristicBeacons(m: Mission, budget: number): Set<string> {
   return new Set([...new Set([...toLagos.flatMap((x) => x.path), ...m.pods.flatMap((p) => p.path)])].slice(0, budget));
 }
 
+/** Beacon ids: MED-1's post-seal detour and every Lagos-bound pod's path around all seals first, then sectors by how many pod paths use them. */
+function detourFirstBeacons(m: Mission, budget: number): Set<string> {
+  const sealed = new Set(sealsOf(m).map((x) => x.sectorId));
+  const lagos = m.pods.filter((p) => p.dest === "lagos").sort((a, b) => (a.id === "MED-1" ? -1 : b.id === "MED-1" ? 1 : 0));
+  const first = lagos.flatMap((p) => findPath(p.origin, "lagos", sealed, m.world) ?? []);
+  const freq = new Map<string, number>();
+  for (const p of m.pods) for (const id of p.path) freq.set(id, (freq.get(id) ?? 0) + 1);
+  const rest = [...freq].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).map(([id]) => id);
+  return new Set([...new Set([...first, ...rest])].slice(0, budget));
+}
+
 function allMissions(): number {
-  const head = ["Mission", "Layout", "Beacons", "Nurses", "Lagos nurses", "Supplies", "Pax delay", "Capacity", "MED-1 Mara"];
+  const head = ["Mission", "Layout", "Beacons", "Nurses", "Lagos nurses", "Supplies", "Pax delay", "Capacity", "Mara", "Last Lagos nurse", "Median supply", "Last supply"];
+  // arrival ticks of a pod group: "t+N", or "-" while any of them has not arrived ("4/5 by t+N" for the last)
+  const at = (ts: (number | null)[], pick: (xs: number[]) => number) => {
+    const ok = ts.filter((x): x is number => x !== null).sort((a, b) => a - b);
+    if (!ok.length) return "-";
+    return ok.length === ts.length ? `t+${pick(ok)}` : `${ok.length}/${ts.length} by t+${pick(ok)}`;
+  };
+  const last = (xs: number[]) => xs[xs.length - 1];
+  const median = (xs: number[]) => xs[Math.floor((xs.length - 1) / 2)]; // lower median: a real arrival tick
   const rows: string[][] = [];
   let bad = 0;
   for (const { id, build } of MISSIONS) {
@@ -77,7 +96,7 @@ function allMissions(): number {
     const runs = [
       go("tower failed", "tower"),
       ...(typeof budget === "number"
-        ? [go("echo, all beacons", "echo", () => null), go(`echo, heuristic`, "echo", (m) => heuristicBeacons(m, budget)), go("echo, no beacons", "echo")]
+        ? [go("echo, all beacons", "echo", () => null), go(`echo, heuristic`, "echo", (m) => heuristicBeacons(m, budget)), go("echo, detour-first", "echo", (m) => detourFirstBeacons(m, budget)), go("echo, no beacons", "echo")]
         : [go("echo, fixed", "echo")]),
       normal,
     ];
@@ -93,6 +112,9 @@ function allMissions(): number {
         `${sc.passengerDelayMin} (${normal.o.score.passengerDelayMin ? (sc.passengerDelayMin / normal.o.score.passengerDelayMin).toFixed(1) : "-"}x)`,
         `${sc.capacityPct}%`,
         med1.arriveTick === null ? med1.status : `t+${med1.arriveTick}${med1.rerouted ? " rerouted" : ""}`,
+        at(o.pods.filter((p) => p.nurse && p.dest === "lagos").map((p) => p.arriveTick), last),
+        at(o.pods.filter((p) => p.cargo).map((p) => p.arriveTick), median),
+        at(o.pods.filter((p) => p.cargo).map((p) => p.arriveTick), last),
       ]);
     }
   }
