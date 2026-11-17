@@ -9,7 +9,7 @@ import type { CreateEngine, Command, EchoEngineApi, LogEvent, Mission, Mode, Obs
 /** Per-pod engine state that is not part of the contract. */
 export interface Rt {
   granted: boolean; // tower cleared this flight
-  knows: boolean; // heard the seal news (or saw it)
+  knows: Set<number>; // indexes into Topo.seals this pod has heard (or seen)
   stuck: boolean; // sealed ahead and no way around: holds at the next boundary
   claim: string | null; // sector this pod won and will enter next tick
   claimTick: number;
@@ -23,8 +23,23 @@ export interface Topo {
   pred: Map<string, string | null>;
   startingAt: Map<string, string[]>; // city -> sector ids that begin there, sorted
   touching: Map<string, string[]>; // city -> sectors that begin or end there
-  dist: Map<string, number>; // beacon hops from the sealed sector
+  seals: SealNews[]; // every seal of the mission (none in normal mode), in list order
 }
+
+/** One seal and how far its news has to travel: beacon hops from the sealed sector, beaconed sectors only. */
+export interface SealNews {
+  at: number;
+  sectorId: string;
+  dist: Map<string, number>;
+}
+
+/** Every seal of a mission: sealAt/sealSectorId first, then Mission.seals. */
+export const sealsOf = (m: Mission): { at: number; sectorId: string }[] => [
+  ...(m.sealAt !== null && m.sealSectorId ? [{ at: m.sealAt, sectorId: m.sealSectorId }] : []),
+  ...(m.seals ?? []),
+];
+
+export const hasBeacon = (s: Sector) => s.beacon !== false; // v2: missing = true
 
 export interface Sim {
   m: Mission;
@@ -46,13 +61,14 @@ export interface Sim {
   flown: Set<string>; // pods that occupied a sector at or after tower-down
   yielded: Set<string>; // "pod|sector" yields already logged
   announced: Set<string>;
+  blind: Map<string, number>; // "pod|sector" -> tick the pod started waiting blind at that unbeaconed sector
   score: Score;
 }
 
-function buildTopo(sectors: Sector[], sealId: string | null): Topo {
+function buildTopo(sectors: Sector[], seals: { at: number; sectorId: string }[]): Topo {
   const chains = new Map<string, Sector[]>();
   for (const s of sectors) (chains.get(s.routeId) ?? chains.set(s.routeId, []).get(s.routeId)!).push(s);
-  const t: Topo = { start: new Map(), end: new Map(), succ: new Map(), pred: new Map(), startingAt: new Map(), touching: new Map(), dist: new Map() };
+  const t: Topo = { start: new Map(), end: new Map(), succ: new Map(), pred: new Map(), startingAt: new Map(), touching: new Map(), seals: [] };
   const add = (m: Map<string, string[]>, k: string, v: string) => (m.get(k) ?? m.set(k, []).get(k)!).push(v);
   for (const ch of chains.values()) {
     ch.sort((a, b) => a.index - b.index);
@@ -76,19 +92,25 @@ function buildTopo(sectors: Sector[], sealId: string | null): Topo {
     if (b) add(t.touching, b, s.id);
   }
   for (const l of [...t.startingAt.values(), ...t.touching.values()]) l.sort();
-  if (sealId) {
-    // beacon graph: chain neighbours, plus every sector touching the same city
-    const adj = (id: string): string[] => {
-      const out = [t.pred.get(id), t.succ.get(id)].filter((x): x is string => !!x);
-      for (const c of [t.start.get(id), t.end.get(id)]) if (c) out.push(...t.touching.get(c)!);
-      return out.sort();
-    };
-    t.dist.set(sealId, 0);
-    const q = [sealId];
-    while (q.length) {
-      const id = q.shift()!;
-      for (const n of adj(id)) if (!t.dist.has(n)) (t.dist.set(n, t.dist.get(id)! + 1), q.push(n));
+  // beacon graph: chain neighbours, plus every sector touching the same city; an unbeaconed sector neither hears nor relays
+  const beaconed = new Set(sectors.filter(hasBeacon).map((s) => s.id));
+  const adj = (id: string): string[] => {
+    const out = [t.pred.get(id), t.succ.get(id)].filter((x): x is string => !!x);
+    for (const c of [t.start.get(id), t.end.get(id)]) if (c) out.push(...t.touching.get(c)!);
+    return out.filter((n) => beaconed.has(n)).sort();
+  };
+  for (const { at, sectorId } of seals) {
+    const dist = new Map<string, number>();
+    if (beaconed.has(sectorId)) {
+      // ponytail: news starts only from a beaconed sealed sector; an unbeaconed seal is learned by standing at it
+      dist.set(sectorId, 0);
+      const q = [sectorId];
+      while (q.length) {
+        const id = q.shift()!;
+        for (const n of adj(id)) if (!dist.has(n)) (dist.set(n, dist.get(id)! + 1), q.push(n));
+      }
     }
+    t.seals.push({ at, sectorId, dist });
   }
   return t;
 }
@@ -99,13 +121,13 @@ export function makeSim(m: Mission, mode: Mode): Sim {
   const rt = new Map<string, Rt>();
   for (const p of pods) {
     if (p.priority === "medical") p.credentialOk = verify(p); // the engine derives credentialOk from the simulated signature
-    rt.set(p.id, { granted: p.at >= 0, knows: false, stuck: false, claim: null, claimTick: -1 });
+    rt.set(p.id, { granted: p.at >= 0, knows: new Set(), stuck: false, claim: null, claimTick: -1 });
   }
   return {
     m, mode, tick: 0, towerUp: true, sectors, sec: new Map(sectors.map((s) => [s.id, s])), pods, rt,
-    topo: buildTopo(sectors, mode === "normal" ? null : m.sealSectorId),
+    topo: buildTopo(sectors, mode === "normal" ? [] : sealsOf(m)),
     log: [], pulses: [], tokens: 0, grantsEver: 0, entries: 0, hist: [], released: new Map(),
-    flown: new Set(), yielded: new Set(), announced: new Set(),
+    flown: new Set(), yielded: new Set(), announced: new Set(), blind: new Map(),
     score: { nursesArrived: 0, nursesTotal: pods.filter((p) => p.nurse).length, suppliesDelivered: 0, suppliesTotal: pods.filter((p) => p.cargo).length, passengerDelayMin: 0, capacityPct: 100, realFlights: 0, towerClaimed: 0 },
   };
 }

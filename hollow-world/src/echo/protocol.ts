@@ -1,12 +1,13 @@
 // Echo protocol: beacon news (one hop per tick), seal reroute, announce -> claim -> yield -> enter.
 // Runs every tick in echo mode. News and rerouting work any time; claims only once the tower is down.
-import { say } from "./engine";
-import type { Sim, Topo } from "./engine";
+import { hasBeacon, say } from "./engine";
+import type { SealNews, Sim, Topo } from "./engine";
 import { enter, isFree } from "./tower";
 import type { Pod, Priority } from "./types";
 
 const RANK: Record<Priority, number> = { medical: 3, supply: 2, passenger: 1 };
 const rank = (p: Pod) => (p.priority === "medical" && !p.credentialOk ? RANK.passenger : RANK[p.priority]); // forged medical competes as passenger
+const BLIND_TICKS = 3; // GAME.md §2: an Echo pod waits this long at an unbeaconed sector before claiming it
 const byPriority = (a: Pod, b: Pod) => rank(b) - rank(a) || b.waitedMin - a.waitedMin || (a.id < b.id ? -1 : 1);
 
 /** Sectors a pod can enter after finishing `sid`. */
@@ -16,9 +17,11 @@ function after(t: Topo, sid: string): string[] {
   return city ? (t.startingAt.get(city) ?? []) : next ? [next] : [];
 }
 
-/** Shortest unsealed path (fewest sectors, ties by lower id) from the pod's next boundary to its destination, or null. */
+/** Shortest path (fewest sectors, ties by lower id) from the pod's next boundary to its destination that avoids every seal it knows of, or null. */
 function reroute(s: Sim, p: Pod): string[] | null {
-  const first = (p.at < 0 ? (s.topo.startingAt.get(p.origin) ?? []) : after(s.topo, p.path[p.at])).filter((id) => !s.sec.get(id)!.sealed);
+  const known = new Set([...s.rt.get(p.id)!.knows].map((i) => s.topo.seals[i].sectorId));
+  const ok = (id: string) => !known.has(id);
+  const first = (p.at < 0 ? (s.topo.startingAt.get(p.origin) ?? []) : after(s.topo, p.path[p.at])).filter(ok);
   const parent = new Map<string, string | null>(first.map((id) => [id, null]));
   const q = [...first];
   while (q.length) {
@@ -28,38 +31,40 @@ function reroute(s: Sim, p: Pod): string[] | null {
       for (let x: string | null = id; x; x = parent.get(x)!) out.unshift(x);
       return out;
     }
-    for (const n of after(s.topo, id)) if (!parent.has(n) && !s.sec.get(n)!.sealed) (parent.set(n, id), q.push(n));
+    for (const n of after(s.topo, id)) if (!parent.has(n) && ok(n)) (parent.set(n, id), q.push(n));
   }
   return null;
 }
 
 /** Hops until the news reaches this pod: its sector, or its origin terminal (one hop after the sectors touching it). */
-function hops(s: Sim, p: Pod): number {
-  if (p.at >= 0) return s.topo.dist.get(p.path[p.at]) ?? Infinity;
-  const near = (s.topo.touching.get(p.origin) ?? []).map((id) => s.topo.dist.get(id) ?? Infinity);
+function hops(n: SealNews, s: Sim, p: Pod): number {
+  if (p.at >= 0) return n.dist.get(p.path[p.at]) ?? Infinity; // an unbeaconed sector has no dist: it never hears
+  const near = (s.topo.touching.get(p.origin) ?? []).map((id) => n.dist.get(id) ?? Infinity);
   return near.length ? Math.min(...near) + 1 : Infinity;
 }
 
 function news(s: Sim) {
-  const seal = s.m.sealSectorId;
-  if (!seal || s.m.sealAt === null || s.tick < s.m.sealAt) return;
-  const elapsed = s.tick - s.m.sealAt;
-  for (const [id, d] of s.topo.dist) if (d === elapsed) s.pulses.push({ sectorId: id, kind: "seal", age: 0 }); // the news front, one hop per tick
-  for (const p of s.pods) {
-    const r = s.rt.get(p.id)!;
-    if (r.knows || p.status === "arrived") continue;
-    const sees = p.status !== "moving" && p.path[p.at + 1] === seal; // standing at the sealed boundary: no news needed
-    if (!sees && hops(s, p) > elapsed) continue;
-    r.knows = true;
-    if (!p.path.slice(p.at + 1).includes(seal)) continue; // seal is behind it, or it is inside: it finishes
-    say(s, "seal-heard", `${p.label} hears ${seal} is sealed`, p.id, seal);
-    const around = reroute(s, p);
-    if (around) {
-      p.path = [...p.path.slice(0, p.at + 1), ...around];
-      p.rerouted = true;
-      say(s, "reroute", `${p.label} re-plans around ${seal}`, p.id);
-    } else r.stuck = true;
-  }
+  s.topo.seals.forEach((n, i) => {
+    if (s.tick < n.at) return;
+    const seal = n.sectorId;
+    const elapsed = s.tick - n.at;
+    for (const [id, d] of n.dist) if (d === elapsed) s.pulses.push({ sectorId: id, kind: "seal", age: 0 }); // the news front, one hop per tick
+    for (const p of s.pods) {
+      const r = s.rt.get(p.id)!;
+      if (r.knows.has(i) || p.status === "arrived") continue;
+      const sees = p.status !== "moving" && p.path[p.at + 1] === seal; // standing at the sealed boundary: no news needed
+      if (!sees && hops(n, s, p) > elapsed) continue;
+      r.knows.add(i);
+      if (!p.path.slice(p.at + 1).includes(seal)) continue; // seal is behind it, or it is inside: it finishes
+      say(s, "seal-heard", `${p.label} hears ${seal} is sealed`, p.id, seal);
+      const around = reroute(s, p);
+      if (around) {
+        p.path = [...p.path.slice(0, p.at + 1), ...around];
+        p.rerouted = true;
+        say(s, "reroute", `${p.label} re-plans around ${seal}`, p.id);
+      } else r.stuck = true;
+    }
+  });
   for (const p of s.pods)
     if (s.rt.get(p.id)!.stuck && p.status === "waiting") {
       p.status = "holding";
@@ -90,6 +95,15 @@ export function echoPhase(s: Sim) {
     if (p.status !== "waiting" || s.rt.get(p.id)!.claim) continue;
     const id = p.path[p.at + 1];
     if (!id || s.sec.get(id)!.sealed) continue;
+    if (!hasBeacon(s.sec.get(id)!)) {
+      // dead zone: no beacon reports whether it is clear, so the pod waits blind at the boundary first
+      const key = `${p.id}|${id}`;
+      if (!s.blind.has(key)) {
+        s.blind.set(key, s.tick);
+        say(s, "blind", `${p.label} waits blind at ${id}: no beacon`, p.id, id);
+      }
+      if (s.tick - s.blind.get(key)! < BLIND_TICKS) continue;
+    }
     (want.get(id) ?? want.set(id, []).get(id)!).push(p);
   }
   for (const [id, pods] of [...want].sort((a, b) => (a[0] < b[0] ? -1 : 1))) {
