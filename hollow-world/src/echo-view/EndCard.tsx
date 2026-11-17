@@ -4,17 +4,17 @@ import type { ReactNode } from "react";
 import type { Observation } from "../echo/types";
 
 const css = `
-.echo-end{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:24px;background:rgba(6,10,12,.94);color:#cfe3e8;font:15px ui-monospace,SFMono-Regular,Menlo,monospace}
+.echo-end{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:24px;background:rgba(16,25,30,.95);color:var(--text);font:15px var(--sans)}
 .echo-end h2{margin:0;font-size:22px;letter-spacing:.06em;font-weight:600}
-.echo-end-grid{display:grid;grid-template-columns:minmax(0,auto) repeat(2,minmax(0,300px));gap:14px 40px;align-items:baseline}
-.echo-end-grid .h{color:#7f979f;font-size:13px;letter-spacing:.08em;text-transform:uppercase}
-.echo-end-grid .l{color:#9fb6bd}
+.echo-end-grid{background:var(--panel);border:1px solid var(--line2);border-radius:8px;box-shadow:0 5px 22px #050d1260;padding:22px 34px;display:grid;grid-template-columns:minmax(0,auto) repeat(2,minmax(0,300px));gap:14px 40px;align-items:baseline}
+.echo-end-grid .h{color:var(--muted);font-size:13px;letter-spacing:.08em;text-transform:uppercase}
+.echo-end-grid .l{color:var(--text2)}
 .echo-end-grid .v{font-size:44px;line-height:1.1;font-weight:600}
 .echo-end-grid .v.sm{font-size:24px;white-space:nowrap}
-.echo-end-grid .bad{color:#ff5a52}
-.echo-end-grid .good{color:#45d1c4}
-.echo-end-note{max-width:760px;text-align:center;color:#7f979f;line-height:1.5}
-.echo-end button{background:#14222a;color:#cfe3e8;border:1px solid #2a3d46;border-radius:4px;padding:6px 16px;font:inherit;cursor:pointer}
+.echo-end-grid .bad{color:var(--red)}
+.echo-end-grid .good{color:var(--good)}
+.echo-end-note{max-width:760px;text-align:center;color:var(--muted);line-height:1.5}
+.echo-end button{background:var(--btn);color:var(--text);border:1px solid var(--line2);border-radius:4px;padding:6px 16px;font:inherit;cursor:pointer}
 `;
 
 export function EndCard({ tower, echo, normal, onReplay, title = "TOWER DOWN", top, children }: {
