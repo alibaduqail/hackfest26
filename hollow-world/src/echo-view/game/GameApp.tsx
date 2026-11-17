@@ -1,11 +1,12 @@
 // The game shell: title -> missions -> briefing -> prepare -> run -> debrief. Esc goes back one screen.
-// QA deep links: ?screen=missions|briefing|prepare|run|debrief&mission=<id>; &budget=N turns any mission into an empty
+// QA deep links: ?screen=missions|briefing|prepare|run|debrief&mission=<id>; &story=0 turns the in-run story beats off;
+// &t=N (run) starts at tick N; &budget=N turns any mission into an empty
 // beacon-placement mission (for screenshots before the engine lane's budget missions land).
 import { useEffect, useState } from "react";
 import { createEngine } from "../../echo/engine";
 import type { Mission } from "../../echo/types";
 import { MissionScreen } from "../MissionScreen";
-import { byId, CAMPAIGN, starsFor, type CampaignMission } from "./campaign";
+import { byId, CAMPAIGN, starsFor, storyFor, type CampaignMission } from "./campaign";
 import { Briefing } from "./Briefing";
 import { Debrief, type RunResult } from "./Debrief";
 import { MissionSelect } from "./MissionSelect";
@@ -99,6 +100,7 @@ export function GameApp() {
             mission={st.placed ?? st.base!}
             allowDispatch={cm!.allowDispatch}
             speed={cm!.defaultSpeed}
+            story={new URLSearchParams(location.search).get("story") === "0" ? undefined : storyFor(cm!)}
             onExit={() => go({ screen: back()! })}
             onEnd={(tower, echo, normal) => {
               setProgress(saveStars(cm!.id, starsFor(cm!, echo, normal)));

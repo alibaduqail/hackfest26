@@ -2,6 +2,7 @@
 // Builders are looked up by name so the game compiles while the engine lane is still adding missions:
 // a mission whose builder is missing shows as a locked "coming soon" card.
 import * as M from "../../echo/missions";
+import type { Story } from "../MissionScreen";
 import { CONTRACT_VERSION, type Mission, type Observation, type Sector } from "../../echo/types";
 
 export interface Objective {
@@ -16,6 +17,7 @@ export interface CampaignMission {
   briefing: string[]; // typewriter paragraphs
   broadcast: string; // the Directorate's line, shown in the BROADCAST frame
   prepTip?: string; // the Prepare screen's hint
+  story?: { ticker?: Partial<Story["ticker"]>; mara?: Partial<Story["mara"]> }; // overrides of STORY for this mission
   objectives: Objective[]; // one star each, from STARS
   allowDispatch: boolean;
   defaultSpeed: number;
@@ -84,6 +86,25 @@ export function objective(g: Goal): Objective {
 }
 const goals = (id: string) => (STARS[id] ?? []).map(objective);
 
+// ---- in-run story beats (default lines; missions override some) ----
+export const STORY: Story = {
+  ticker: {
+    before: "TOWER ONLINE · ALL FLIGHTS CLEARED BY THE DIRECTORATE",
+    down: "ALL FLIGHTS REMAIN AUTHORIZED",
+    seal: "TUNNEL CLOSED FOR YOUR SAFETY",
+    mid: "NETWORK STABLE · {claimed} FLIGHTS AUTHORIZED",
+  },
+  mara: {
+    sealHeard: "They sealed it. Going around.",
+    yieldWon: "Thank you.",
+    arrive: "I'm here. Where do you need me?",
+  },
+};
+export const storyFor = (cm: CampaignMission): Story => ({
+  ticker: { ...STORY.ticker, ...cm.story?.ticker },
+  mara: { ...STORY.mara, ...cm.story?.mara },
+});
+
 const builder = (name: string): (() => Mission) | null => {
   const f = (M as unknown as Record<string, unknown>)[name];
   return typeof f === "function" ? (f as () => Mission) : null;
@@ -111,6 +132,7 @@ export const CAMPAIGN: CampaignMission[] = [
       "Place the beacons where the news has to travel. The Directorate will seal the Lagos tunnel at minute thirty.",
     ],
     broadcast: "UNLICENSED RADIOS ARE A DANGER TO ALL FLIGHTS. HAND THEM IN AT YOUR SECTOR OFFICE.",
+    story: { ticker: { mid: "UNLICENSED RADIOS ENDANGER FLIGHTS · {claimed} FLIGHTS AUTHORIZED" } },
     prepTip: "The Directorate will seal the direct tunnel to Lagos. Beacon the detour. Mara's detour runs through São Paulo. The supply runs need the rest.",
     objectives: goals("dead-zones"),
     allowDispatch: true, defaultSpeed: 10, build: builder("deadZones"),
@@ -124,6 +146,7 @@ export const CAMPAIGN: CampaignMission[] = [
       "Expect more seals. First the Lagos tunnel, then Cairo, then London. Build a network that can lose a tunnel and keep talking.",
     ],
     broadcast: "THE GROUNDING PROTECTS YOU. TRAVEL WILL RESUME WHEN ORDER IS RESTORED.",
+    story: { ticker: { down: "THE GROUNDING IS TEMPORARY", mid: "ORDER IS RETURNING · {claimed} FLIGHTS AUTHORIZED" }, mara: { arrive: "I'm here. Send the next wave." } },
     objectives: goals("grounding"),
     allowDispatch: false, defaultSpeed: 300, build: builder("grounding"),
   },
@@ -136,6 +159,7 @@ export const CAMPAIGN: CampaignMission[] = [
       "There is no center to ask. Every beacon checks the signature itself.",
     ],
     broadcast: "A MEDICAL CONVOY IS EN ROUTE. ALL FLIGHTS MUST GIVE WAY.",
+    story: { ticker: { mid: "A MEDICAL CONVOY HAS PRIORITY · {claimed} FLIGHTS AUTHORIZED" } },
     objectives: goals("ghost-flight"),
     allowDispatch: true, defaultSpeed: 10, build: builder("ghostFlight"),
   },
