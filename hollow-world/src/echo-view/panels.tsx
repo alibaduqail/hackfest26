@@ -1,6 +1,6 @@
 // Echo side panels. Props in, JSX out: reads only Observation (no engine, timers or fetch).
-import { useEffect, useRef } from "react";
-import type { Observation } from "../echo/types";
+import { useEffect, useRef, useState } from "react";
+import type { LogEvent, Observation } from "../echo/types";
 
 const mm = (t: number) => `t+${String(t).padStart(2, "0")}`;
 
@@ -21,18 +21,29 @@ export function TowerBanner({ obs }: { obs: Observation }) {
   );
 }
 
-export function EchoLog({ obs }: { obs: Observation }) {
+const KEY_KINDS = new Set<LogEvent["kind"]>(["tower-down", "seal", "seal-heard", "reroute", "yield", "arrive", "credential-reject"]);
+const isKey = (e: LogEvent) => KEY_KINDS.has(e.kind) || (e.kind === "claim" && !!e.podId?.startsWith("MED")); // medical claims
+
+/** `log` overrides obs.log (the engine keeps only the newest 60), so key events do not scroll away. */
+export function EchoLog({ obs, log }: { obs: Observation; log?: LogEvent[] }) {
   const ref = useRef<HTMLUListElement>(null);
+  const [all, setAll] = useState(false);
+  const events = (log ?? obs.log).filter((e) => all || isKey(e));
   useEffect(() => {
     const el = ref.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [obs.log.length]);
+  }, [events.length]);
   return (
     <section className="echo-card echo-logcard">
-      <h3 className="echo-title">Echo log</h3>
+      <h3 className="echo-title" style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+        Echo log
+        <label style={{ fontSize: 11, letterSpacing: 0, textTransform: "none", cursor: "pointer" }}>
+          <input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} /> all events
+        </label>
+      </h3>
       <ul className="echo-log" ref={ref}>
-        {obs.log.map((e, i) => (
-          <li key={i} className={`echo-line log-${e.kind}`}>
+        {events.map((e, i) => (
+          <li key={`${e.tick}-${i}`} className={`echo-line log-${e.kind}`}>
             <span className="echo-time">{mm(e.tick)}</span>
             <span>{e.text}</span>
           </li>

@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from "react";
 import { createEngine } from "../echo/engine";
 import { towerDown } from "../echo/missions";
-import type { EchoEngineApi, Mission, Observation } from "../echo/types";
+import type { EchoEngineApi, LogEvent, Mission, Observation } from "../echo/types";
 import { drawMap, PULSE_MS, type Fx, type Variant } from "./map";
 import { EchoLog, Scoreboard, TowerBanner } from "./panels";
+import { EndCard } from "./EndCard";
 import "./echo.css";
 
 const SPEEDS = [1, 10, 60] as const;
@@ -14,7 +15,7 @@ const DISPATCH_MIN_TICK = 31; // the reroute beat needs the pod to depart at or 
 
 const css = `
 html,body,#root{margin:0;height:100%;background:#0a1013;color:#cfe3e8;font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
-.echo-screen{display:flex;flex-direction:column;height:100%}
+.echo-screen{position:relative;display:flex;flex-direction:column;height:100%}
 .echo-main{flex:1;display:grid;grid-template-columns:1fr 1fr 360px;gap:1px;background:#1a272c;min-height:0}
 .echo-pane{position:relative;background:#0a1013;min-width:0;min-height:0}
 .echo-pane canvas{position:absolute;inset:0;width:100%;height:100%}
@@ -52,10 +53,12 @@ function makeWorld(): World {
 const newFx = (): Fx => ({ pulses: [], yields: [], oldPaths: {}, frac: 0 });
 
 /** Pull this tick's protocol events out of the log into wall-clock effects. */
-function collectFx(fx: Fx, o: Observation, mission: Mission, now: number) {
+function collectFx(fx: Fx, history: LogEvent[], o: Observation, mission: Mission, now: number) {
   for (const p of o.pulses) fx.pulses.push({ sectorId: p.sectorId, kind: p.kind, born: now });
   for (const e of o.log) {
-    if (e.tick !== o.tick - 1 || !e.podId) continue;
+    if (e.tick !== o.tick - 1) continue;
+    history.push(e); // the engine log keeps 60; the panel filters this full history
+    if (!e.podId) continue;
     if (e.kind === "yield") fx.yields.push({ podId: e.podId, to: (/ to (\S+)/.exec(e.text)?.[1] ?? "").replace(/·.*/, ""), born: now });
     if (e.kind === "reroute" && !fx.oldPaths[e.podId]) {
       const orig = mission.pods.find((p) => p.id === e.podId);
@@ -98,6 +101,7 @@ export function MissionScreen() {
   const towerRef = useRef<Observation>(world.current.tower.observe());
   const echoRef = useRef<Observation>(world.current.echo.observe());
   const fxRef = useRef<Fx>(newFx());
+  const historyRef = useRef<LogEvent[]>([]);
   const [snap, setSnap] = useState({ tower: towerRef.current, echo: echoRef.current });
   const q = new URLSearchParams(location.search); // ?run=1&speed=10 for screenshots
   const [running, setRunning] = useState(q.get("run") === "1");
@@ -118,7 +122,7 @@ export function MissionScreen() {
       for (let i = 0; i < n; i++) {
         w.tower.step(1);
         w.echo.step(1);
-        collectFx(fx, w.echo.observe(), w.mission, now);
+        collectFx(fx, historyRef.current, w.echo.observe(), w.mission, now);
       }
       fx.pulses = fx.pulses.filter((p) => now - p.born < PULSE_MS);
       fx.frac = acc;
@@ -139,6 +143,7 @@ export function MissionScreen() {
     towerRef.current = world.current.tower.observe();
     echoRef.current = world.current.echo.observe();
     fxRef.current = newFx();
+    historyRef.current = [];
     setSnap({ tower: towerRef.current, echo: echoRef.current });
     setRunning(false);
     setNote("");
@@ -163,7 +168,7 @@ export function MissionScreen() {
         <MapPane obsRef={echoRef} fxRef={fxRef} variant="echo" title="Echo" sub="every pod navigates, beacons relay, three rules" />
         <div className="echo-side">
           <div className="echo-panels">
-            <EchoLog obs={echo} />
+            <EchoLog obs={echo} log={historyRef.current} />
             <Scoreboard obs={echo} normal={world.current.normal} />
           </div>
         </div>
@@ -180,6 +185,7 @@ export function MissionScreen() {
         <span className="grow">{note}</span>
         <span>t+{echo.tick} / {echo.endTick}</span>
       </div>
+      {echo.over && <EndCard tower={tower} echo={echo} normal={world.current.normal} onReplay={reset} />}
     </div>
   );
 }
