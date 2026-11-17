@@ -137,7 +137,7 @@ export const STORY = {
   epilogue: [
     "Echo is a fallback. It works only where people built it beforehand.",
     "It is slower than a working tower. The center can fail, or be turned against you.",
-    "In November 2026, one system failure halted every US departure for hours.",
+    "In November 2026, every departure in the United States was halted for hours.",
     "Build the backup first.",
   ],
 };
