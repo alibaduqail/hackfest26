@@ -30,10 +30,11 @@ Optional, only if time allows: a 5-second insert in shot 8 of the ESP32 board in
 ## Capture settings
 
 - **Browser:** Chrome, window 1920×1080, zoom 100%, no extensions bar, dark OS theme.
-- **Echo screen:** `npm run build && npm run preview`, then open `/` (also `/echo.html`). Shots 4–9 are one continuous run. Press Run at t+0, 10× until t+45, then 60× to the end. Record the whole run once and cut from it.
+- **Echo screen:** `npm run build && npm run preview`, then open `/echo.html`. `/` now opens the game (title screen); `/echo.html` is the bare Tower Down split screen with no story overlays, use it for shots 4–9. Shots 4–9 are one continuous run. Press Run at t+0, 10× until t+45, then 60× to the end. Record the whole run once and cut from it.
 - **Close-ups:** record a second take of shots 6–7 at 1× from t+28 to t+40 (Reset, Run, switch to 1× at t+28), for the yield and reroute close-ups.
 - **Strata shot (3):** the `strata.html` city at 1×. Follow a nurse with the follow tool. 15 seconds is enough.
 - **Recording:** QuickTime screen recording or OBS at 60 fps. Voiceover is recorded separately, then laid over in the editor.
+- **Optional extra shot (10 s):** the game's Prepare screen in Dead Zones, placing beacons, to show it's a playable game (research tip).
 
 ## Numbers used (from `npm run harness`, seed 20261117)
 
