@@ -157,7 +157,8 @@ export const starsFor = (cm: CampaignMission, echo: Observation, normal: Observa
 /** The one-line debrief verdict. Names on screen: only Mara, Echo, the Directorate, the Hollow. */
 export function verdict(echo: Observation, normal: Observation): string {
   const s = echo.score;
-  const m = echo.pods.find((p) => p.id === "MED-1")?.status === "arrived" ? "Mara made it." : "Mara never made it.";
+  const t = echo.pods.find((p) => p.id === "MED-1")?.arriveTick; // late arrivals are not "never": say when she got there
+  const m = t == null ? "Mara never arrived." : `Mara arrived at minute ${t}.`;
   const d = delayX(echo, normal);
   const wait = Number.isFinite(d) ? ` Passengers waited ${d.toFixed(1)}× longer than on a normal day.` : "";
   return `${m} ${s.nursesArrived}/${s.nursesTotal} nurses, ${s.suppliesDelivered}/${s.suppliesTotal} supply runs.${wait}`;
