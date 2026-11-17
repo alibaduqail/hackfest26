@@ -15,12 +15,26 @@ export interface Fx {
   speech: { podId: string; text: string; born: number }[]; // queued lines: born may be in the future
   stamps: { sectorId: string; born: number }[]; // SEALED stamps
   flashAt: number; // wall-clock ms of the TOWER OFFLINE flash, 0 = none
+  arrivals: { path: string[]; born: number }[]; // Mara's route lights up for ARRIVE_MS when she arrives
+  cues: string[]; // events for the screen's sound and hint code to drain; never read by drawMap
 }
+/** A beacon placed or removed on the Prepare screen (wall-clock ms), for its pop and ring. */
+export interface Pop { sectorId: string; born: number; kind: "place" | "remove" }
 export const PULSE_MS = 900, YIELD_MS = 2200, FADE_MS = 8000, SPEECH_MS = 5000, STAMP_POP_MS = 350;
+export const SEAL_FLASH_MS = 320, SHAKE_MS = 280, ARRIVE_MS = 1000, POP_MS = 220, RING_MS = 520;
+
+/** Canvas shake offset in px for the newest seal (decays to 0 within SHAKE_MS). Zero with reduced motion. */
+export function shakeOffset(fx: Fx | undefined, time: number): [number, number] {
+  const born = fx?.stamps.at(-1)?.born;
+  if (born === undefined || (typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches)) return [0, 0];
+  const k = 1 - (time - born) / SHAKE_MS;
+  return k <= 0 || k > 1 ? [0, 0] : [Math.sin(time * 0.11) * 6 * k, Math.cos(time * 0.17) * 5 * k];
+}
 export interface DrawOpts {
   variant: Variant; width: number; height: number; time: number; fx?: Fx;
   prepare?: boolean; // beacon placement screen: beacons always drawn as amber lights
   hover?: string | null; // sector id under the cursor
+  pops?: Pop[]; // prepare: beacons just placed or removed
 }
 
 export const COLORS = {
@@ -61,6 +75,7 @@ export function makeProjection(obs: Observation, w: number, h: number): Projecti
   return ([x, y]) => [ox + kx * x, oy + ky * y];
 }
 
+const easeOutBack = (k: number) => { const c = 1.9, x = Math.min(1, Math.max(0, k)) - 1; return 1 + (c + 1) * x ** 3 + c * x ** 2; };
 const LANE_PX = 2.6; // opposite directions of a route are drawn side by side
 
 export function lane(project: Projection, s: Sector): [XY, XY] {
@@ -205,12 +220,23 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
     ctx.beginPath(); ctx.moveTo(b[0] - (dy / len) * 3.5, b[1] + (dx / len) * 3.5); ctx.lineTo(b[0] + (dy / len) * 3.5, b[1] - (dx / len) * 3.5); ctx.stroke();
     // beacon dot at the middle (Echo only)
     const m = lerp(a, b, 0.5);
+    const pop = o.pops?.find((q) => q.sectorId === s.id);
+    const age = pop ? o.time - pop.born : Infinity;
+    const grow = pop?.kind === "place" && age < POP_MS ? easeOutBack(age / POP_MS) : 1; // the amber light pops in
     if (scarce && !s.sealed && !dead) {
-      ctx.fillStyle = "rgba(242,184,75,0.22)"; ctx.beginPath(); ctx.arc(m[0], m[1], 4.2, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = COLORS.light; ctx.beginPath(); ctx.arc(m[0], m[1], 1.9, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "rgba(242,184,75,0.22)"; ctx.beginPath(); ctx.arc(m[0], m[1], 4.2 * grow, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = COLORS.light; ctx.beginPath(); ctx.arc(m[0], m[1], 1.9 * grow, 0, Math.PI * 2); ctx.fill();
     } else if (echo && !s.sealed && !dead) {
       ctx.fillStyle = down ? COLORS.beacon : "#1f6c66";
       ctx.beginPath(); ctx.arc(m[0], m[1], down ? 1.9 : 1.4, 0, Math.PI * 2); ctx.fill();
+    }
+    if (pop && age >= 0 && age < RING_MS) { // ring pulse (amber on place, grey on remove); a removed light fades out
+      const k = age / RING_MS, place = pop.kind === "place";
+      ctx.strokeStyle = ctx.fillStyle = place ? COLORS.light : "#7f979f";
+      ctx.globalAlpha = 0.85 * (1 - k); ctx.lineWidth = 1.8;
+      ctx.beginPath(); ctx.arc(m[0], m[1], 4 + k * 20, 0, Math.PI * 2); ctx.stroke();
+      if (!place && age < POP_MS) { ctx.globalAlpha = 1 - age / POP_MS; ctx.beginPath(); ctx.arc(m[0], m[1], 1.9 * (1 - age / POP_MS * 0.5), 0, Math.PI * 2); ctx.fillStyle = COLORS.light; ctx.fill(); }
+      ctx.globalAlpha = 1;
     }
     if (s.sealed) { ctx.fillStyle = "rgba(10,16,19,0.85)"; ctx.beginPath(); ctx.arc(m[0], m[1], 9, 0, Math.PI * 2); ctx.fill(); drawX(ctx, m, 6.5); }
   }
@@ -244,6 +270,27 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
       ctx.lineTo(b[0], b[1]);
     });
     ctx.stroke();
+  }
+
+  // seal impact: the sealed tunnel flashes red for a moment (kept with reduced motion)
+  for (const st of o.fx?.stamps ?? []) {
+    const age = o.time - st.born, s = sectorById.get(st.sectorId);
+    if (!s || age < 0 || age > SEAL_FLASH_MS) continue;
+    const [a, b] = lane(project, s);
+    ctx.strokeStyle = COLORS.seal; ctx.lineWidth = 9; ctx.globalAlpha = 0.85 * (1 - age / SEAL_FLASH_MS);
+    ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  // arrival beat: the route Mara just finished lights up for a second (Echo pane)
+  if (echo) for (const ar of o.fx?.arrivals ?? []) {
+    const age = o.time - ar.born;
+    if (age < 0 || age > ARRIVE_MS) continue;
+    ctx.strokeStyle = "#ffd5d2"; ctx.lineWidth = 5; ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.globalAlpha = 0.85 * Math.min(1, (ARRIVE_MS - age) / 500);
+    ctx.beginPath();
+    for (const id of ar.path) { const s = sectorById.get(id); if (!s) continue; const [a, b] = lane(project, s); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
   }
 
   // beacon pulses: live rings born when the engine emits them; a lit beacon marks the hop
