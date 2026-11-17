@@ -8,7 +8,9 @@ The Strata view uses a full-window canvas with floating tools and a compact corn
 
 The Hollow is a network of underground cities joined by tunnel pods, and one Directorate tower clears every flight. **Echo** is a fallback protocol for when that tower goes dark or is switched off to punish a city: every pod carries the tunnel map, talks only to its neighbors over trackside beacons, and follows three rules: announce before you move, one pod per sector, medical first then supply then passengers. When the Directorate seals a tunnel, the news hops beacon to beacon and pods re-plan around it. This repo contains a playable simulation that runs the same seeded mission with the tower alone and with Echo, side by side.
 
-**Run it** (Node 22.12+):
+**Play it now:** [hollow-world-eight.vercel.app/echo.html](https://hollow-world-eight.vercel.app/echo.html) opens on Tower Down, paused. Press Run.
+
+**Run it yourself** (Node 22.12+):
 
 ```sh
 cd hollow-world
