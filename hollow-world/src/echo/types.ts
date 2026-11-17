@@ -1,6 +1,6 @@
 // Echo contract v1 — the only coupling between the engine lane (src/echo) and the view lane (src/echo-view).
 // Owned by @m_opus. Change requests go on the board: "@m_opus CONTRACT? <field> <why>". See docs/specs/echo/PLAN.md §1.2, §3.2.
-export const CONTRACT_VERSION = 1;
+export const CONTRACT_VERSION = 2; // v2 (game): beacons, multiple seals, beacon budget, ghost pods. Additive over v1.
 
 export type Priority = "medical" | "supply" | "passenger";
 export type Mode = "tower" | "echo" | "normal"; // normal = tower never fails (reference run)
@@ -26,6 +26,7 @@ export interface Sector {
   minutes: number; // travel time through the sector, in ticks
   holder: string | null; // pod id
   sealed: boolean; // Directorate sealed this tunnel: Echo can't open it, only route around it
+  beacon?: boolean; // v2: residents' trackside radio in this sector. Missing = true. No beacon: news can't hop through it, and Echo pods wait blind before entering
 }
 
 export interface World {
@@ -51,6 +52,7 @@ export interface Pod {
   arriveTick: number | null;
   cargo?: "medicine" | "water" | "food";
   nurse?: boolean;
+  ghost?: boolean; // v2: Directorate-injected fake pod (forged signature); the view may reveal it after its credential is rejected
 }
 
 export type LogKind =
@@ -66,7 +68,8 @@ export type LogKind =
   | "enter"
   | "release"
   | "arrive"
-  | "credential-reject";
+  | "credential-reject"
+  | "blind"; // v2: an Echo pod waits at an unbeaconed sector because it can't hear whether it is clear
 
 export interface LogEvent {
   tick: number;
@@ -114,7 +117,7 @@ export interface Observation {
 export type Command = { type: "dispatchMedical"; podId: string; atTick: number };
 
 export interface Mission {
-  id: "tower-down" | "grounding";
+  id: string; // v2: any mission id ("tower-down", "grounding", ...)
   title: string;
   seed: number;
   world: World;
@@ -124,6 +127,8 @@ export interface Mission {
   towerInflation: number;
   sealAt: number | null; // Directorate seals one tunnel sector (not in normal mode)
   sealSectorId: string | null;
+  seals?: { at: number; sectorId: string }[]; // v2: further seals after the first; all follow the same rules
+  beaconBudget?: number | null; // v2: null/missing = fixed layout; a number = the player places up to N beacons before the run
   pods: Pod[]; // initial and scheduled
 }
 
