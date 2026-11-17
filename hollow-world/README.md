@@ -12,7 +12,7 @@ The Hollow is a network of underground cities joined by tunnel pods, and one Dir
 
 ```sh
 cd hollow-world
-npm ci && npm run dev    # then open http://127.0.0.1:4174/echo.html  (the Strata city sim stays at /)
+npm ci && npm run dev    # opens Echo Tower Down at http://127.0.0.1:4174/  (the Strata city sim is at /strata.html)
 ```
 
 Press **Run**. At t+20 the tower goes dark, at t+30 the Directorate seals the direct Sector 07 to Lagos tunnel, and **Dispatch Nurse Mara Vale** sends nurse Mara Vale (a Strata resident) toward the outbreak city. On the left the Directorate banner keeps claiming flights it no longer clears; on the right Echo's beacons pulse, a passenger pod yields to her, and her pod re-plans through São Paulo.
@@ -59,7 +59,7 @@ npm ci
 npm start
 ```
 
-Open [http://127.0.0.1:4174](http://127.0.0.1:4174). For a production static build, run `npm run build`; deploy `dist/`, or run `npm run preview`. The application bundles all art and uses local system fonts. No API keys or remote services are needed.
+Open [http://127.0.0.1:4174/strata.html](http://127.0.0.1:4174/strata.html) (the Echo landing page is at `/`). For a production static build, run `npm run build`; deploy `dist/`, or run `npm run preview`. The application bundles all art and uses local system fonts. No API keys or remote services are needed.
 
 ## Explore
 
