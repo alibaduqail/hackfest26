@@ -29,7 +29,8 @@ export const COLORS = {
   pulse: { announce: "#45d1c4", seal: "#ff3b3b", release: "#6fe08f" },
 } as const;
 const PRIORITY_COLOR: Record<Priority, string> = { medical: COLORS.medical, supply: COLORS.supply, passenger: COLORS.passenger };
-const LABEL_SIDE: Record<string, "l" | "r" | "t" | "b"> = { ny: "t", s07: "b", lon: "t", mow: "t", bei: "t", tok: "t", syd: "l", lagos: "l", jak: "b", sao: "r" };
+// label side per city, chosen so neighbours (NY/Sector 07, London/Moscow, Beijing/Tokyo) never collide
+const LABEL_SIDE: Record<string, "l" | "r" | "t" | "b"> = { ny: "t", s07: "l", lon: "l", mow: "t", bei: "t", tok: "r", cairo: "r", lagos: "l", mum: "r", jak: "r", syd: "l", sao: "r" };
 
 type XY = [number, number];
 export interface Projection { (p: XY): XY }
@@ -39,10 +40,11 @@ export function makeProjection(obs: Observation, w: number, h: number): Projecti
   const pts: XY[] = [...obs.cities.map((c): XY => [c.x, c.y]), ...obs.sectors.flatMap((s) => [s.a, s.b])];
   const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
   const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
-  const mx = 90, my = 64;
-  const k = Math.min((w - 2 * mx) / (x1 - x0 || 1), (h - 2 * my) / (y1 - y0 || 1));
-  const ox = (w - k * (x1 - x0)) / 2 - k * x0, oy = (h - k * (y1 - y0)) / 2 - k * y0;
-  return ([x, y]) => [ox + k * x, oy + k * y];
+  // fill the pane (equirectangular, so a stretch is fine); bottom inset keeps room for the tower card, top for the caption
+  const ml = Math.min(112, w * 0.16), mr = Math.min(104, w * 0.15), mt = 72, mb = Math.min(124, h * 0.2);
+  const kx = (w - ml - mr) / (x1 - x0 || 1), ky = (h - mt - mb) / (y1 - y0 || 1);
+  const ox = ml - kx * x0, oy = mt - ky * y0;
+  return ([x, y]) => [ox + kx * x, oy + ky * y];
 }
 
 const LANE_PX = 2.6; // opposite directions of a route are drawn side by side
@@ -248,7 +250,7 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
     }
     if (p.id === nurse?.id && p.status !== "arrived") {
       ctx.fillStyle = "#ffd5d2"; ctx.font = "11px ui-monospace, Menlo, monospace"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
-      ctx.fillText(p.label, xy[0] + 9, xy[1] - 9);
+      ctx.fillText(p.label, xy[0] + 10, xy[1] + 15);
     }
   }
 }

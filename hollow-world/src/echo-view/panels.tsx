@@ -44,7 +44,7 @@ export function EchoLog({ obs }: { obs: Observation }) {
 
 export function Scoreboard({ obs, normal }: { obs: Observation; normal?: Observation }) {
   const s = obs.score;
-  const ratio = normal && normal.score.passengerDelayMin > 0 ? s.passengerDelayMin / normal.score.passengerDelayMin : null;
+  const ratio = normal && normal.score.passengerDelayMin > 0 && s.passengerDelayMin > 0 ? s.passengerDelayMin / normal.score.passengerDelayMin : null;
   return (
     <section className="echo-card echo-score">
       <h3 className="echo-title">Scoreboard</h3>
@@ -58,7 +58,7 @@ export function Scoreboard({ obs, normal }: { obs: Observation; normal?: Observa
       </div>
       <div className="echo-stat">
         <b>{s.passengerDelayMin} min</b>
-        <span>passenger delay{ratio !== null ? ` · ${ratio.toFixed(1)}x normal day` : ""}</span>
+        <span>passenger delay{` · ${ratio !== null ? `${ratio.toFixed(1)}x` : "—"} normal day`}</span>
       </div>
       <div className="echo-stat">
         <b>{Math.round(s.capacityPct)}%</b>

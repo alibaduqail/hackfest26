@@ -21,8 +21,10 @@ html,body,#root{margin:0;height:100%;background:#0a1013;color:#cfe3e8;font:13px 
 .echo-cap{position:absolute;left:14px;top:12px;z-index:1;pointer-events:none}
 .echo-cap b{display:block;font-size:14px;letter-spacing:.04em}
 .echo-cap span{color:#7f979f}
-.echo-overlay{position:absolute;left:14px;bottom:14px;z-index:1;width:340px;max-width:calc(100% - 28px)}
-.echo-overlay .echo-claimed,.echo-overlay .echo-real{font-size:22px}
+.echo-overlay{position:absolute;left:14px;bottom:14px;z-index:1;max-width:calc(100% - 28px)}
+.echo-overlay .echo-card{padding:8px 12px}.echo-overlay .echo-title{margin:0 0 2px}
+.echo-overlay .echo-tower-lie{display:flex;flex-wrap:wrap;gap:0 16px;align-items:baseline}
+.echo-overlay .echo-claimed,.echo-overlay .echo-real{font-size:20px;margin:0}
 .echo-side{background:#0a1013;padding:12px;min-height:0;overflow:hidden}
 .echo-side .echo-panels{height:100%}
 .echo-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:8px 14px;border-top:1px solid #1a272c}
