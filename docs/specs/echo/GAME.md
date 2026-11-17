@@ -35,9 +35,9 @@ A `Sector` gets `beacon?: boolean`. Missing means `true`, so Tower Down and v1 b
 | # | Mission | Teaches | Setup | Stars (★ / ★★ / ★★★) |
 |---|---|---|---|---|
 | 1 | **Tower Down** (exists) | The split screen, the yield, the reroute | All beacons pre-placed; dispatch Mara | Mara arrives / all 8 nurses / all supplies with delay ≤ 3× normal |
-| 2 | **Dead Zones** | Beacons matter | Same world. Budget of about 40 beacons for 114 sectors. Seal at t30 on the Lagos tunnel | Mara arrives / ≥ 6 nurses / supplies ≥ 8 and delay ≤ 4× |
-| 3 | **The Grounding** | Weeks, not hours; the Directorate keeps cutting | Long run (endTick about 1440, time-lapse at 300×). A second wave of pods. Three seals over time (Lagos, then Cairo–Lagos, then London–Lagos). Budget about 50 | Lagos gets ≥ 6 nurses / supplies ≥ 8 / delay ≤ 4× |
-| 4 | **Ghost Flight** (stretch) | Trust without a center | Tower Down plus one ghost medical pod with a forged signature that tries to jump the queue | The ghost is rejected and Mara arrives / … |
+| 2 | **Dead Zones** | Beacons matter | Same world. Budget of about 40 beacons for 114 sectors. Seal at t30 on the Lagos tunnel | Mara by min 160 / Mara by 145 / Mara by 148 and last supply by 172 |
+| 3 | **The Grounding** | Weeks, not hours; the Directorate keeps cutting | Long run (endTick about 1440, time-lapse at 300×). A second wave of pods. Three seals over time (Lagos, then Cairo–Lagos, then London–Lagos). Budget about 50 | Mara by 160 / Mara by 148 and half the supplies by 145 / also delay ≤ 3.2× |
+| 4 | **Ghost Flight** (stretch) | Trust without a center | Tower Down plus one ghost medical pod with a forged signature that tries to jump the queue | Forged pod rejected and Mara arrives / all nurses / all supplies with delay ≤ 3× |
 
 Star thresholds live in the view's campaign catalog (`src/echo-view/game/campaign.ts`), not in the engine. They are computed from the final `Score` plus the normal-day run.
 
@@ -69,13 +69,17 @@ Star thresholds live in the view's campaign catalog (`src/echo-view/game/campaig
 - If a merge is blocked, the PR waits for M in the morning.
 - `main` must stay deployable at every merge. If the build or tests are red, don't merge.
 
+## Parked ideas
+
+- **Pods carry news** (engine proposal, Nov 17): a pod that knows of a seal relays it when it enters a beaconed sector. Cheap (~30 lines) and v1-identical, but it softens Dead Zones and The Grounding right after calibration. Parked until after judging.
+
 ## Overnight checklist
 
-- [ ] 1. Contract v2 (#43): types.ts additive + this GAME.md
-- [ ] 2. Engine v2: beacons, blind wait, multi-seals, ghost; missions deadZones() + grounding(); tests; harness for all missions
-- [ ] 3. Game shell: title → missions → briefing → prepare → run → debrief, progress saved
-- [ ] 4. Map v2: beacon lights, dim dead sectors, Prepare interaction
-- [ ] 5. Wire campaign missions 1–3 with star thresholds; tune so each mission is winnable but not free (harness numbers)
-- [ ] 6. Review + merge + Vercel redeploy; screenshots in `hollow-world/qa/echo/game-*.png`
+- [x] 1. Contract v2 (#43): types.ts additive + this GAME.md (#43 merged)
+- [x] 2. Engine v2: beacons, blind wait, multi-seals, ghost; missions deadZones() + grounding(); tests; harness for all missions (#44, #46 merged)
+- [x] 3. Game shell: title → missions → briefing → prepare → run → debrief, progress saved (#45, #47 merged; prologue/epilogue in #47; STORY text in #50)
+- [x] 4. Map v2: beacon lights, dim dead sectors, Prepare interaction (#45, #47 merged)
+- [x] 5. Wire campaign missions 1–3 with star thresholds; tune so each mission is winnable but not free (harness numbers) (thresholds tuned from npm run harness:search; see campaign.ts STARS)
+- [x] 6. Review + merge + Vercel redeploy; screenshots in `hollow-world/qa/echo/game-*.png` (live at https://hollow-world-eight.vercel.app/)
 - [ ] 7. Stretch: Ghost Flight mission; sound off by default
 - [ ] 8. Morning report on the board for `@mshaaf`: what's live, what's left, decisions needed
