@@ -8,6 +8,7 @@ import { createEngine } from "../../echo/engine";
 import type { Mission } from "../../echo/types";
 import { MissionScreen } from "../MissionScreen";
 import { byId, CAMPAIGN, EPILOGUE, PROLOGUE, starsFor, storyFor, type CampaignMission } from "./campaign";
+import { Backdrop } from "./Backdrop";
 import { Briefing, Interlude } from "./Briefing";
 import { Debrief, type RunResult } from "./Debrief";
 import { MissionSelect } from "./MissionSelect";
@@ -53,6 +54,9 @@ function initial(): State {
 
 export const GameApp = () => <><Game /><SoundToggle /></>;
 
+// The Strata scene sits behind every screen except the map screens (prepare, run).
+const withBackdrop = (screen: Screen) => screen !== "prepare" && screen !== "run";
+
 function Game() {
   const [st, setSt] = useState<State>(initial);
   const [progress, setProgress] = useState<Progress>(loadProgress);
@@ -90,6 +94,9 @@ function Game() {
     return () => removeEventListener("keydown", onKey);
   });
 
+  return <>{withBackdrop(st.screen) && <Backdrop />}{screenFor()}</>;
+
+  function screenFor() {
   const { cm } = st;
   switch (st.screen) {
     case "title":
@@ -141,5 +148,6 @@ function Game() {
         />
       );
     }
+  }
   }
 }
