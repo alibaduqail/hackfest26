@@ -4,7 +4,9 @@ import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 
 import { createEngine } from "../echo/engine";
 import { towerDown } from "../echo/missions";
 import type { EchoEngineApi, LogEvent, Mission, Observation } from "../echo/types";
-import { drawMap, PULSE_MS, type Fx, type Variant } from "./map";
+import { drawMap, makeProjection, PULSE_MS, type Fx, type Variant } from "./map";
+
+const STRATA_URL = "/strata.html"; // the Strata city sim, home of Sector 07
 import { EchoLog, Scoreboard, TowerBanner } from "./panels";
 import { EndCard } from "./EndCard";
 import "./echo.css";
@@ -34,6 +36,7 @@ html,body,#root{margin:0;height:100%;background:#0a1013;color:#cfe3e8;font:13px 
 .echo-bar button:disabled{opacity:.4;cursor:default}
 .echo-bar .echo-dispatch{border-color:#ff5a52;color:#ffd5d2}
 .echo-bar .grow{flex:1}
+.echo-bar a{color:#f2b84b;text-decoration:none}.echo-bar a:hover{text-decoration:underline}
 @media (max-width:1100px){.echo-main{grid-template-columns:1fr 1fr;grid-template-rows:minmax(0,3fr) minmax(0,2fr)}.echo-side{grid-column:1 / -1}}
 @media (max-width:760px){.echo-main{grid-template-columns:1fr;grid-template-rows:repeat(3,minmax(0,1fr))}.echo-side{grid-column:auto}}
 `;
@@ -89,7 +92,16 @@ function MapPane({ obsRef, fxRef, variant, title, sub, children }: {
   return (
     <div className="echo-pane">
       <div className="echo-cap"><b>{title}</b><span>{sub}</span></div>
-      <canvas ref={ref} />
+      <canvas
+        ref={ref}
+        onClick={(ev) => {
+          const o = obsRef.current, r = ev.currentTarget.getBoundingClientRect();
+          const city = o.cities.find((c) => c.strata);
+          if (!city) return;
+          const [x, y] = makeProjection(o, r.width, r.height)([city.x, city.y]);
+          if (Math.hypot(ev.clientX - r.left - x, ev.clientY - r.top - y) < 16) location.href = STRATA_URL;
+        }}
+      />
       {children}
     </div>
   );
@@ -183,6 +195,7 @@ export function MissionScreen() {
           Dispatch Nurse Mara Vale
         </button>
         <span className="grow">{note}</span>
+        <a className="echo-strata" href={STRATA_URL}>Sector 07 city sim →</a>
         <span>t+{echo.tick} / {echo.endTick}</span>
       </div>
       {echo.over && <EndCard tower={tower} echo={echo} normal={world.current.normal} onReplay={reset} />}
