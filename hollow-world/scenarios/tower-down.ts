@@ -1,8 +1,12 @@
 // Headless Tower Down: runs the same mission with the tower failing, with Echo, and on a normal day, and prints the scoreboard.
 // Usage: npm run harness. Exits 1 if the shape is wrong (AC-9): Echo must beat the failed tower and cost something vs a normal day.
+// npm run harness:all (--all): every campaign mission, Echo with each beacon layout, to set star thresholds.
 import { createEngine } from "../src/echo/engine";
-import { towerDown } from "../src/echo/missions";
-import type { Mode, Observation } from "../src/echo/types";
+import { MISSIONS, towerDown, validateMission } from "../src/echo/missions";
+import type { Mission, Mode, Observation } from "../src/echo/types";
+import { detourFirstBeacons, heuristicBeacons } from "./layouts";
+
+if (process.argv.includes("--all")) process.exit(allMissions());
 
 const m = towerDown(); // one mission object: the normal-day reference is computed once and shared
 const run = (mode: Mode): Observation => {
@@ -42,3 +46,62 @@ const checks: [string, boolean][] = [
 const bad = checks.filter(([, ok]) => !ok);
 console.log(`\n${bad.length ? "FAIL" : "OK"}: ${checks.length - bad.length}/${checks.length} shape checks${bad.length ? ` (${bad.map(([l]) => l).join("; ")})` : ""}`);
 process.exit(bad.length ? 1 : 0);
+
+function allMissions(): number {
+  const head = ["Mission", "Layout", "Beacons", "Nurses", "Lagos nurses", "Supplies", "Pax delay", "Capacity", "Mara", "Last Lagos nurse", "Median supply", "Last supply"];
+  // arrival ticks of a pod group: "t+N", or "-" while any of them has not arrived ("4/5 by t+N" for the last)
+  const at = (ts: (number | null)[], pick: (xs: number[]) => number) => {
+    const ok = ts.filter((x): x is number => x !== null).sort((a, b) => a - b);
+    if (!ok.length) return "-";
+    return ok.length === ts.length ? `t+${pick(ok)}` : `${ok.length}/${ts.length} by t+${pick(ok)}`;
+  };
+  const last = (xs: number[]) => xs[xs.length - 1];
+  const median = (xs: number[]) => xs[Math.floor((xs.length - 1) / 2)]; // lower median: a real arrival tick
+  const rows: string[][] = [];
+  let bad = 0;
+  for (const { id, build } of MISSIONS) {
+    const errs = validateMission(build());
+    if (errs.length) (bad++, console.log(`${id}: INVALID ${errs.join("; ")}`));
+    const go = (layout: string, mode: Mode, beacons?: (m: Mission) => Set<string> | null) => {
+      const m = build();
+      if (beacons) {
+        const on = beacons(m);
+        for (const s of m.world.sectors) s.beacon = on === null || on.has(s.id);
+      }
+      const e = createEngine(m, mode);
+      e.step(m.endTick);
+      return { layout, m, o: e.observe() };
+    };
+    const normal = go("normal day", "normal");
+    const budget = build().beaconBudget;
+    const runs = [
+      go("tower failed", "tower"),
+      ...(typeof budget === "number"
+        ? [go("echo, all beacons", "echo", () => null), go(`echo, heuristic`, "echo", (m) => heuristicBeacons(m, budget)), go("echo, detour-first", "echo", (m) => detourFirstBeacons(m, budget)), go("echo, no beacons", "echo")]
+        : [go("echo, fixed", "echo")]),
+      normal,
+    ];
+    for (const { layout, m, o } of runs) {
+      const sc = o.score;
+      const med1 = o.pods.find((p) => p.id === "MED-1")!;
+      const lit = m.world.sectors.filter((s) => s.beacon !== false).length;
+      rows.push([
+        m.id, layout, o.mode === "echo" ? `${lit}/${m.world.sectors.length}${typeof budget === "number" ? ` (budget ${budget})` : ""}` : "-",
+        `${sc.nursesArrived}/${sc.nursesTotal}`,
+        `${o.pods.filter((p) => p.nurse && p.dest === "lagos" && p.status === "arrived").length}/${o.pods.filter((p) => p.nurse && p.dest === "lagos").length}`,
+        `${sc.suppliesDelivered}/${sc.suppliesTotal}`,
+        `${sc.passengerDelayMin} (${normal.o.score.passengerDelayMin ? (sc.passengerDelayMin / normal.o.score.passengerDelayMin).toFixed(1) : "-"}x)`,
+        `${sc.capacityPct}%`,
+        med1.arriveTick === null ? med1.status : `t+${med1.arriveTick}${med1.rerouted ? " rerouted" : ""}`,
+        at(o.pods.filter((p) => p.nurse && p.dest === "lagos").map((p) => p.arriveTick), last),
+        at(o.pods.filter((p) => p.cargo).map((p) => p.arriveTick), median),
+        at(o.pods.filter((p) => p.cargo).map((p) => p.arriveTick), last),
+      ]);
+    }
+  }
+  const w = head.map((h, i) => Math.max(h.length, ...rows.map((r) => r[i].length)));
+  const line = (r: string[]) => r.map((x, i) => x.padEnd(w[i])).join("  ").trimEnd();
+  console.log(line(head));
+  rows.forEach((r, i) => (i && r[0] !== rows[i - 1][0] ? console.log("") : 0, console.log(line(r))));
+  return bad ? 1 : 0;
+}

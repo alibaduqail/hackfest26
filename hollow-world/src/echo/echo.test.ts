@@ -389,3 +389,152 @@ t("AC-15 news latency: one beacon hop per tick, pods hear in distance order", ()
   assert.ok(r.obs.filter((o) => o.tick <= seal.tick - 1).every((o) => !o.pulses.some((x) => x.kind === "seal")));
   assert.ok(r.obs.some((o) => o.pulses.some((x) => x.kind === "seal")));
 });
+
+// ======================= v2: beacons, blind wait, multiple seals, ghosts, missions =======================
+const unbeacon = (m: Mission, ...ids: string[]) => {
+  for (const s of m.world.sectors) if (ids.includes(s.id)) s.beacon = false;
+  return m;
+};
+t("v2 beacons: seal news does not cross an unbeaconed sector", () => {
+  // AC-15's slow chain with s3 dark: A (in s4) still hears, B (in s2) is cut off behind s3
+  const w = mkWorld([0, 1, 2, 3, 4, 5].map((i) => ({ id: `s${i}`, from: `C${i}`, to: `C${i + 1}`, minutes: 300 })));
+  const p = mkPods(w);
+  const m = unbeacon(mkMission(w, [
+    p("A", "passenger", ["s4", "s5"], { departTick: 2 }),
+    p("B", "passenger", ["s2", "s3", "s4", "s5"], { departTick: 2 }),
+  ], { towerDownAt: 1, endTick: 80, sealAt: 30, sealSectorId: "s5" }), "s3");
+  const r = run(m, "echo");
+  assert.equal(kinds(r, "seal-heard", { podId: "A" }).length, 1, "A should hear");
+  assert.equal(kinds(r, "seal-heard", { podId: "B" }).length, 0, "news crossed the dead sector s3");
+  const pulsed = new Set(r.obs.flatMap((o) => o.pulses.filter((x) => x.kind === "seal").map((x) => x.sectorId)));
+  assert.ok(!pulsed.has("s3") && !pulsed.has("s2"), `seal pulse beyond the dead zone: ${[...pulsed]}`);
+});
+t("v2 beacons: an unbeaconed seal is still seen at its boundary", () => {
+  const m = unbeacon(diamondMission(true), "d1");
+  const r = run(m, "echo");
+  const release = kinds(r, "release", { podId: "med", sectorId: "d0" })[0];
+  const heard = kinds(r, "seal-heard", { podId: "med" })[0];
+  assert.ok(release && heard, "missing release / seal-heard");
+  assert.equal(heard.tick, release.tick, "should learn only on reaching the sealed boundary");
+  assert.deepEqual(r.final.pods[0].path, ["d0", "r0", "r1"]);
+  assert.equal(r.final.pods[0].status, "arrived");
+});
+t("v2 beacons: a pod at a city after a dark sector hears news from the city's other beaconed sectors", () => {
+  // reviewer case: O -a0(dark)-> M, then M -b0-> N -b1-> D or M -c0-> D. b1 is sealed while the pod is inside a0.
+  // At M the pod must hear via b0/c0 and take c0; deaf at M it would enter b0, hear too late and hold forever at N.
+  const w = mkWorld([
+    { id: "a0", from: "O", to: "M", minutes: 10 },
+    { id: "b0", from: "M", to: "N", minutes: 4 },
+    { id: "b1", from: "N", to: "D", minutes: 4 },
+    { id: "c0", from: "M", to: "D", minutes: 6 },
+  ]);
+  const p = mkPods(w);
+  const m = unbeacon(mkMission(w, [p("med", "medical", ["a0", "b0", "b1"], { departTick: 2 })], { towerDownAt: 1, endTick: 80, sealAt: 6, sealSectorId: "b1" }), "a0");
+  const r = run(m, "echo");
+  const release = kinds(r, "release", { podId: "med", sectorId: "a0" })[0];
+  const heard = kinds(r, "seal-heard", { podId: "med" })[0];
+  assert.ok(release && heard, "missing release / seal-heard");
+  assert.equal(heard.tick, release.tick, "should hear at M, the tick it comes out of the dark sector");
+  assert.equal(kinds(r, "enter", { podId: "med", sectorId: "b0" }).length, 0, "entered b0 deaf");
+  assert.deepEqual(r.final.pods[0].path, ["a0", "c0"]);
+  assert.equal(r.final.pods[0].status, "arrived");
+});
+t("v2 blind wait: logs 'blind' once and enters 3 ticks later than with a beacon", () => {
+  const mk = () => {
+    const w = mkWorld([{ id: "a0", from: "A", to: "B", minutes: 6 }]);
+    const p = mkPods(w);
+    return mkMission(w, [p("x", "passenger", ["a0"], { departTick: 2 }), p("y", "passenger", ["a0"], { departTick: 2 })]);
+  };
+  const lit = run(mk(), "echo");
+  const dark = run(unbeacon(mk(), "a0"), "echo");
+  for (const id of ["x", "y"]) {
+    const a = kinds(lit, "enter", { podId: id })[0].tick;
+    const b = kinds(dark, "enter", { podId: id })[0].tick;
+    assert.equal(kinds(dark, "blind", { podId: id, sectorId: "a0" }).length, 1, `${id}: blind logged once`);
+    assert.equal(kinds(lit, "blind").length, 0);
+    if (id === "x") assert.equal(b - a, 3, "first entry is 3 ticks late");
+    else assert.ok(b >= a + 3, "second pod is not faster in the dark");
+  }
+  const announcePulses = (r: Run) => r.obs.flatMap((o) => o.pulses.filter((x) => x.kind === "announce"));
+  assert.ok(announcePulses(lit).length > 0, "lit sector should pulse on announce");
+  assert.deepEqual(announcePulses(dark), [], "a dark sector has no radio to pulse");
+  // the tower ignores beacons: a normal day is identical either way
+  const strip = (r: Run) => r.events;
+  assert.deepEqual(strip(run(unbeacon(mk(), "a0"), "normal")), strip(run(mk(), "normal")));
+});
+t("v2 multiple seals: both seal and the pod reroutes around each", () => {
+  // O -d0-> M, then M -d1-> D (direct), M -r0-> R -r1-> D, or M -q0-> Q -q1-> X -q2-> D (longest)
+  const w = mkWorld([
+    { id: "d0", from: "O", to: "M", minutes: 10 },
+    { id: "d1", from: "M", to: "D", minutes: 4 },
+    { id: "r0", from: "M", to: "R", minutes: 4 },
+    { id: "r1", from: "R", to: "D", minutes: 4 },
+    { id: "q0", from: "M", to: "Q", minutes: 4 },
+    { id: "q1", from: "Q", to: "X", minutes: 4 },
+    { id: "q2", from: "X", to: "D", minutes: 4 },
+  ]);
+  const p = mkPods(w);
+  const m = mkMission(w, [p("med", "medical", ["d0", "d1"], { departTick: 2 })], {
+    towerDownAt: 1, endTick: 150, sealAt: 5, sealSectorId: "d1", seals: [{ at: 8, sectorId: "r0" }],
+  });
+  const r = run(m, "echo");
+  assert.deepEqual(kinds(r, "seal").map((x) => x.sectorId), ["d1", "r0"]);
+  assert.deepEqual(kinds(r, "seal-heard", { podId: "med" }).map((x) => x.sectorId), ["d1", "r0"]);
+  assert.equal(kinds(r, "reroute", { podId: "med" }).length, 2);
+  const med = r.final.pods[0];
+  assert.deepEqual(med.path, ["d0", "q0", "q1", "q2"]);
+  assert.equal(med.status, "arrived");
+  assert.equal(kinds(r, "enter", { sectorId: "d1" }).length + kinds(r, "enter", { sectorId: "r0" }).length, 0, "entered a sealed sector");
+  assert.deepEqual(run(m, "echo").obs, r.obs, "multi-seal run is not deterministic");
+});
+t("v2 ghost pod: forged medical ghost ranks as passenger and is rejected", () => {
+  const w = mkWorld([{ id: "a0", from: "A", to: "B", minutes: 6 }]);
+  const p = mkPods(w);
+  const m = mkMission(w, [
+    p("blocker", "supply", ["a0"], { departTick: 2, cargo: "water" }),
+    p("pax", "passenger", ["a0"], { departTick: 3 }),
+    p("ghost", "medical", ["a0"], { departTick: 5, ghost: true, nurse: false, sig: "forged", credentialOk: true }), // engine re-derives credentialOk
+  ]);
+  const r = run(m, "echo");
+  assert.deepEqual(enterOrder(r, "a0"), ["blocker", "pax", "ghost"]);
+  assert.ok(kinds(r, "credential-reject", { podId: "ghost" }).length >= 1);
+  assert.equal(r.final.pods.find((x) => x.id === "ghost")!.credentialOk, false);
+});
+
+type MissionsMod = { MISSIONS: { id: string; build: () => Mission }[]; validateMission: (m: Mission) => string[] };
+const mm = missionsMod as unknown as MissionsMod | null;
+const tm = (name: string, fn: () => void) => test(name, { skip: ready && mm?.MISSIONS ? false : "missions.ts MISSIONS not landed yet" }, fn);
+tm("v2 missions: every campaign mission validates, in campaign order", () => {
+  assert.deepEqual(mm!.MISSIONS.map((x) => x.id), ["tower-down", "dead-zones", "grounding", "ghost-flight"]);
+  for (const { id, build } of mm!.MISSIONS) {
+    const m = build();
+    assert.equal(m.id, id);
+    assert.deepEqual(mm!.validateMission(m), [], id);
+  }
+  const dz = mm!.MISSIONS[1].build();
+  assert.equal(dz.beaconBudget, 40);
+  assert.ok(dz.world.sectors.every((s) => s.beacon === false), "dead zones should start with no beacons");
+  const ghost = run(mm!.MISSIONS[3].build(), "echo");
+  assert.ok(kinds(ghost, "credential-reject", { podId: "GHOST-1" }).length >= 1, "ghost not rejected");
+  assert.ok(ghost.final.pods.find((x) => x.id === "MED-1")!.arriveTick !== null, "Mara did not arrive in Ghost Flight");
+});
+tm("v2 grounding: deterministic, three seals, second wave", () => {
+  const m = mm!.MISSIONS[2].build();
+  const before = clone(m);
+  assert.equal(m.endTick, 1440);
+  const wave = m.pods.filter((p) => p.departTick >= 200);
+  assert.ok(wave.length >= 20 && wave.every((p) => p.departTick <= 700), "second wave t200..t700");
+  assert.ok(wave.filter((p) => p.nurse && p.dest === "lagos").length >= 4);
+  assert.ok(wave.filter((p) => p.cargo).length >= 4);
+  const [a, b] = [createEngine!(m, "echo"), createEngine!(m, "echo")];
+  for (let tick = 0; tick < m.endTick; tick += 60) {
+    a.step(60);
+    b.step(60);
+    assert.deepEqual(a.observe(), b.observe(), `diverged by tick ${tick + 60}`);
+  }
+  assert.ok(a.observe().over);
+  assert.deepEqual(m, before, "engine mutated the mission");
+  const tw = createEngine!(m, "tower");
+  tw.step(m.endTick);
+  assert.equal(tw.observe().sectors.filter((s) => s.sealed).length, 3, "three seals in tower mode");
+});
