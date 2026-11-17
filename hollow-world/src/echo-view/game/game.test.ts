@@ -9,8 +9,8 @@ import { isUnlocked, loadProgress, saveStars } from "./progress";
 test("Tower Down earns its stars from a real run", () => {
   const m = towerDown();
   const [echo, normal] = (["echo", "normal"] as const).map((mode) => { const e = createEngine(m, mode); e.step(m.endTick); return e.observe(); });
-  assert.equal(starsFor(CAMPAIGN[0], echo, normal), 3, "Tower Down's placeholder deadlines are winnable under Echo");
-  assert.equal(objective({ what: "mara", by: 100 }).met(echo, normal), false, "a deadline before Mara's arrival misses");
+  assert.equal(starsFor(CAMPAIGN[0], echo, normal), 3, "Echo earns all three Tower Down stars");
+  assert.equal(objective({ all: [{ what: "mara", by: 100 }] }).met(echo, normal), false, "a deadline before Mara's arrival misses");
   const tower = createEngine(m, "tower"); tower.step(m.endTick);
   assert.equal(starsFor(CAMPAIGN[0], tower.observe(), normal), 0, "the Directorate alone earns nothing");
 });

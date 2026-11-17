@@ -2,7 +2,7 @@
 // Builders are looked up by name so the game compiles while the engine lane is still adding missions:
 // a mission whose builder is missing shows as a locked "coming soon" card.
 import * as M from "../../echo/missions";
-import { CONTRACT_VERSION, type Mission, type Observation, type Pod, type Sector } from "../../echo/types";
+import { CONTRACT_VERSION, type Mission, type Observation, type Sector } from "../../echo/types";
 
 export interface Objective {
   label: string;
@@ -22,39 +22,64 @@ export interface CampaignMission {
   build: (() => Mission) | null; // null = the engine lane hasn't landed it yet
 }
 
-// ---- star thresholds: tune here (placeholders; numbers from `npm run harness`) ----
-// Beacons change timing, never who arrives, so every star is a deadline on the final pods' arriveTick.
-// what: mara = MED-1 · Nurse Mara Vale; nurses = any nurse; lagosNurses = nurses bound for Lagos; supplies = cargo pods.
-// count missing = all of them. ghost: also every ghost pod's signature was rejected. maxDelay: passenger delay vs the normal day.
-export interface Goal { what: "mara" | "nurses" | "lagosNurses" | "supplies"; count?: number; by: number; maxDelay?: number; ghost?: boolean }
+// ---- star thresholds: tune here (from the engine's beacon search and `npm run harness`) ----
+// Beacons change timing, never who arrives, so most stars are deadlines on the final pods' arriveTick (1 tick = 1 minute).
+// A goal is a list of conditions that must all hold. Condition `what`: mara = MED-1 · Nurse Mara Vale; nurses = every nurse;
+// supplies = cargo pods. `by` = arrived by that minute (missing = any time); `half` = the median one (half of them) by then.
+// maxDelay: passenger delay vs the normal day; ghost: every forged pod was rejected.
+export interface Cond { what: "mara" | "nurses" | "supplies"; by?: number; half?: boolean }
+export interface Goal { all: Cond[]; maxDelay?: number; ghost?: boolean }
 export const STARS: Record<string, Goal[]> = {
-  // Tower Down Echo run (seed 20261117): Mara t137, last nurse t137, last supply t162, delay 2.4x
-  "tower-down": [{ what: "mara", by: 160 }, { what: "nurses", by: 150 }, { what: "supplies", by: 180, maxDelay: 3 }],
-  "dead-zones": [{ what: "mara", by: 175 }, { what: "lagosNurses", count: 6, by: 160 }, { what: "supplies", by: 220, maxDelay: 4 }],
-  grounding: [{ what: "lagosNurses", count: 6, by: 200 }, { what: "supplies", count: 12, by: 900 }, { what: "lagosNurses", count: 10, by: 1000, maxDelay: 4 }],
-  "ghost-flight": [{ what: "mara", by: 160, ghost: true }, { what: "nurses", by: 150 }, { what: "supplies", by: 180, maxDelay: 3 }],
+  "tower-down": [
+    { all: [{ what: "mara" }] },
+    { all: [{ what: "nurses" }] },
+    { all: [{ what: "supplies" }], maxDelay: 3 },
+  ],
+  // beacon search best: Mara t143, last supply t162; detour-first: Mara t137, last supply t189
+  "dead-zones": [
+    { all: [{ what: "mara", by: 160 }] },
+    { all: [{ what: "mara", by: 145 }] },
+    { all: [{ what: "mara", by: 148 }, { what: "supplies", by: 172 }] },
+  ],
+  // beacon search best: Mara t143, median supply t140, delay 3.04x; detour-first: 137 / 131 / 3.31x
+  grounding: [
+    { all: [{ what: "mara", by: 160 }] },
+    { all: [{ what: "mara", by: 148 }, { what: "supplies", by: 145, half: true }] },
+    { all: [{ what: "mara", by: 148 }, { what: "supplies", by: 145, half: true }], maxDelay: 3.4 },
+  ],
+  "ghost-flight": [
+    { all: [{ what: "mara" }], ghost: true },
+    { all: [{ what: "nurses" }] },
+    { all: [{ what: "supplies" }], maxDelay: 3 },
+  ],
 };
 
 // ---- goals -> objectives ----
-const arrivedBy = (p: Pod, t: number) => p.arriveTick !== null && p.arriveTick <= t;
 const delayX = (o: Observation, n: Observation) =>
   n.score.passengerDelayMin > 0 ? o.score.passengerDelayMin / n.score.passengerDelayMin : o.score.passengerDelayMin > 0 ? Infinity : 1;
-const pool = (o: Observation, w: Goal["what"]) =>
-  o.pods.filter((p) => (w === "mara" ? p.id === "MED-1" : w === "supplies" ? !!p.cargo : p.nurse && (w === "nurses" || p.dest === "lagos")));
-const NOUN = { mara: "", nurses: "nurses arrive", lagosNurses: "nurses reach Lagos", supplies: "supply runs arrive" };
+const pool = (o: Observation, w: Cond["what"]) => o.pods.filter((p) => (w === "mara" ? p.id === "MED-1" : w === "supplies" ? !!p.cargo : !!p.nurse));
+
+function holds(o: Observation, c: Cond): boolean {
+  const ps = pool(o, c.what);
+  const ok = ps.filter((p) => p.arriveTick !== null && (c.by === undefined || p.arriveTick <= c.by)).length;
+  return ps.length > 0 && ok >= (c.half ? Math.ceil(ps.length / 2) : ps.length);
+}
+function say(c: Cond): string {
+  const by = c.by === undefined ? "" : ` by minute ${c.by}`;
+  if (c.what === "mara") return `Mara reaches Lagos${by}`;
+  if (c.what === "nurses") return `all nurses arrive${by}`;
+  if (c.half) return `half the supply runs arrive${by}`;
+  return c.by === undefined ? "all supply runs arrive" : `the last supply run arrives${by}`;
+}
 
 export function objective(g: Goal): Objective {
-  const head = g.what === "mara" ? "Mara reaches Lagos" : `${g.count ?? "All"} ${NOUN[g.what]}`;
-  const label = `${g.ghost ? `The ghost is rejected and ${head}` : head} by t+${g.by}${g.maxDelay ? `, delay ≤ ${g.maxDelay}× normal` : ""}`;
+  const parts = [...(g.ghost ? ["the forged pod is rejected"] : []), ...g.all.map(say), ...(g.maxDelay ? [`passenger delay ≤ ${g.maxDelay}× normal`] : [])];
+  const label = parts.join(" and ").replace(/^./, (ch) => ch.toUpperCase());
   return {
     label,
-    met: (o, n) => {
-      const ps = pool(o, g.what);
-      const need = g.count ?? ps.length;
-      return ps.length > 0 && ps.filter((p) => arrivedBy(p, g.by)).length >= need
-        && (!g.maxDelay || delayX(o, n) <= g.maxDelay)
-        && (!g.ghost || o.pods.filter((p) => p.ghost).every((p) => !p.credentialOk));
-    },
+    met: (o, n) => g.all.every((c) => holds(o, c))
+      && (!g.maxDelay || delayX(o, n) <= g.maxDelay)
+      && (!g.ghost || o.pods.filter((p) => p.ghost).every((p) => !p.credentialOk)),
   };
 }
 const goals = (id: string) => (STARS[id] ?? []).map(objective);
@@ -86,7 +111,7 @@ export const CAMPAIGN: CampaignMission[] = [
       "Place the beacons where the news has to travel. The Directorate will seal the Lagos tunnel at minute thirty.",
     ],
     broadcast: "UNLICENSED RADIOS ARE A DANGER TO ALL FLIGHTS. HAND THEM IN AT YOUR SECTOR OFFICE.",
-    prepTip: "The Directorate will seal the direct tunnel to Lagos. Beacon the detour.",
+    prepTip: "The Directorate will seal the direct tunnel to Lagos. Beacon the detour. Mara's detour runs through São Paulo. The supply runs need the rest.",
     objectives: goals("dead-zones"),
     allowDispatch: true, defaultSpeed: 10, build: builder("deadZones"),
   },
