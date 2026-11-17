@@ -1,8 +1,17 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { constrainCamera, elasticCamera } from "./camera";
+import { constrainCamera, elasticCamera, fitZoom } from "./camera";
 const world = { left: 0, top: 0, right: 1000, bottom: 800 };
 const view = { left: 100, top: 50, right: 900, bottom: 650 };
+
+test("overview fits a wide settlement in the actual narrow viewport", () => {
+  const settlement = { left: 0, top: 0, right: 2456, bottom: 1600 };
+  const narrow = { left: 148, top: 16, right: 374, bottom: 828 };
+  const zoom = fitZoom(settlement, narrow, 0.78);
+  assert.ok(zoom < 0.22);
+  assert.ok((settlement.right - settlement.left) * zoom <= narrow.right - narrow.left);
+  assert.ok((settlement.bottom - settlement.top) * zoom <= narrow.bottom - narrow.top);
+});
 
 test("a camera inside the map keeps its position", () => {
   assert.deepEqual(constrainCamera({ x: 20, y: -40 }, world, view, 1), {

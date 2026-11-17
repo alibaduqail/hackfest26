@@ -157,6 +157,7 @@ function App() {
   }, []);
   useEffect(() => {
     if (!scenario || !canvas.current) return;
+    let disposed = false;
     const view = new WorldRenderer(
       canvas.current,
       scenario,
@@ -169,14 +170,13 @@ function App() {
     view
       .init()
       .then(() => {
-        if (stateRef.current) view.update(stateRef.current, playingRef.current);
+        if (!disposed && stateRef.current) view.update(stateRef.current, playingRef.current);
       })
-      .catch((e) =>
-        notify(
-          `Graphics could not start: ${e.message}. Use Find to inspect the run.`,
-        ),
-      );
+      .catch((e) => {
+        if (!disposed) notify(`Graphics could not start: ${e.message}. Use Find to inspect the run.`);
+      });
     return () => {
+      disposed = true;
       view.destroy();
       renderer.current = null;
     };

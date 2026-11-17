@@ -7,6 +7,12 @@ export interface Bounds {
   bottom: number;
 }
 
+export function fitZoom(world: Bounds, view: Bounds, maxZoom: number) {
+  return Math.max(Number.MIN_VALUE, Math.min(maxZoom,
+    (view.right - view.left) / (world.right - world.left),
+    (view.bottom - view.top) / (world.bottom - world.top)));
+}
+
 export function constrainCamera(
   camera: Point,
   world: Bounds,
