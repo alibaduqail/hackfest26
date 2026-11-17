@@ -1,5 +1,6 @@
 // End card: the Directorate-alone run next to the Echo run, plus the honest cost. Props in, Observation only, no engine imports.
 // Mount it over the split screen when `echo.over`; `normal` is the final observation of the normal-day run.
+import type { ReactNode } from "react";
 import type { Observation } from "../echo/types";
 
 const css = `
@@ -16,7 +17,10 @@ const css = `
 .echo-end button{background:#14222a;color:#cfe3e8;border:1px solid #2a3d46;border-radius:4px;padding:6px 16px;font:inherit;cursor:pointer}
 `;
 
-export function EndCard({ tower, echo, normal, onReplay }: { tower: Observation; echo: Observation; normal: Observation; onReplay?: () => void }) {
+export function EndCard({ tower, echo, normal, onReplay, title = "TOWER DOWN", top, children }: {
+  tower: Observation; echo: Observation; normal: Observation; onReplay?: () => void;
+  title?: string; top?: ReactNode; children?: ReactNode; // the game's debrief adds stars (top) and its buttons (children)
+}) {
   const t = tower.score, e = echo.score, n = normal.score;
   const ratio = (s: number) => (n.passengerDelayMin > 0 ? `${(s / n.passengerDelayMin).toFixed(1)}× normal day` : "—");
   const row = (label: string, a: string, b: string, small = false) => (
@@ -29,7 +33,8 @@ export function EndCard({ tower, echo, normal, onReplay }: { tower: Observation;
   return (
     <div className="echo-end">
       <style>{css}</style>
-      <h2>TOWER DOWN · t+{echo.endTick}</h2>
+      <h2>{title} · t+{echo.endTick}</h2>
+      {top}
       <div className="echo-end-grid">
         <div />
         <div className="h">Directorate alone</div>
@@ -44,6 +49,7 @@ export function EndCard({ tower, echo, normal, onReplay }: { tower: Observation;
         Echo costs time: passengers wait {n.passengerDelayMin > 0 ? `${(e.passengerDelayMin / n.passengerDelayMin).toFixed(1)}× as long as` : "longer than"} on a normal day and the network runs at {e.capacityPct}% of normal. Echo is a fallback protocol, not a replacement for the tower. Nurse credentials are a simulated signature.
       </div>
       {onReplay && <button onClick={onReplay}>Replay</button>}
+      {children}
     </div>
   );
 }
