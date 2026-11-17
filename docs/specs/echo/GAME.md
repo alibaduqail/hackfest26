@@ -81,5 +81,5 @@ Star thresholds live in the view's campaign catalog (`src/echo-view/game/campaig
 - [x] 4. Map v2: beacon lights, dim dead sectors, Prepare interaction (#45, #47 merged)
 - [x] 5. Wire campaign missions 1–3 with star thresholds; tune so each mission is winnable but not free (harness numbers) (thresholds tuned from npm run harness:search; see campaign.ts STARS)
 - [x] 6. Review + merge + Vercel redeploy; screenshots in `hollow-world/qa/echo/game-*.png` (live at https://hollow-world-eight.vercel.app/)
-- [ ] 7. Stretch: Ghost Flight mission; sound off by default
-- [ ] 8. Morning report on the board for `@mshaaf`: what's live, what's left, decisions needed
+- [x] 7. Stretch: Ghost Flight mission; sound off by default (Ghost Flight shipped as mission 4; sound is off by default)
+- [x] 8. Morning report on the board for `@mshaaf`: what's live, what's left, decisions needed (posted by `@m_opus`)
