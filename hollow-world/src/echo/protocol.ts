@@ -36,11 +36,13 @@ function reroute(s: Sim, p: Pod): string[] | null {
   return null;
 }
 
-/** Hops until the news reaches this pod: its sector, or its origin terminal (one hop after the sectors touching it). */
+/** Hops until the news reaches this pod: its sector, or, while it stands at a city (origin terminal or a mid-route city),
+ * one hop after the nearest sector touching that city. An unbeaconed sector has no dist: a pod inside it never hears. */
 function hops(n: SealNews, s: Sim, p: Pod): number {
-  if (p.at >= 0) return n.dist.get(p.path[p.at]) ?? Infinity; // an unbeaconed sector has no dist: it never hears
-  const near = (s.topo.touching.get(p.origin) ?? []).map((id) => n.dist.get(id) ?? Infinity);
-  return near.length ? Math.min(...near) + 1 : Infinity;
+  const own = p.at >= 0 ? (n.dist.get(p.path[p.at]) ?? Infinity) : Infinity;
+  const city = p.at < 0 ? p.origin : p.status !== "moving" ? s.topo.end.get(p.path[p.at]) : null;
+  const near = city ? (s.topo.touching.get(city) ?? []).map((id) => n.dist.get(id) ?? Infinity) : [];
+  return Math.min(own, ...near.map((d) => d + 1)); // v1: own <= touching + 1 when beaconed, so all-beacon runs are unchanged
 }
 
 function news(s: Sim) {
@@ -96,7 +98,9 @@ export function echoPhase(s: Sim) {
     const id = p.path[p.at + 1];
     if (!id || s.sec.get(id)!.sealed) continue;
     if (!hasBeacon(s.sec.get(id)!)) {
-      // dead zone: no beacon reports whether it is clear, so the pod waits blind at the boundary first
+      // dead zone: no beacon reports whether it is clear, so the pod waits blind at the boundary first.
+      // The blind clock starts when the pod first waits here, so it overlaps time spent queued behind a holder:
+      // the 3 ticks only cost anything when the sector is otherwise free (reviewer note 2 on #44, accepted as spec).
       const key = `${p.id}|${id}`;
       if (!s.blind.has(key)) {
         s.blind.set(key, s.tick);
@@ -114,7 +118,7 @@ export function echoPhase(s: Sim) {
       if (s.announced.has(key)) continue;
       s.announced.add(key);
       say(s, "announce", `${p.label} announces ${id}`, p.id, id);
-      s.pulses.push({ sectorId: id, kind: "announce", age: 0 });
+      if (hasBeacon(sec)) s.pulses.push({ sectorId: id, kind: "announce", age: 0 }); // no radio in a dark sector, nothing to flash
       if (p.priority === "medical" && !p.credentialOk) say(s, "credential-reject", `${p.label}: signature rejected, queued as passenger`, p.id, id);
     }
     if (claimed.has(id) || !isFree(s, sec)) continue;

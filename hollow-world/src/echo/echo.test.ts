@@ -419,6 +419,26 @@ t("v2 beacons: an unbeaconed seal is still seen at its boundary", () => {
   assert.deepEqual(r.final.pods[0].path, ["d0", "r0", "r1"]);
   assert.equal(r.final.pods[0].status, "arrived");
 });
+t("v2 beacons: a pod at a city after a dark sector hears news from the city's other beaconed sectors", () => {
+  // reviewer case: O -a0(dark)-> M, then M -b0-> N -b1-> D or M -c0-> D. b1 is sealed while the pod is inside a0.
+  // At M the pod must hear via b0/c0 and take c0; deaf at M it would enter b0, hear too late and hold forever at N.
+  const w = mkWorld([
+    { id: "a0", from: "O", to: "M", minutes: 10 },
+    { id: "b0", from: "M", to: "N", minutes: 4 },
+    { id: "b1", from: "N", to: "D", minutes: 4 },
+    { id: "c0", from: "M", to: "D", minutes: 6 },
+  ]);
+  const p = mkPods(w);
+  const m = unbeacon(mkMission(w, [p("med", "medical", ["a0", "b0", "b1"], { departTick: 2 })], { towerDownAt: 1, endTick: 80, sealAt: 6, sealSectorId: "b1" }), "a0");
+  const r = run(m, "echo");
+  const release = kinds(r, "release", { podId: "med", sectorId: "a0" })[0];
+  const heard = kinds(r, "seal-heard", { podId: "med" })[0];
+  assert.ok(release && heard, "missing release / seal-heard");
+  assert.equal(heard.tick, release.tick, "should hear at M, the tick it comes out of the dark sector");
+  assert.equal(kinds(r, "enter", { podId: "med", sectorId: "b0" }).length, 0, "entered b0 deaf");
+  assert.deepEqual(r.final.pods[0].path, ["a0", "c0"]);
+  assert.equal(r.final.pods[0].status, "arrived");
+});
 t("v2 blind wait: logs 'blind' once and enters 3 ticks later than with a beacon", () => {
   const mk = () => {
     const w = mkWorld([{ id: "a0", from: "A", to: "B", minutes: 6 }]);
@@ -435,6 +455,9 @@ t("v2 blind wait: logs 'blind' once and enters 3 ticks later than with a beacon"
     if (id === "x") assert.equal(b - a, 3, "first entry is 3 ticks late");
     else assert.ok(b >= a + 3, "second pod is not faster in the dark");
   }
+  const announcePulses = (r: Run) => r.obs.flatMap((o) => o.pulses.filter((x) => x.kind === "announce"));
+  assert.ok(announcePulses(lit).length > 0, "lit sector should pulse on announce");
+  assert.deepEqual(announcePulses(dark), [], "a dark sector has no radio to pulse");
   // the tower ignores beacons: a normal day is identical either way
   const strip = (r: Run) => r.events;
   assert.deepEqual(strip(run(unbeacon(mk(), "a0"), "normal")), strip(run(mk(), "normal")));
