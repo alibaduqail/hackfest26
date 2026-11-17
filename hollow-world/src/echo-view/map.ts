@@ -1,5 +1,6 @@
 // Canvas map for Echo: reads an Observation only (contract v2). No engine imports.
 // v2: a sector with beacon === false is a dead zone (dim, dashed); missing = beaconed, so v1 missions draw as before.
+import { FONT_SANS, THEME } from "./theme";
 import type { City, Observation, Pod, Priority, Sector } from "../echo/types";
 
 export type Variant = "tower" | "echo";
@@ -38,23 +39,23 @@ export interface DrawOpts {
 }
 
 export const COLORS = {
-  bg: "#0a1013",
-  grid: "#121c21",
-  lane: "#243238",
-  laneEcho: "#2d4249",
-  city: "#cfe3e8",
-  label: "#8fa8b0",
-  strata: "#f2b84b",
-  outbreak: "#ff5a52",
-  beacon: "#45d1c4",
-  light: "#f2b84b", // a placed battery beacon
-  dead: "#2a3a40",
-  ghost: "#b565d6",
-  seal: "#ff3b3b",
-  medical: "#ff5a52",
-  supply: "#5fd09a",
-  passenger: "#9db7c6",
-  pulse: { announce: "#45d1c4", seal: "#ff3b3b", release: "#6fe08f" },
+  bg: THEME.stage,
+  grid: "#16252d",
+  lane: "#2f444b",
+  laneEcho: "#41585f",
+  city: THEME.text,
+  label: THEME.text2,
+  strata: THEME.amber,
+  outbreak: THEME.red,
+  beacon: THEME.amberHi, // a lit beacon, like Strata's amber lamps
+  light: THEME.amber, // a placed battery beacon
+  dead: "#33474e",
+  ghost: THEME.ghost,
+  seal: THEME.red,
+  medical: THEME.red,
+  supply: THEME.good,
+  passenger: "#a9b9b3",
+  pulse: { announce: THEME.amberHi, seal: THEME.red, release: THEME.good },
 } as const;
 const PRIORITY_COLOR: Record<Priority, string> = { medical: COLORS.medical, supply: COLORS.supply, passenger: COLORS.passenger };
 // label side per city, chosen so neighbours (NY/Sector 07, London/Moscow, Beijing/Tokyo) never collide
@@ -141,7 +142,7 @@ export function podPositions(obs: Observation, project: Projection, frac = 0): M
   return out;
 }
 
-const LABEL_FONT = "11px ui-monospace, SFMono-Regular, Menlo, monospace";
+const LABEL_FONT = `12px ${FONT_SANS}`;
 type Box = [x: number, y: number, w: number, h: number];
 const overlaps = (a: Box, b: Box) => a[0] < b[0] + b[2] && b[0] < a[0] + a[2] && a[1] < b[1] + b[3] && b[1] < a[1] + a[3];
 
@@ -200,7 +201,7 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
     const dead = echo && s.beacon === false;
     ctx.lineCap = "round";
     if (o.hover === s.id) {
-      ctx.strokeStyle = "rgba(242,184,75,0.5)"; ctx.lineWidth = 9;
+      ctx.strokeStyle = "rgba(210,167,106,0.5)"; ctx.lineWidth = 9;
       ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
     }
     if (s.sealed) {
@@ -216,7 +217,7 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
     ctx.setLineDash([]);
     // sector tick at the far end
     const dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy) || 1;
-    ctx.strokeStyle = s.sealed ? COLORS.seal : "#34464d"; ctx.lineWidth = 1;
+    ctx.strokeStyle = s.sealed ? COLORS.seal : "#3d535b"; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(b[0] - (dy / len) * 3.5, b[1] + (dx / len) * 3.5); ctx.lineTo(b[0] + (dy / len) * 3.5, b[1] - (dx / len) * 3.5); ctx.stroke();
     // beacon dot at the middle (Echo only)
     const m = lerp(a, b, 0.5);
@@ -224,21 +225,21 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
     const age = pop ? o.time - pop.born : Infinity;
     const grow = pop?.kind === "place" && age < POP_MS ? easeOutBack(age / POP_MS) : 1; // the amber light pops in
     if (scarce && !s.sealed && !dead) {
-      ctx.fillStyle = "rgba(242,184,75,0.22)"; ctx.beginPath(); ctx.arc(m[0], m[1], 4.2 * grow, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "rgba(210,167,106,0.22)"; ctx.beginPath(); ctx.arc(m[0], m[1], 4.2 * grow, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = COLORS.light; ctx.beginPath(); ctx.arc(m[0], m[1], 1.9 * grow, 0, Math.PI * 2); ctx.fill();
     } else if (echo && !s.sealed && !dead) {
-      ctx.fillStyle = down ? COLORS.beacon : "#1f6c66";
+      ctx.fillStyle = down ? COLORS.beacon : "#6b5a3a";
       ctx.beginPath(); ctx.arc(m[0], m[1], down ? 1.9 : 1.4, 0, Math.PI * 2); ctx.fill();
     }
     if (pop && age >= 0 && age < RING_MS) { // ring pulse (amber on place, grey on remove); a removed light fades out
       const k = age / RING_MS, place = pop.kind === "place";
-      ctx.strokeStyle = ctx.fillStyle = place ? COLORS.light : "#7f979f";
+      ctx.strokeStyle = ctx.fillStyle = place ? COLORS.light : THEME.muted;
       ctx.globalAlpha = 0.85 * (1 - k); ctx.lineWidth = 1.8;
       ctx.beginPath(); ctx.arc(m[0], m[1], 4 + k * 20, 0, Math.PI * 2); ctx.stroke();
       if (!place && age < POP_MS) { ctx.globalAlpha = 1 - age / POP_MS; ctx.beginPath(); ctx.arc(m[0], m[1], 1.9 * (1 - age / POP_MS * 0.5), 0, Math.PI * 2); ctx.fillStyle = COLORS.light; ctx.fill(); }
       ctx.globalAlpha = 1;
     }
-    if (s.sealed) { ctx.fillStyle = "rgba(10,16,19,0.85)"; ctx.beginPath(); ctx.arc(m[0], m[1], 9, 0, Math.PI * 2); ctx.fill(); drawX(ctx, m, 6.5); }
+    if (s.sealed) { ctx.fillStyle = "rgba(13,22,28,0.85)"; ctx.beginPath(); ctx.arc(m[0], m[1], 9, 0, Math.PI * 2); ctx.fill(); drawX(ctx, m, 6.5); }
   }
 
   // abandoned paths fade out, the re-planned path is drawn solid
@@ -259,7 +260,7 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
   }
   const nurse = obs.pods.find((p) => p.nurse && p.id === "MED-1") ?? obs.pods.find((p) => p.nurse);
   if (nurse && nurse.rerouted && nurse.status !== "arrived") {
-    ctx.strokeStyle = "rgba(255,90,82,0.6)"; ctx.lineWidth = 3.6; ctx.lineJoin = "round"; ctx.lineCap = "round";
+    ctx.strokeStyle = "rgba(224,99,79,0.6)"; ctx.lineWidth = 3.6; ctx.lineJoin = "round"; ctx.lineCap = "round";
     ctx.beginPath();
     let pen = false;
     nurse.path.forEach((id, i) => {
@@ -285,7 +286,7 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
   if (echo) for (const ar of o.fx?.arrivals ?? []) {
     const age = o.time - ar.born;
     if (age < 0 || age > ARRIVE_MS) continue;
-    ctx.strokeStyle = "#ffd5d2"; ctx.lineWidth = 5; ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.strokeStyle = THEME.redText; ctx.lineWidth = 5; ctx.lineCap = "round"; ctx.lineJoin = "round";
     ctx.globalAlpha = 0.85 * Math.min(1, (ARRIVE_MS - age) / 500);
     ctx.beginPath();
     for (const id of ar.path) { const s = sectorById.get(id); if (!s) continue; const [a, b] = lane(project, s); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); }
@@ -332,9 +333,9 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
     ctx.rotate(-0.18);
     ctx.scale(2.2 - 1.2 * k, 2.2 - 1.2 * k);
     ctx.globalAlpha = 0.3 + 0.62 * k;
-    ctx.font = "bold 12px ui-monospace, Menlo, monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = `bold 13px ${FONT_SANS}`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
     const tw = ctx.measureText("SEALED").width + 12;
-    ctx.fillStyle = "rgba(26,13,13,0.85)"; ctx.fillRect(-tw / 2, -10, tw, 20);
+    ctx.fillStyle = "rgba(58,26,24,0.88)"; ctx.fillRect(-tw / 2, -10, tw, 20);
     ctx.strokeStyle = COLORS.seal; ctx.lineWidth = 1.6; ctx.strokeRect(-tw / 2, -10, tw, 20);
     ctx.fillStyle = COLORS.seal; ctx.fillText("SEALED", 0, 1);
     ctx.restore();
@@ -351,36 +352,36 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
       ctx.globalAlpha = dim ? 0.5 : 1;
       ctx.strokeStyle = COLORS.ghost; ctx.lineWidth = 1.6; ctx.setLineDash([2, 2]);
       ctx.beginPath(); ctx.arc(xy[0], xy[1], r + 1, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
-      ctx.fillStyle = COLORS.ghost; ctx.font = "10px ui-monospace, Menlo, monospace"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      ctx.fillStyle = COLORS.ghost; ctx.font = `11px ${FONT_SANS}`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
       ctx.fillText(`${p.id} forged`, xy[0] + 9, xy[1] - 9);
       ctx.globalAlpha = 1;
       continue;
     }
     ctx.globalAlpha = dim ? 0.38 : 1;
     if (p.priority === "medical" && !dim) {
-      ctx.fillStyle = "rgba(255,90,82,0.22)"; ctx.beginPath(); ctx.arc(xy[0], xy[1], r + 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "rgba(224,99,79,0.22)"; ctx.beginPath(); ctx.arc(xy[0], xy[1], r + 4, 0, Math.PI * 2); ctx.fill();
     }
     ctx.fillStyle = PRIORITY_COLOR[p.priority];
     ctx.beginPath(); ctx.arc(xy[0], xy[1], r, 0, Math.PI * 2); ctx.fill();
     ctx.globalAlpha = 1;
     const blindAt = echo ? o.fx?.blind[p.id] : undefined;
     if (blindAt && p.status !== "moving" && p.path[p.at + 1] === blindAt) { // waiting blind at a dead zone
-      ctx.fillStyle = COLORS.light; ctx.font = "bold 11px ui-monospace, Menlo, monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillStyle = COLORS.light; ctx.font = `bold 12px ${FONT_SANS}`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
       ctx.fillText("?", xy[0], xy[1] - r - 7);
     }
     const y = echo ? o.fx?.yields.find((q) => q.podId === p.id && o.time - q.born < YIELD_MS) : undefined;
     if (y) {
       const txt = `${p.id} yields to ${y.to}`;
-      ctx.font = "bold 11px ui-monospace, Menlo, monospace"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      ctx.font = `bold 12px ${FONT_SANS}`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
       const wt = ctx.measureText(txt).width + 10;
       ctx.globalAlpha = Math.min(1, (YIELD_MS - (o.time - y.born)) / 500);
-      ctx.fillStyle = "#3a2c0c"; ctx.strokeStyle = "#e8b64a"; ctx.lineWidth = 1;
+      ctx.fillStyle = THEME.amberBg; ctx.strokeStyle = THEME.amber; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.roundRect(xy[0] + 8, xy[1] + 6, wt, 17, 4); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = "#f4cf7a"; ctx.fillText(txt, xy[0] + 13, xy[1] + 15);
+      ctx.fillStyle = THEME.amberText; ctx.fillText(txt, xy[0] + 13, xy[1] + 15);
       ctx.globalAlpha = 1;
     }
     if (p.id === nurse?.id && p.status !== "arrived") {
-      ctx.fillStyle = "#ffd5d2"; ctx.font = "11px ui-monospace, Menlo, monospace"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      ctx.fillStyle = THEME.redText; ctx.font = `12px ${FONT_SANS}`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
       ctx.fillText(p.label, xy[0] + 10, xy[1] + 15);
     }
   }
@@ -402,8 +403,8 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
         const [sa, sb] = lane(project, sec); const sm = lerp(sa, sb, 0.5);
         avoid.push([sm[0] + 8 - 34, sm[1] + 24 - 14, 68, 28]);
       }
-      if (pos.has(podId)) { ctx.font = "11px ui-monospace, Menlo, monospace"; avoid.push([at[0] + 8, at[1] + 7, ctx.measureText(p.label).width + 4, 16]); }
-      ctx.font = "12px system-ui, -apple-system, sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      if (pos.has(podId)) { ctx.font = `12px ${FONT_SANS}`; avoid.push([at[0] + 8, at[1] + 7, ctx.measureText(p.label).width + 4, 16]); }
+      ctx.font = `13px ${FONT_SANS}`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
       let lines = [sp.text];
       if (ctx.measureText(sp.text).width + 24 > w) { // narrow pane (phone): wrap onto two lines at the space nearest the middle
         const mid = sp.text.length / 2, cut = [...sp.text.matchAll(/ /g)].map((m) => m.index!).sort((a, b) => Math.abs(a - mid) - Math.abs(b - mid))[0];
