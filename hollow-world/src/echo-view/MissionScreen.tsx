@@ -47,13 +47,13 @@ interface World {
   echo: EchoEngineApi;
   normal: Observation; // the normal-day run, finished, for the delay ratio
 }
-function makeWorld(): World {
-  const mission = towerDown(); // one object: the engines share the cached normal-day reference
+function makeWorld(mission: Mission): World {
+  // one mission object for all three engines: they share the cached normal-day reference
   const normal = createEngine(mission, "normal");
   normal.step(mission.endTick);
   return { mission, tower: createEngine(mission, "tower"), echo: createEngine(mission, "echo"), normal: normal.observe() };
 }
-const newFx = (): Fx => ({ pulses: [], yields: [], oldPaths: {}, frac: 0 });
+const newFx = (): Fx => ({ pulses: [], yields: [], oldPaths: {}, frac: 0, blind: {}, rejected: {} });
 
 /** Pull this tick's protocol events out of the log into wall-clock effects. */
 function collectFx(fx: Fx, history: LogEvent[], o: Observation, mission: Mission, now: number) {
@@ -62,6 +62,8 @@ function collectFx(fx: Fx, history: LogEvent[], o: Observation, mission: Mission
     if (e.tick !== o.tick - 1) continue;
     history.push(e); // the engine log keeps 60; the panel filters this full history
     if (!e.podId) continue;
+    if (e.kind === "blind" && e.sectorId) fx.blind[e.podId] = e.sectorId;
+    if (e.kind === "credential-reject") fx.rejected[e.podId] = true;
     if (e.kind === "yield") fx.yields.push({ podId: e.podId, to: (/ to (\S+)/.exec(e.text)?.[1] ?? "").replace(/·.*/, ""), born: now });
     if (e.kind === "reroute" && !fx.oldPaths[e.podId]) {
       const orig = mission.pods.find((p) => p.id === e.podId);
@@ -107,9 +109,20 @@ function MapPane({ obsRef, fxRef, variant, title, sub, children }: {
   );
 }
 
-export function MissionScreen() {
+export interface MissionScreenProps {
+  mission?: Mission; // default: Tower Down (echo.html)
+  allowDispatch?: boolean; // default true
+  speed?: number; // starting speed; a speed above 60 (time-lapse) is added to the speed buttons
+  onEnd?: (tower: Observation, echo: Observation, normal: Observation) => void; // once, when the Echo run is over; replaces the end card
+  onExit?: () => void; // adds an "Abort mission" button
+}
+
+export function MissionScreen({ mission: missionProp, allowDispatch = true, speed: speedProp, onEnd, onExit }: MissionScreenProps = {}) {
+  const missionRef = useRef<Mission>(null as unknown as Mission);
+  if (!missionRef.current) missionRef.current = missionProp ?? towerDown();
   const world = useRef<World>(null as unknown as World);
-  if (!world.current) world.current = makeWorld();
+  if (!world.current) world.current = makeWorld(missionRef.current);
+  const speeds: readonly number[] = speedProp && speedProp > 60 ? [...SPEEDS, speedProp] : SPEEDS;
   const towerRef = useRef<Observation>(world.current.tower.observe());
   const echoRef = useRef<Observation>(world.current.echo.observe());
   const fxRef = useRef<Fx>(newFx());
@@ -117,7 +130,7 @@ export function MissionScreen() {
   const [snap, setSnap] = useState({ tower: towerRef.current, echo: echoRef.current });
   const q = new URLSearchParams(location.search); // ?run=1&speed=10 for screenshots
   const [running, setRunning] = useState(q.get("run") === "1");
-  const [speed, setSpeed] = useState<(typeof SPEEDS)[number]>(SPEEDS.find((s) => s === Number(q.get("speed"))) ?? 10);
+  const [speed, setSpeed] = useState<number>(speeds.find((s) => s === Number(q.get("speed"))) ?? speeds.find((s) => s === speedProp) ?? 10);
   const [note, setNote] = useState("");
   const speedRef = useRef(speed);
   speedRef.current = speed;
@@ -151,7 +164,7 @@ export function MissionScreen() {
   }, [running]);
 
   const reset = useCallback(() => {
-    world.current = makeWorld();
+    world.current = makeWorld(missionRef.current);
     towerRef.current = world.current.tower.observe();
     echoRef.current = world.current.echo.observe();
     fxRef.current = newFx();
@@ -162,6 +175,14 @@ export function MissionScreen() {
   }, []);
 
   const { tower, echo } = snap;
+  const endRef = useRef(onEnd);
+  endRef.current = onEnd;
+  const ended = useRef(false);
+  useEffect(() => {
+    if (!echo.over || ended.current) return;
+    ended.current = true; // a Replay builds a new world but onEnd still fires once per mount
+    endRef.current?.(tower, echo, world.current.normal);
+  }, [echo.over, tower, echo]);
   const nurse = echo.pods.find((p) => p.id === DISPATCH_POD);
   const dispatch = () => {
     const w = world.current;
@@ -187,18 +208,21 @@ export function MissionScreen() {
       </div>
       <div className="echo-bar">
         <button onClick={() => (echo.over ? reset() : setRunning((r) => !r))}>{echo.over ? "Replay" : running ? "Pause" : "Run"}</button>
-        {SPEEDS.map((s) => (
+        {speeds.map((s) => (
           <button key={s} aria-pressed={speed === s} onClick={() => setSpeed(s)}>{s}×</button>
         ))}
         <button onClick={reset}>Reset</button>
-        <button className="echo-dispatch" disabled={!nurse || nurse.status !== "scheduled" || echo.over} onClick={dispatch}>
-          Dispatch Nurse Mara Vale
-        </button>
+        {allowDispatch && (
+          <button className="echo-dispatch" disabled={!nurse || nurse.status !== "scheduled" || echo.over} onClick={dispatch}>
+            Dispatch Nurse Mara Vale
+          </button>
+        )}
         <span className="grow">{note}</span>
         <a className="echo-strata" href={STRATA_URL}>Sector 07 city sim →</a>
         <span>t+{echo.tick} / {echo.endTick}</span>
+        {onExit && <button onClick={onExit}>Abort mission</button>}
       </div>
-      {echo.over && <EndCard tower={tower} echo={echo} normal={world.current.normal} onReplay={reset} />}
+      {echo.over && !onEnd && <EndCard tower={tower} echo={echo} normal={world.current.normal} onReplay={reset} />}
     </div>
   );
 }
