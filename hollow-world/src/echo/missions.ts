@@ -55,18 +55,9 @@ function makePods(seed: number): Pod[] {
   // MED-1 and PAX-1 are staged for the demo beat; everyone else is placed by the seed.
   const staged = new Set(["MED-1", "PAX-1"]);
   const free = pods.filter((p) => !staged.has(p.id));
-  // 12 pods already in transit at tick 0, each in its own sector (holder set), spread along their path
-  const held = new Set<string>();
-  for (const p of free.filter((_, i) => i % 3 === 1).slice(0, 12)) {
-    const at = Math.floor(rnd() * p.path.length);
-    if (held.has(p.path[at])) continue;
-    held.add(p.path[at]);
-    p.at = at;
-    p.progress = Math.round(rnd() * 80) / 100;
-    p.status = "moving";
-  }
-  // the rest depart over the first two hours; the first 8 depart before the tower dies so it can spend its 6 grants
-  free.filter((p) => p.status === "scheduled").forEach((p, i) => {
+  // Nothing is in transit at tick 0, so only tower grants put pods in sectors: realFlights stays <= grantsEver (6) in tower mode.
+  // Depart over the first two hours; the first 8 leave before the tower dies so it can spend its 6 grants.
+  free.forEach((p, i) => {
     p.departTick = i < 8 ? 1 + Math.floor(rnd() * 14) : 20 + Math.floor(rnd() * 100);
   });
   // MED-1 leaves just after the seal; PAX-1 shares her first sector after she reroutes, so it must yield.
