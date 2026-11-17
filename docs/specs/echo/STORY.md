@@ -83,7 +83,7 @@ export const STORY = {
         { event: "arrive", text: "Made it to Lagos Deep. Late, but here." },
       ],
       verdicts: {
-        0: "Mara never reached Lagos. Silent tunnels cost more than time.",
+        0: "Mara did not reach Lagos in time. Silent tunnels cost more than time.",
         1: "Mara made it, slowly. Too many tunnels were silent.",
         2: "Mara and most of the Lagos nurses made it. The beacons you placed carried the news.",
         3: "Few beacons, well placed. Mara, the nurses and the supplies arrived. The dead zones cost minutes, not lives.",
@@ -127,7 +127,7 @@ export const STORY = {
         { event: "arrive", text: "Lagos Deep. The beacons held the line, and so did the nurses." },
       ],
       verdicts: {
-        0: "Mara did not make it. The line was easier to break than it looked.",
+        0: "The line was easier to break than it looked.",
         1: "Mara made it. The forged pod did not keep her from Lagos.",
         2: "Mara made it and the ghost was turned away. Other nurses still arrived.",
         3: "The ghost was turned away. Every nurse arrived, and the supplies. No center had to say so.",
