@@ -1,4 +1,5 @@
-// Canvas map for Echo: reads an Observation only (contract v1). No engine imports.
+// Canvas map for Echo: reads an Observation only (contract v2). No engine imports.
+// v2: a sector with beacon === false is a dead zone (dim, dashed); missing = beaconed, so v1 missions draw as before.
 import type { City, Observation, Pod, Priority, Sector } from "../echo/types";
 
 export type Variant = "tower" | "echo";
@@ -8,9 +9,15 @@ export interface Fx {
   yields: { podId: string; to: string; born: number }[]; // loser and the winner it yielded to
   oldPaths: Record<string, { path: string[]; born: number }>; // path a pod abandoned when it re-planned
   frac: number; // 0..1 of a tick elapsed since the last engine step, for smooth pods
+  blind: Record<string, string>; // pod id -> the unbeaconed sector it waited blind at ("?" while it still waits there)
+  rejected: Record<string, true>; // pod ids whose credential-reject was logged (ghosts are revealed)
 }
 export const PULSE_MS = 900, YIELD_MS = 2200, FADE_MS = 8000;
-export interface DrawOpts { variant: Variant; width: number; height: number; time: number; fx?: Fx }
+export interface DrawOpts {
+  variant: Variant; width: number; height: number; time: number; fx?: Fx;
+  prepare?: boolean; // beacon placement screen: beacons always drawn as amber lights
+  hover?: string | null; // sector id under the cursor
+}
 
 export const COLORS = {
   bg: "#0a1013",
@@ -22,6 +29,9 @@ export const COLORS = {
   strata: "#f2b84b",
   outbreak: "#ff5a52",
   beacon: "#45d1c4",
+  light: "#f2b84b", // a placed battery beacon
+  dead: "#2a3a40",
+  ghost: "#b565d6",
   seal: "#ff3b3b",
   medical: "#ff5a52",
   supply: "#5fd09a",
@@ -49,7 +59,7 @@ export function makeProjection(obs: Observation, w: number, h: number): Projecti
 
 const LANE_PX = 2.6; // opposite directions of a route are drawn side by side
 
-function lane(project: Projection, s: Sector): [XY, XY] {
+export function lane(project: Projection, s: Sector): [XY, XY] {
   const a = project(s.a), b = project(s.b);
   const dx = b[0] - a[0], dy = b[1] - a[1];
   const len = Math.hypot(dx, dy) || 1;
@@ -57,6 +67,24 @@ function lane(project: Projection, s: Sector): [XY, XY] {
   return [[a[0] + nx, a[1] + ny], [b[0] + nx, b[1] + ny]];
 }
 const lerp = (a: XY, b: XY, t: number): XY => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+
+function segDist([px, py]: XY, [ax, ay]: XY, [bx, by]: XY): number {
+  const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy || 1;
+  const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / l2));
+  return Math.hypot(px - ax - t * dx, py - ay - t * dy);
+}
+
+/** The sector lane nearest to canvas point (x, y), within maxPx. Each tunnel direction is its own lane. */
+export function sectorAt(obs: Observation, w: number, h: number, x: number, y: number, maxPx = 6): string | null {
+  const project = makeProjection(obs, w, h);
+  let best: string | null = null, bd = maxPx;
+  for (const s of obs.sectors) {
+    const [a, b] = lane(project, s);
+    const d = segDist([x, y], a, b);
+    if (d < bd) { bd = d; best = s.id; }
+  }
+  return best;
+}
 
 /** Screen position of every visible pod. Pods sharing a spot fan out so none is hidden. Exported for tests. */
 export function podPositions(obs: Observation, project: Projection, frac = 0): Map<string, XY> {
@@ -136,16 +164,25 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
   }
 
   const podById = new Map(obs.pods.map((p) => [p.id, p]));
+  // a beacon-scarce world (some dead zone, or the placement screen) shows beacons as amber lights; v1 keeps the teal dots
+  const scarce = echo && (!!o.prepare || obs.sectors.some((s) => s.beacon === false));
 
   // lanes
   for (const s of obs.sectors) {
     const [a, b] = lane(project, s);
     const holder = s.holder ? podById.get(s.holder) : undefined;
+    const dead = echo && s.beacon === false;
     ctx.lineCap = "round";
+    if (o.hover === s.id) {
+      ctx.strokeStyle = "rgba(242,184,75,0.35)"; ctx.lineWidth = 7;
+      ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+    }
     if (s.sealed) {
       ctx.strokeStyle = COLORS.seal; ctx.lineWidth = 1.6; ctx.setLineDash([3, 3]);
     } else if (holder) {
       ctx.strokeStyle = PRIORITY_COLOR[holder.priority]; ctx.lineWidth = 2.6; ctx.setLineDash([]);
+    } else if (dead) {
+      ctx.strokeStyle = COLORS.dead; ctx.lineWidth = 1; ctx.setLineDash([2, 4]);
     } else {
       ctx.strokeStyle = echo && down ? COLORS.laneEcho : COLORS.lane; ctx.lineWidth = 1.2; ctx.setLineDash([]);
     }
@@ -157,7 +194,10 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
     ctx.beginPath(); ctx.moveTo(b[0] - (dy / len) * 3.5, b[1] + (dx / len) * 3.5); ctx.lineTo(b[0] + (dy / len) * 3.5, b[1] - (dx / len) * 3.5); ctx.stroke();
     // beacon dot at the middle (Echo only)
     const m = lerp(a, b, 0.5);
-    if (echo && !s.sealed) {
+    if (scarce && !s.sealed && !dead) {
+      ctx.fillStyle = "rgba(242,184,75,0.22)"; ctx.beginPath(); ctx.arc(m[0], m[1], 4.2, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = COLORS.light; ctx.beginPath(); ctx.arc(m[0], m[1], 1.9, 0, Math.PI * 2); ctx.fill();
+    } else if (echo && !s.sealed && !dead) {
       ctx.fillStyle = down ? COLORS.beacon : "#1f6c66";
       ctx.beginPath(); ctx.arc(m[0], m[1], down ? 1.9 : 1.4, 0, Math.PI * 2); ctx.fill();
     }
@@ -231,6 +271,15 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
     const xy = pos.get(p.id); if (!xy) continue;
     const dim = p.status === "holding" || (p.status === "waiting" && p.at >= 0);
     const r = p.priority === "medical" ? 4.6 : 3.4;
+    if (p.ghost && o.fx?.rejected[p.id]) { // revealed Directorate fake: hollow dashed ring, no medical glow
+      ctx.globalAlpha = dim ? 0.5 : 1;
+      ctx.strokeStyle = COLORS.ghost; ctx.lineWidth = 1.6; ctx.setLineDash([2, 2]);
+      ctx.beginPath(); ctx.arc(xy[0], xy[1], r + 1, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = COLORS.ghost; ctx.font = "10px ui-monospace, Menlo, monospace"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      ctx.fillText(`${p.id} forged`, xy[0] + 9, xy[1] - 9);
+      ctx.globalAlpha = 1;
+      continue;
+    }
     ctx.globalAlpha = dim ? 0.38 : 1;
     if (p.priority === "medical" && !dim) {
       ctx.fillStyle = "rgba(255,90,82,0.22)"; ctx.beginPath(); ctx.arc(xy[0], xy[1], r + 4, 0, Math.PI * 2); ctx.fill();
@@ -238,6 +287,11 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
     ctx.fillStyle = PRIORITY_COLOR[p.priority];
     ctx.beginPath(); ctx.arc(xy[0], xy[1], r, 0, Math.PI * 2); ctx.fill();
     ctx.globalAlpha = 1;
+    const blindAt = echo ? o.fx?.blind[p.id] : undefined;
+    if (blindAt && p.status !== "moving" && p.path[p.at + 1] === blindAt) { // waiting blind at a dead zone
+      ctx.fillStyle = COLORS.light; ctx.font = "bold 11px ui-monospace, Menlo, monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText("?", xy[0], xy[1] - r - 7);
+    }
     const y = echo ? o.fx?.yields.find((q) => q.podId === p.id && o.time - q.born < YIELD_MS) : undefined;
     if (y) {
       const txt = `${p.id} yields to ${y.to}`;
