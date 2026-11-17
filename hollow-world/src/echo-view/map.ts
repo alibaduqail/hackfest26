@@ -126,19 +126,26 @@ export function podPositions(obs: Observation, project: Projection, frac = 0): M
   return out;
 }
 
-function cityLabel(ctx: CanvasRenderingContext2D, c: City, [x, y]: XY) {
+const LABEL_FONT = "11px ui-monospace, SFMono-Regular, Menlo, monospace";
+type Box = [x: number, y: number, w: number, h: number];
+const overlaps = (a: Box, b: Box) => a[0] < b[0] + b[2] && b[0] < a[0] + a[2] && a[1] < b[1] + b[3] && b[1] < a[1] + a[3];
+
+/** Where a city's name goes: left edge, middle line, width. */
+function labelAt(ctx: CanvasRenderingContext2D, c: City, [x, y]: XY): [number, number, number] {
   const side = LABEL_SIDE[c.id] ?? "r";
+  ctx.font = LABEL_FONT;
+  const wText = ctx.measureText(c.name).width;
+  return side === "t" ? [x - wText / 2, y - 14, wText] :
+    side === "b" ? [x - wText / 2, y + 15, wText] :
+    side === "l" ? [x - 11 - wText, y, wText] : [x + 11, y, wText];
+}
+
+function cityLabel(ctx: CanvasRenderingContext2D, c: City, xy: XY) {
+  const [tx, ty] = labelAt(ctx, c, xy);
   ctx.fillStyle = c.outbreak ? COLORS.outbreak : c.strata ? COLORS.strata : COLORS.label;
-  ctx.font = "11px ui-monospace, SFMono-Regular, Menlo, monospace";
   ctx.textBaseline = "middle";
-  const text = c.name;
-  const wText = ctx.measureText(text).width;
-  const [tx, ty, align] =
-    side === "t" ? [x - wText / 2, y - 14, "left"] :
-    side === "b" ? [x - wText / 2, y + 15, "left"] :
-    side === "l" ? [x - 11 - wText, y, "left"] : [x + 11, y, "left"];
-  ctx.textAlign = align as CanvasTextAlign;
-  ctx.fillText(text, tx, ty);
+  ctx.textAlign = "left";
+  ctx.fillText(c.name, tx, ty);
 }
 
 function drawX(ctx: CanvasRenderingContext2D, [x, y]: XY, r: number) {
@@ -274,7 +281,9 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
     const [a, b] = lane(project, s); const m = lerp(a, b, 0.5);
     const k = Math.min(1, Math.max(0, (o.time - st.born) / STAMP_POP_MS));
     ctx.save();
-    ctx.translate(m[0] + 8, m[1] + 24); // below the X, clear of the city and pod labels ctx.rotate(-0.18); ctx.scale(2.2 - 1.2 * k, 2.2 - 1.2 * k);
+    ctx.translate(m[0] + 8, m[1] + 24); // below the X, clear of the city and pod labels
+    ctx.rotate(-0.18);
+    ctx.scale(2.2 - 1.2 * k, 2.2 - 1.2 * k);
     ctx.globalAlpha = 0.3 + 0.62 * k;
     ctx.font = "bold 12px ui-monospace, Menlo, monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
     const tw = ctx.measureText("SEALED").width + 12;
@@ -339,13 +348,19 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
       const city = obs.cities.find((c) => c.id === (p.status === "arrived" ? p.dest : p.origin)); // not on the map yet, or arrived
       const at = pos.get(podId) ?? (city ? project([city.x, city.y]) : undefined);
       if (!at) continue;
+      // keep clear of city names and Mara's own label: first spot (above, above-left, below, below-left, higher) that hits none
+      const avoid: Box[] = obs.cities.map((c) => { const [lx, ly, lw] = labelAt(ctx, c, project([c.x, c.y])); return [lx - 2, ly - 8, lw + 4, 16]; });
+      if (pos.has(podId)) { ctx.font = "11px ui-monospace, Menlo, monospace"; avoid.push([at[0] + 8, at[1] + 7, ctx.measureText(p.label).width + 4, 16]); }
       ctx.font = "12px system-ui, -apple-system, sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
-      const tw = ctx.measureText(sp.text).width + 16;
-      const x = Math.min(Math.max(4, at[0] - 12), w - tw - 4), y = Math.max(4, at[1] - 44);
+      const tw = ctx.measureText(sp.text).width + 16, th = 24;
+      const fit = ([bx, by]: [number, number]): Box => [Math.min(Math.max(4, bx), w - tw - 4), Math.min(Math.max(4, by), h - th - 4), tw, th];
+      const spots = [[at[0] - 12, at[1] - 44], [at[0] - tw + 12, at[1] - 44], [at[0] - 12, at[1] + 28], [at[0] - tw + 12, at[1] + 28], [at[0] - 12, at[1] - 72]].map((xy) => fit(xy as [number, number]));
+      const [x, y] = spots.find((b) => !avoid.some((a) => overlaps(a, b))) ?? spots[0];
       ctx.globalAlpha = Math.min(1, (SPEECH_MS - age) / 600, age / 150);
       ctx.fillStyle = "#f4ece4"; ctx.strokeStyle = COLORS.medical; ctx.lineWidth = 1.2;
-      ctx.beginPath(); ctx.roundRect(x, y, tw, 24, 6); ctx.fill(); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(at[0] - 2, y + 24); ctx.lineTo(at[0] + 4, y + 24); ctx.lineTo(at[0], at[1] - 8); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(x, y, tw, th, 6); ctx.fill(); ctx.stroke();
+      const above = y + th <= at[1], edge = above ? y + th : y, tx = Math.min(Math.max(at[0], x + 10), x + tw - 10); // tail toward the pod
+      ctx.beginPath(); ctx.moveTo(tx - 3, edge); ctx.lineTo(tx + 3, edge); ctx.lineTo(at[0], at[1] + (above ? -8 : 8)); ctx.closePath(); ctx.fill();
       ctx.fillStyle = "#3a1512"; ctx.fillText(sp.text, x + 8, y + 12.5);
       ctx.globalAlpha = 1;
     }
