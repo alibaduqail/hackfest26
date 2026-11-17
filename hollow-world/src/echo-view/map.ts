@@ -16,7 +16,7 @@ export interface Fx {
   stamps: { sectorId: string; born: number }[]; // SEALED stamps
   flashAt: number; // wall-clock ms of the TOWER OFFLINE flash, 0 = none
 }
-export const PULSE_MS = 900, YIELD_MS = 2200, FADE_MS = 8000, SPEECH_MS = 4000, STAMP_POP_MS = 350;
+export const PULSE_MS = 900, YIELD_MS = 2200, FADE_MS = 8000, SPEECH_MS = 5000, STAMP_POP_MS = 350;
 export interface DrawOpts {
   variant: Variant; width: number; height: number; time: number; fx?: Fx;
   prepare?: boolean; // beacon placement screen: beacons always drawn as amber lights

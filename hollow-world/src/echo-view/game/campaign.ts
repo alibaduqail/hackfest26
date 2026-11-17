@@ -3,6 +3,7 @@
 // a mission whose builder is missing shows as a locked "coming soon" card.
 import * as M from "../../echo/missions";
 import type { Story } from "../MissionScreen";
+import { STORY as TEXT } from "./story-text";
 import { CONTRACT_VERSION, type Mission, type Observation, type Sector } from "../../echo/types";
 
 export interface Objective {
@@ -17,7 +18,8 @@ export interface CampaignMission {
   briefing: string[]; // typewriter paragraphs
   broadcast: string; // the Directorate's line, shown in the BROADCAST frame
   prepTip?: string; // the Prepare screen's hint
-  story?: { ticker?: Partial<Story["ticker"]>; mara?: Partial<Story["mara"]> }; // overrides of STORY for this mission
+  ticker?: Partial<Story["ticker"]>; // in-run Directorate ticker overrides
+  mara?: Story["mara"]; // Nurse Mara Vale's line per log event kind, said the first time it happens
   verdicts?: string[]; // debrief line by stars earned (index 0..3); missing = the computed numbers line only
   objectives: Objective[]; // one star each, from STARS
   allowDispatch: boolean;
@@ -87,36 +89,28 @@ export function objective(g: Goal): Objective {
 }
 const goals = (id: string) => (STARS[id] ?? []).map(objective);
 
-// ---- prologue (once, before Mission 1) and epilogue (after the last mission). Placeholder text until STORY.md lands. ----
-export const PROLOGUE: string[] = [
-  "The Hollow runs on one voice. Every pod in every tunnel waits for the Directorate's tower to say go.",
-  "The residents have started bolting small battery radios into the tunnels. They call the network Echo.",
-  "Tonight they find out whether it works.",
-];
-export const EPILOGUE: string[] = [
-  "The tower never came back. The tunnels kept moving anyway.",
-  "Every beacon you placed is still out there, passing news from one to the next.",
-  "Echo is slower than the tower. But nobody can switch it off.",
-];
+// ---- story text: STORY.md, pasted into story-text.ts ----
+export const PROLOGUE: string[] = TEXT.prologue; // once, before Mission 1
+export const EPILOGUE: string[] = TEXT.epilogue; // after the last mission
 
-// ---- in-run story beats (default lines; missions override some) ----
-export const STORY: Story = {
-  ticker: {
-    before: "TOWER ONLINE · ALL FLIGHTS CLEARED BY THE DIRECTORATE",
-    down: "ALL FLIGHTS REMAIN AUTHORIZED",
-    seal: "TUNNEL CLOSED FOR YOUR SAFETY",
-    mid: "NETWORK STABLE · {claimed} FLIGHTS AUTHORIZED",
-  },
-  mara: {
-    sealHeard: "They sealed it. Going around.",
-    yieldWon: "Thank you.",
-    arrive: "I'm here. Where do you need me?",
-  },
+/** A mission's briefing, broadcast, prep tip, verdicts and Mara's lines from STORY.md. */
+function fromStory(id: keyof typeof TEXT.missions) {
+  const t: { briefing: string[]; broadcast: string; prepTip: string; maraLines: { event: string; text: string }[]; verdicts: Record<number, string> } = TEXT.missions[id];
+  return {
+    briefing: t.briefing, broadcast: t.broadcast, prepTip: t.prepTip,
+    verdicts: [0, 1, 2, 3].map((n) => t.verdicts[n]),
+    mara: Object.fromEntries(t.maraLines.map((l) => [l.event, l.text])) as Story["mara"],
+  };
+}
+
+// ---- in-run beats: the Directorate's ticker lines (the game's own; missions override some) ----
+const TICKER: Story["ticker"] = {
+  before: "TOWER ONLINE · ALL FLIGHTS CLEARED BY THE DIRECTORATE",
+  down: "ALL FLIGHTS REMAIN AUTHORIZED",
+  seal: "TUNNEL CLOSED FOR YOUR SAFETY",
+  mid: "NETWORK STABLE · {claimed} FLIGHTS AUTHORIZED",
 };
-export const storyFor = (cm: CampaignMission): Story => ({
-  ticker: { ...STORY.ticker, ...cm.story?.ticker },
-  mara: { ...STORY.mara, ...cm.story?.mara },
-});
+export const storyFor = (cm: CampaignMission): Story => ({ ticker: { ...TICKER, ...cm.ticker }, mara: cm.mara ?? {} });
 
 const builder = (name: string): (() => Mission) | null => {
   const f = (M as unknown as Record<string, unknown>)[name];
@@ -127,52 +121,31 @@ export const CAMPAIGN: CampaignMission[] = [
   {
     id: "tower-down", number: 1, name: "Tower Down",
     hook: "The tower goes dark. Get Nurse Mara Vale to Lagos.",
-    briefing: [
-      "Two billion people live in the Hollow, in cities under the dead ones. Pods run the tunnels between them, and one Directorate tower clears every flight.",
-      "Nurse Mara Vale is in Sector 07. Her patients are in Lagos, where a lung sickness is spreading.",
-      "Tonight the tower goes dark at minute twenty. The residents already bolted a beacon into every tunnel. Watch what Echo does with them.",
-    ],
-    broadcast: "ALL FLIGHTS REMAIN AUTHORIZED. THE NETWORK IS STABLE. REMAIN IN YOUR SECTOR.",
+    ...fromStory("tower-down"),
     objectives: goals("tower-down"),
     allowDispatch: true, defaultSpeed: 10, build: builder("towerDown"),
   },
   {
     id: "dead-zones", number: 2, name: "Dead Zones",
     hook: "Not enough beacons for every tunnel. Choose.",
-    briefing: [
-      "Same tunnels, same night. But the beacon stores ran low: you have far fewer beacons than tunnels.",
-      "A tunnel with no beacon hears nothing and passes nothing on. A pod waits there blind before it dares to enter.",
-      "Place the beacons where the news has to travel. The Directorate will seal the Lagos tunnel at minute thirty.",
-    ],
-    broadcast: "UNLICENSED RADIOS ARE A DANGER TO ALL FLIGHTS. HAND THEM IN AT YOUR SECTOR OFFICE.",
-    story: { ticker: { mid: "UNLICENSED RADIOS ENDANGER FLIGHTS · {claimed} FLIGHTS AUTHORIZED" } },
-    prepTip: "The Directorate will seal the direct tunnel to Lagos. Beacon the detour. Mara's detour runs through São Paulo. The supply runs need the rest.",
+    ...fromStory("dead-zones"),
+    ticker: { mid: "UNLICENSED RADIOS ENDANGER FLIGHTS · {claimed} FLIGHTS AUTHORIZED" },
     objectives: goals("dead-zones"),
     allowDispatch: true, defaultSpeed: 10, build: builder("deadZones"),
   },
   {
     id: "grounding", number: 3, name: "The Grounding",
     hook: "Weeks, not hours. The Directorate keeps cutting.",
-    briefing: [
-      "The tower is not coming back. The Directorate calls it a grounding and says it is temporary.",
-      "Lagos needs nurses for weeks, not hours. A second wave of pods will leave once the first has landed.",
-      "Expect more seals. First the Lagos tunnel, then Cairo, then London. Build a network that can lose a tunnel and keep talking.",
-    ],
-    broadcast: "THE GROUNDING PROTECTS YOU. TRAVEL WILL RESUME WHEN ORDER IS RESTORED.",
-    story: { ticker: { down: "THE GROUNDING IS TEMPORARY", mid: "ORDER IS RETURNING · {claimed} FLIGHTS AUTHORIZED" }, mara: { arrive: "I'm here. Send the next wave." } },
+    ...fromStory("grounding"),
+    ticker: { down: "THE GROUNDING IS TEMPORARY", mid: "ORDER IS RETURNING · {claimed} FLIGHTS AUTHORIZED" },
     objectives: goals("grounding"),
     allowDispatch: false, defaultSpeed: 300, build: builder("grounding"),
   },
   {
     id: "ghost-flight", number: 4, name: "Ghost Flight",
     hook: "A medical pod with a forged signature wants the front of the queue.",
-    briefing: [
-      "The Directorate has learned how Echo works: medicine goes first.",
-      "Tonight it slips a pod of its own into the tunnels. It calls itself medical, and its signature is forged.",
-      "There is no center to ask. Every beacon checks the signature itself.",
-    ],
-    broadcast: "A MEDICAL CONVOY IS EN ROUTE. ALL FLIGHTS MUST GIVE WAY.",
-    story: { ticker: { mid: "A MEDICAL CONVOY HAS PRIORITY · {claimed} FLIGHTS AUTHORIZED" } },
+    ...fromStory("ghost-flight"),
+    ticker: { mid: "A MEDICAL CONVOY HAS PRIORITY · {claimed} FLIGHTS AUTHORIZED" },
     objectives: goals("ghost-flight"),
     allowDispatch: true, defaultSpeed: 10, build: builder("ghostFlight"),
   },
