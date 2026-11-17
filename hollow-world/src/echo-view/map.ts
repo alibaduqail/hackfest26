@@ -2,7 +2,15 @@
 import type { City, Observation, Pod, Priority, Sector } from "../echo/types";
 
 export type Variant = "tower" | "echo";
-export interface DrawOpts { variant: Variant; width: number; height: number; time: number }
+/** View-only effects, kept by the screen in wall-clock ms so they stay readable at 60x. Not part of the contract. */
+export interface Fx {
+  pulses: { sectorId: string; kind: "announce" | "seal" | "release"; born: number }[];
+  yields: { podId: string; to: string; born: number }[];
+  oldPaths: Record<string, { path: string[]; born: number }>; // path a pod abandoned when it re-planned
+  frac: number; // 0..1 of a tick elapsed since the last engine step, for smooth pods
+}
+export const PULSE_MS = 900, YIELD_MS = 2200, FADE_MS = 8000;
+export interface DrawOpts { variant: Variant; width: number; height: number; time: number; fx?: Fx }
 
 export const COLORS = {
   bg: "#0a1013",
@@ -49,7 +57,7 @@ function lane(project: Projection, s: Sector): [XY, XY] {
 const lerp = (a: XY, b: XY, t: number): XY => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
 
 /** Screen position of every visible pod. Pods sharing a spot fan out so none is hidden. Exported for tests. */
-export function podPositions(obs: Observation, project: Projection): Map<string, XY> {
+export function podPositions(obs: Observation, project: Projection, frac = 0): Map<string, XY> {
   const sectors = new Map(obs.sectors.map((s) => [s.id, s]));
   const cities = new Map(obs.cities.map((c) => [c.id, c]));
   const raw = new Map<string, XY>();
@@ -63,7 +71,8 @@ export function podPositions(obs: Observation, project: Projection): Map<string,
     const s = sectors.get(p.path[p.at]);
     if (!s) continue;
     const [a, b] = lane(project, s);
-    raw.set(p.id, lerp(a, b, Math.min(1, Math.max(0, p.progress))));
+    const ahead = p.status === "moving" && !obs.over ? frac / Math.max(1, s.minutes) : 0; // glide between ticks
+    raw.set(p.id, lerp(a, b, Math.min(1, Math.max(0, p.progress + ahead))));
   }
   const groups = new Map<string, string[]>();
   for (const [id, xy] of raw) {
@@ -153,33 +162,51 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
     if (s.sealed) { ctx.fillStyle = "rgba(10,16,19,0.85)"; ctx.beginPath(); ctx.arc(m[0], m[1], 9, 0, Math.PI * 2); ctx.fill(); drawX(ctx, m, 6.5); }
   }
 
-  // MED-1's current path, so the reroute is readable
+  // abandoned paths fade out, the re-planned path is drawn solid
+  const sectorById = new Map(obs.sectors.map((s) => [s.id, s]));
+  if (echo && o.fx) {
+    for (const [podId, old] of Object.entries(o.fx.oldPaths)) {
+      const pod = obs.pods.find((x) => x.id === podId); if (!pod) continue;
+      const keep = new Set(pod.path);
+      const alpha = Math.max(0.1, 0.65 - ((o.time - old.born) / FADE_MS) * 0.55);
+      ctx.strokeStyle = `rgba(255,150,120,${alpha})`; ctx.lineWidth = 2.4; ctx.setLineDash([2, 5]);
+      for (const id of old.path) {
+        const s = sectorById.get(id); if (!s || keep.has(id)) continue;
+        const [a, b] = lane(project, s);
+        ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+      }
+      ctx.setLineDash([]);
+    }
+  }
   const nurse = obs.pods.find((p) => p.nurse && p.id === "MED-1") ?? obs.pods.find((p) => p.nurse);
   if (nurse && nurse.rerouted && nurse.status !== "arrived") {
-    const sectors = new Map(obs.sectors.map((s) => [s.id, s]));
-    ctx.strokeStyle = "rgba(255,90,82,0.55)"; ctx.lineWidth = 3.4; ctx.lineJoin = "round";
+    ctx.strokeStyle = "rgba(255,90,82,0.6)"; ctx.lineWidth = 3.6; ctx.lineJoin = "round"; ctx.lineCap = "round";
     ctx.beginPath();
+    let pen = false;
     nurse.path.forEach((id, i) => {
-      const s = sectors.get(id); if (!s) return;
+      const s = sectorById.get(id); if (!s) return;
       const [a, b] = lane(project, s);
-      if (i === 0) ctx.moveTo(a[0], a[1]);
+      if (i < nurse.at) return; // already travelled
+      if (!pen) { ctx.moveTo(a[0], a[1]); pen = true; }
       ctx.lineTo(b[0], b[1]);
     });
     ctx.stroke();
   }
 
-  // beacon pulses: expanding rings, age counts hops, time keeps them alive between frames
-  if (echo) {
-    const byId = new Map(obs.sectors.map((s) => [s.id, s]));
-    for (const p of obs.pulses) {
-      const s = byId.get(p.sectorId); if (!s) continue;
+  // beacon pulses: live rings born when the engine emits them; a lit beacon marks the hop
+  const byId = new Map(obs.sectors.map((s) => [s.id, s]));
+  const fx = o.fx;
+  if (echo && fx) {
+    for (const p of fx.pulses) {
+      const life = (o.time - p.born) / PULSE_MS;
+      const s = byId.get(p.sectorId);
+      if (!s || life < 0 || life > 1) continue;
       const [a, b] = lane(project, s); const m = lerp(a, b, 0.5);
-      const phase = ((o.time / 900) % 1);
-      const r = 4 + phase * 16 + p.age * 5;
-      ctx.strokeStyle = COLORS.pulse[p.kind];
-      ctx.globalAlpha = Math.max(0, 0.9 - phase * 0.8 - p.age * 0.2);
-      ctx.lineWidth = 1.6;
-      ctx.beginPath(); ctx.arc(m[0], m[1], r, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = ctx.fillStyle = COLORS.pulse[p.kind];
+      ctx.globalAlpha = 0.95 * (1 - life);
+      ctx.lineWidth = 1.8;
+      ctx.beginPath(); ctx.arc(m[0], m[1], 3 + life * (p.kind === "seal" ? 17 : 11), 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(m[0], m[1], 3.2, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 1;
     }
   }
@@ -195,7 +222,7 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
   }
 
   // pods on top
-  const pos = podPositions(obs, project);
+  const pos = podPositions(obs, project, o.fx?.frac ?? 0);
   const order: Pod[] = [...obs.pods].sort((a, b) => rank(a.priority) - rank(b.priority));
   for (const p of order) {
     const xy = pos.get(p.id); if (!xy) continue;
@@ -208,6 +235,17 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
     ctx.fillStyle = PRIORITY_COLOR[p.priority];
     ctx.beginPath(); ctx.arc(xy[0], xy[1], r, 0, Math.PI * 2); ctx.fill();
     ctx.globalAlpha = 1;
+    const y = echo ? o.fx?.yields.find((q) => q.podId === p.id && o.time - q.born < YIELD_MS) : undefined;
+    if (y) {
+      const txt = `yield → ${y.to}`;
+      ctx.font = "bold 11px ui-monospace, Menlo, monospace"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      const wt = ctx.measureText(txt).width + 10;
+      ctx.globalAlpha = Math.min(1, (YIELD_MS - (o.time - y.born)) / 500);
+      ctx.fillStyle = "#3a2c0c"; ctx.strokeStyle = "#e8b64a"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.roundRect(xy[0] + 8, xy[1] + 6, wt, 17, 4); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#f4cf7a"; ctx.fillText(txt, xy[0] + 13, xy[1] + 15);
+      ctx.globalAlpha = 1;
+    }
     if (p.id === nurse?.id && p.status !== "arrived") {
       ctx.fillStyle = "#ffd5d2"; ctx.font = "11px ui-monospace, Menlo, monospace"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
       ctx.fillText(p.label, xy[0] + 9, xy[1] - 9);
