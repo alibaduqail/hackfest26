@@ -1,5 +1,7 @@
+import { useEffect } from "react";
 import type { Observation } from "../../echo/types";
 import { EndCard } from "../EndCard";
+import { play } from "./audio";
 import { verdict, type CampaignMission } from "./campaign";
 import { Stars } from "./MissionSelect";
 
@@ -11,6 +13,10 @@ export function Debrief({ cm, result, onRetry, onNext, nextLabel = "Next mission
   const { tower, echo, normal } = result;
   const met = cm.objectives.map((o) => o.met(echo, normal));
   const stars = met.filter(Boolean).length;
+  useEffect(() => { // one ping per star
+    const ids = Array.from({ length: stars }, (_, i) => setTimeout(() => play("star", i), 350 + i * 300));
+    return () => ids.forEach(clearTimeout);
+  }, [stars]);
   return (
     <div className="g-screen">
       <EndCard
