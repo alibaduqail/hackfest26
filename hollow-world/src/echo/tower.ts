@@ -38,7 +38,7 @@ export function towerPhase(s: Sim) {
   if (!s.towerUp) return;
 
   // grants: token bucket, one token per flight; a healthy normal-day tower is not throttled
-  s.tokens = Math.min(60, s.tokens + m.towerRatePerHour);
+  s.tokens += m.towerRatePerHour;
   const queue = s.pods.filter((p) => p.status === "waiting" && p.at < 0 && !s.rt.get(p.id)!.granted).sort((a, b) => a.departTick - b.departTick || (a.id < b.id ? -1 : 1));
   for (const p of queue) {
     if (s.mode !== "normal" && s.tokens < 60) break;
@@ -47,6 +47,7 @@ export function towerPhase(s: Sim) {
     s.grantsEver++;
     say(s, "grant", `Tower clears ${p.label}`, p.id);
   }
+  s.tokens = Math.min(s.tokens, 60); // unspent clearance does not bank beyond one flight
   // a cleared pod enters its next sector once it is free
   const order = s.pods.filter((p) => p.status === "waiting" && s.rt.get(p.id)!.granted).sort((a, b) => a.departTick - b.departTick || (a.id < b.id ? -1 : 1));
   for (const p of order) {
