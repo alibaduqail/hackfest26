@@ -5,11 +5,11 @@ import type { Observation } from "../echo/types";
 const css = `
 .echo-end{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:24px;background:rgba(6,10,12,.94);color:#cfe3e8;font:15px ui-monospace,SFMono-Regular,Menlo,monospace}
 .echo-end h2{margin:0;font-size:22px;letter-spacing:.06em;font-weight:600}
-.echo-end-grid{display:grid;grid-template-columns:minmax(0,auto) repeat(2,minmax(0,240px));gap:14px 40px;align-items:baseline}
+.echo-end-grid{display:grid;grid-template-columns:minmax(0,auto) repeat(2,minmax(0,300px));gap:14px 40px;align-items:baseline}
 .echo-end-grid .h{color:#7f979f;font-size:13px;letter-spacing:.08em;text-transform:uppercase}
 .echo-end-grid .l{color:#9fb6bd}
 .echo-end-grid .v{font-size:44px;line-height:1.1;font-weight:600}
-.echo-end-grid .v.sm{font-size:26px}
+.echo-end-grid .v.sm{font-size:24px;white-space:nowrap}
 .echo-end-grid .bad{color:#ff5a52}
 .echo-end-grid .good{color:#45d1c4}
 .echo-end-note{max-width:760px;text-align:center;color:#7f979f;line-height:1.5}

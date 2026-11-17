@@ -206,9 +206,9 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
       const [a, b] = lane(project, s); const m = lerp(a, b, 0.5);
       const bold = p.kind === "seal"; // the seal ripple is the beacon story; routine announce/release rings stay faint
       ctx.strokeStyle = ctx.fillStyle = COLORS.pulse[p.kind];
-      ctx.globalAlpha = (bold ? 0.95 : 0.3) * (1 - life);
-      ctx.lineWidth = bold ? 1.8 : 1;
-      ctx.beginPath(); ctx.arc(m[0], m[1], 3 + life * (bold ? 17 : 7), 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = (bold ? 0.95 : 0.15) * (1 - life);
+      ctx.lineWidth = bold ? 1.8 : 0.8;
+      ctx.beginPath(); ctx.arc(m[0], m[1], (bold ? 3 : 1.6) + life * (bold ? 17 : 3.5), 0, Math.PI * 2); ctx.stroke();
       if (bold) { ctx.beginPath(); ctx.arc(m[0], m[1], 3.2, 0, Math.PI * 2); ctx.fill(); }
       ctx.globalAlpha = 1;
     }
