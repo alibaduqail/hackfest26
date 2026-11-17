@@ -58,7 +58,7 @@ function makePods(seed: number): Pod[] {
   // Nothing is in transit at tick 0, so only tower grants put pods in sectors: realFlights stays <= grantsEver (6) in tower mode.
   // Depart over the first two hours; the first 8 leave before the tower dies so it can spend its 6 grants.
   free.forEach((p, i) => {
-    p.departTick = i < 8 ? 1 + Math.floor(rnd() * 14) : 20 + Math.floor(rnd() * 100);
+    p.departTick = i < 8 ? 1 + i : 20 + Math.floor(rnd() * 100); // ticks 1-8: always a waiting pod when the tower has a grant to give
   });
   // MED-1 leaves just after the seal; PAX-1 shares her first sector after she reroutes, so it must yield.
   const med1 = pods[0];
