@@ -165,9 +165,12 @@ function score(s: Sim) {
   sc.towerClaimed = Math.round(s.grantsEver * s.m.towerInflation);
   s.hist[s.tick] = s.entries;
   if (s.mode === "normal") return void (sc.capacityPct = 100);
+  // capacity: sector entries delivered so far vs the normal day, averaged over the busy period (up to the tick the normal day finished)
   const ref = reference(s.m);
-  const t = Math.min(s.tick, ref.length - 1, lastChange(ref)); // compare up to the moment the normal day finished its work
-  sc.capacityPct = ref[t] === 0 ? 100 : Math.min(100, Math.round((100 * (s.hist[t] ?? 0)) / ref[t]));
+  const t = Math.min(s.tick, lastChange(ref));
+  const sum = (h: number[]) => h.slice(0, t + 1).reduce((a, b) => a + b, 0);
+  const n = sum(ref);
+  sc.capacityPct = n === 0 ? 100 : Math.min(100, Math.round((100 * sum(s.hist)) / n));
 }
 function lastChange(h: number[]): number {
   let i = h.length - 1;
