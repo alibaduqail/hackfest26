@@ -59,21 +59,20 @@ export const COLORS = {
 } as const;
 const PRIORITY_COLOR: Record<Priority, string> = { medical: COLORS.medical, supply: COLORS.supply, passenger: COLORS.passenger };
 // label side per city, chosen so neighbours (NY/Sector 07, London/Moscow, Beijing/Tokyo) never collide
-const LABEL_SIDE: Record<string, "l" | "r" | "t" | "b"> = { ny: "t", s07: "l", lon: "l", mow: "t", bei: "t", tok: "r", cairo: "r", lagos: "l", mum: "r", jak: "r", syd: "l", sao: "r" };
+const LABEL_SIDE: Record<string, "l" | "r" | "t" | "b"> = { ny: "t", s07: "l", lon: "t", mow: "r", bei: "t", tok: "r", cairo: "t", lagos: "l", mum: "r", jak: "r", syd: "l", sao: "r" };
 
 type XY = [number, number];
 export interface Projection { (p: XY): XY }
 
-/** Fit the cities and sector ends into the canvas, uniform scale, centered. */
+/** Project the network onto an angled ground plane and fit it to the pane. */
 export function makeProjection(obs: Observation, w: number, h: number): Projection {
-  const pts: XY[] = [...obs.cities.map((c): XY => [c.x, c.y]), ...obs.sectors.flatMap((s) => [s.a, s.b])];
+  const iso = ([x, y]: XY): XY => [x - y * 0.48, x * 0.22 + y * 0.62];
+  const pts: XY[] = [...obs.cities.map((c): XY => [c.x, c.y]), ...obs.sectors.flatMap((s) => [s.a, s.b])].map(iso);
   const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
   const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
-  // fill the pane (equirectangular, so a stretch is fine); bottom inset keeps room for the tower card, top for the caption
-  const ml = Math.min(112, Math.max(76, w * 0.16)), mr = Math.min(104, w * 0.15), mt = 72, mb = Math.min(124, h * 0.2);
-  const kx = (w - ml - mr) / (x1 - x0 || 1), ky = (h - mt - mb) / (y1 - y0 || 1);
-  const ox = ml - kx * x0, oy = mt - ky * y0;
-  return ([x, y]) => [ox + kx * x, oy + ky * y];
+  const ml = Math.min(112, Math.max(76, w * 0.16)), mr = Math.min(112, Math.max(95, w * 0.15)), mt = 82, mb = Math.min(124, h * 0.2);
+  const kx = Math.max(1, w - ml - mr) / (x1 - x0 || 1), ky = Math.max(1, h - mt - mb) / (y1 - y0 || 1);
+  return (p) => { const [x, y] = iso(p); return [ml + (x - x0) * kx, mt + (y - y0) * ky]; };
 }
 
 const easeOutBack = (k: number) => { const c = 1.9, x = Math.min(1, Math.max(0, k)) - 1; return 1 + (c + 1) * x ** 3 + c * x ** 2; };
@@ -151,13 +150,14 @@ function labelAt(ctx: CanvasRenderingContext2D, c: City, [x, y]: XY): [number, n
   const side = LABEL_SIDE[c.id] ?? "r";
   ctx.font = LABEL_FONT;
   const wText = ctx.measureText(c.name).width;
-  return side === "t" ? [x - wText / 2, y - 14, wText] :
+  return side === "t" ? [x - wText / 2, y - 25, wText] :
     side === "b" ? [x - wText / 2, y + 15, wText] :
     side === "l" ? [x - 11 - wText, y, wText] : [x + 11, y, wText];
 }
 
 function cityLabel(ctx: CanvasRenderingContext2D, c: City, xy: XY) {
-  const [tx, ty] = labelAt(ctx, c, xy);
+  const [tx, ty, width] = labelAt(ctx, c, xy);
+  ctx.fillStyle = "rgba(13,22,28,0.85)"; ctx.fillRect(tx - 2, ty - 8, width + 4, 16);
   ctx.fillStyle = c.outbreak ? COLORS.outbreak : c.strata ? COLORS.strata : COLORS.label;
   ctx.textBaseline = "middle";
   ctx.textAlign = "left";
@@ -182,17 +182,30 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
   ctx.fillStyle = COLORS.bg;
   ctx.fillRect(0, 0, w, h);
 
-  // faint equirectangular graticule (the map is the tunnel network, not the surface)
+  // The slanted grid follows the network's ground plane.
   ctx.strokeStyle = COLORS.grid;
   ctx.lineWidth = 1;
   for (let g = 0; g <= 1.0001; g += 0.1) {
-    const [x] = project([g, 0]), [, y] = project([0, g]);
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    const [a, b, c, d] = [project([g, 0]), project([g, 1]), project([0, g]), project([1, g])];
+    ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b); ctx.moveTo(...c); ctx.lineTo(...d); ctx.stroke();
   }
 
   const podById = new Map(obs.pods.map((p) => [p.id, p]));
   // a beacon-scarce world (some dead zone, or the placement screen) shows beacons as amber lights; v1 keeps the teal dots
   const scarce = echo && (!!o.prepare || obs.sectors.some((s) => s.beacon === false));
+
+  // Draw the tunnel beds first so each directional lane stays visible above them.
+  for (const s of obs.sectors) {
+    const [a, b] = lane(project, s);
+    ctx.lineCap = "round";
+    const dead = echo && s.beacon === false;
+    ctx.setLineDash(dead ? [3, 5] : []);
+    ctx.strokeStyle = "#080f12"; ctx.lineWidth = 7;
+    ctx.beginPath(); ctx.moveTo(a[0], a[1] + 4); ctx.lineTo(b[0], b[1] + 4); ctx.stroke();
+    ctx.strokeStyle = dead ? "#334348" : "#50645f"; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b); ctx.stroke();
+    ctx.setLineDash([]);
+  }
 
   // lanes
   for (const s of obs.sectors) {
@@ -209,9 +222,9 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
     } else if (holder) {
       ctx.strokeStyle = PRIORITY_COLOR[holder.priority]; ctx.lineWidth = 2.6; ctx.setLineDash([]);
     } else if (dead) {
-      ctx.strokeStyle = COLORS.dead; ctx.lineWidth = 1; ctx.setLineDash([2, 4]);
+      ctx.strokeStyle = "#728983"; ctx.lineWidth = 1.2; ctx.setLineDash([3, 5]);
     } else {
-      ctx.strokeStyle = echo && down ? COLORS.laneEcho : COLORS.lane; ctx.lineWidth = 1.2; ctx.setLineDash([]);
+      ctx.strokeStyle = echo && down ? "#a9bcb0" : "#81968e"; ctx.lineWidth = 1.3; ctx.setLineDash([]);
     }
     ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
     ctx.setLineDash([]);
@@ -224,12 +237,16 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
     const pop = o.pops?.find((q) => q.sectorId === s.id);
     const age = pop ? o.time - pop.born : Infinity;
     const grow = pop?.kind === "place" && age < POP_MS ? easeOutBack(age / POP_MS) : 1; // the amber light pops in
+    if (echo && !s.sealed && !dead) {
+      ctx.strokeStyle = "#738780"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(m[0], m[1]); ctx.lineTo(m[0], m[1] - 6); ctx.stroke();
+    }
     if (scarce && !s.sealed && !dead) {
-      ctx.fillStyle = "rgba(210,167,106,0.22)"; ctx.beginPath(); ctx.arc(m[0], m[1], 4.2 * grow, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = COLORS.light; ctx.beginPath(); ctx.arc(m[0], m[1], 1.9 * grow, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "rgba(210,167,106,0.22)"; ctx.beginPath(); ctx.arc(m[0], m[1] - 6, 4.2 * grow, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = COLORS.light; ctx.beginPath(); ctx.arc(m[0], m[1] - 6, 1.9 * grow, 0, Math.PI * 2); ctx.fill();
     } else if (echo && !s.sealed && !dead) {
       ctx.fillStyle = down ? COLORS.beacon : "#6b5a3a";
-      ctx.beginPath(); ctx.arc(m[0], m[1], down ? 1.9 : 1.4, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(m[0], m[1] - 6, down ? 1.9 : 1.4, 0, Math.PI * 2); ctx.fill();
     }
     if (pop && age >= 0 && age < RING_MS) { // ring pulse (amber on place, grey on remove); a removed light fades out
       const k = age / RING_MS, place = pop.kind === "place";
@@ -313,13 +330,20 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
     }
   }
 
-  // cities
-  for (const c of obs.cities) {
+  // Isometric city blocks: dark faces, lit windows and a roof marker.
+  for (const c of [...obs.cities].sort((a, b) => project([a.x, a.y])[1] - project([b.x, b.y])[1])) {
     const [x, y] = project([c.x, c.y]);
     const col = c.outbreak ? COLORS.outbreak : c.strata ? COLORS.strata : COLORS.city;
-    ctx.fillStyle = col;
-    ctx.beginPath(); ctx.arc(x, y, c.strata || c.outbreak ? 5.5 : 4.5, 0, Math.PI * 2); ctx.fill();
-    if (c.outbreak) { ctx.strokeStyle = col; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(x, y, 9.5, 0, Math.PI * 2); ctx.stroke(); }
+    const r = c.strata || c.outbreak ? 9 : 7, height = c.strata ? 16 : 12;
+    ctx.fillStyle = "#26373d";
+    ctx.beginPath(); ctx.moveTo(x-r, y); ctx.lineTo(x, y+4); ctx.lineTo(x, y-height+4); ctx.lineTo(x-r, y-height); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#40555b";
+    ctx.beginPath(); ctx.moveTo(x, y+4); ctx.lineTo(x+r, y); ctx.lineTo(x+r, y-height); ctx.lineTo(x, y-height+4); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#687b78";
+    ctx.beginPath(); ctx.moveTo(x-r, y-height); ctx.lineTo(x, y-height-4); ctx.lineTo(x+r, y-height); ctx.lineTo(x, y-height+4); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = THEME.amberHi; ctx.fillRect(x-r+2, y-height+5, 2, 2); ctx.fillRect(x+3, y-height+5, 2, 2);
+    ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y-height-2, 2.2, 0, Math.PI * 2); ctx.fill();
+    if (c.outbreak) { ctx.strokeStyle = col; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(x, y, 12, 0, Math.PI * 2); ctx.stroke(); }
     cityLabel(ctx, c, [x, y]);
   }
 
@@ -361,8 +385,10 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
     if (p.priority === "medical" && !dim) {
       ctx.fillStyle = "rgba(224,99,79,0.22)"; ctx.beginPath(); ctx.arc(xy[0], xy[1], r + 4, 0, Math.PI * 2); ctx.fill();
     }
+    ctx.fillStyle = "#26373d";
+    ctx.beginPath(); ctx.roundRect(xy[0] - r - 2, xy[1] - r / 2 + 2, r * 2 + 4, r + 2, r / 2); ctx.fill();
     ctx.fillStyle = PRIORITY_COLOR[p.priority];
-    ctx.beginPath(); ctx.arc(xy[0], xy[1], r, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(xy[0] - r - 2, xy[1] - r / 2, r * 2 + 4, r, r / 2); ctx.fill();
     ctx.globalAlpha = 1;
     const blindAt = echo ? o.fx?.blind[p.id] : undefined;
     if (blindAt && p.status !== "moving" && p.path[p.at + 1] === blindAt) { // waiting blind at a dead zone
