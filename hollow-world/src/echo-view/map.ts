@@ -5,7 +5,7 @@ export type Variant = "tower" | "echo";
 /** View-only effects, kept by the screen in wall-clock ms so they stay readable at 60x. Not part of the contract. */
 export interface Fx {
   pulses: { sectorId: string; kind: "announce" | "seal" | "release"; born: number }[];
-  yields: { podId: string; to: string; born: number }[];
+  yields: { podId: string; to: string; born: number }[]; // loser and the winner it yielded to
   oldPaths: Record<string, { path: string[]; born: number }>; // path a pod abandoned when it re-planned
   frac: number; // 0..1 of a tick elapsed since the last engine step, for smooth pods
 }
@@ -204,11 +204,12 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
       const s = byId.get(p.sectorId);
       if (!s || life < 0 || life > 1) continue;
       const [a, b] = lane(project, s); const m = lerp(a, b, 0.5);
+      const bold = p.kind === "seal"; // the seal ripple is the beacon story; routine announce/release rings stay faint
       ctx.strokeStyle = ctx.fillStyle = COLORS.pulse[p.kind];
-      ctx.globalAlpha = 0.95 * (1 - life);
-      ctx.lineWidth = 1.8;
-      ctx.beginPath(); ctx.arc(m[0], m[1], 3 + life * (p.kind === "seal" ? 17 : 11), 0, Math.PI * 2); ctx.stroke();
-      ctx.beginPath(); ctx.arc(m[0], m[1], 3.2, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = (bold ? 0.95 : 0.3) * (1 - life);
+      ctx.lineWidth = bold ? 1.8 : 1;
+      ctx.beginPath(); ctx.arc(m[0], m[1], 3 + life * (bold ? 17 : 7), 0, Math.PI * 2); ctx.stroke();
+      if (bold) { ctx.beginPath(); ctx.arc(m[0], m[1], 3.2, 0, Math.PI * 2); ctx.fill(); }
       ctx.globalAlpha = 1;
     }
   }
@@ -239,7 +240,7 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
     ctx.globalAlpha = 1;
     const y = echo ? o.fx?.yields.find((q) => q.podId === p.id && o.time - q.born < YIELD_MS) : undefined;
     if (y) {
-      const txt = `yield → ${y.to}`;
+      const txt = `${p.id} yields to ${y.to}`;
       ctx.font = "bold 11px ui-monospace, Menlo, monospace"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
       const wt = ctx.measureText(txt).width + 10;
       ctx.globalAlpha = Math.min(1, (YIELD_MS - (o.time - y.born)) / 500);
