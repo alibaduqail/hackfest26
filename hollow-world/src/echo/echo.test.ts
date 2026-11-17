@@ -10,8 +10,9 @@ async function load<T>(path: string): Promise<T | null> {
     return (await import(path)) as T;
   } catch (e) {
     const err = e as { code?: string; message?: string };
-    // only "module missing" counts as not-landed; a real error in a landed module must fail the run
-    if (err.code === "ERR_MODULE_NOT_FOUND" && err.message?.includes(path.replace("./", ""))) return null;
+    // only "this module is missing" counts as not-landed; anything else (syntax error, a missing nested import) must fail the run
+    const missing = /Cannot find module '([^']+)'/.exec(err.message ?? "")?.[1] ?? "";
+    if (err.code === "ERR_MODULE_NOT_FOUND" && /^(\.\/|.*[\\/])/.test(missing) && missing.replace(/\.(ts|js)$/, "").endsWith(path.replace("./", "/"))) return null;
     throw e;
   }
 }
@@ -261,10 +262,8 @@ t("AC-8 credential reject: forged medical competes as a passenger", () => {
 
 // ======================= AC-9 =======================
 function findTowerDown(): Mission | null {
-  if (!missionsMod) return null;
-  const all = Object.values(missionsMod);
-  const m = all.find((v) => (v as Mission)?.id === "tower-down" && Array.isArray((v as Mission).pods));
-  return (m as Mission) ?? null;
+  const fn = missionsMod?.towerDown;
+  return typeof fn === "function" ? (fn as () => Mission)() : null;
 }
 test("AC-9 tower-down shape: echo beats failed tower, capacity below a normal day",
   { skip: ready && findTowerDown() ? false : "engine / missions.ts not landed yet" }, () => {
