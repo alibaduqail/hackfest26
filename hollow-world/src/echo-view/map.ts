@@ -173,14 +173,48 @@ function drawX(ctx: CanvasRenderingContext2D, [x, y]: XY, r: number) {
   ctx.stroke();
 }
 
+/** Prepare screen: a placed beacon is a mast with a big warm lamp and glow; an empty tunnel shows a hollow socket to click. */
+function prepBeacon(ctx: CanvasRenderingContext2D, [mx, my]: XY, dead: boolean, grow: number, hot: boolean) {
+  if (dead) { // a socket: where a beacon would go
+    ctx.strokeStyle = hot ? THEME.amberHi : "rgba(144,165,159,0.75)"; ctx.lineWidth = hot ? 2 : 1.4; ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.arc(mx, my, hot ? 8 : 6, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+    return;
+  }
+  const ly = my - 17; // lamp height
+  ctx.strokeStyle = "#9fb3ab"; ctx.lineWidth = 2; ctx.lineCap = "round";
+  ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx, ly); ctx.stroke(); // mast
+  const g = ctx.createRadialGradient(mx, ly, 0, mx, ly, 28 * grow);
+  g.addColorStop(0, "rgba(228,196,148,0.6)"); g.addColorStop(1, "rgba(228,196,148,0)");
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(mx, ly, 28 * grow, 0, Math.PI * 2); ctx.fill(); // glow
+  ctx.fillStyle = THEME.amber; ctx.strokeStyle = "#fff4d6"; ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.arc(mx, ly, 7.5 * grow, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); // lamp
+}
+
+/** Prepare screen: what a click will do, next to the tunnel under the cursor or the keyboard focus. */
+function prepChip(ctx: CanvasRenderingContext2D, [mx, my]: XY, placed: boolean, w: number) {
+  const text = placed ? "Remove beacon" : "Place beacon";
+  ctx.font = `600 12px ${FONT_SANS}`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+  const tw = ctx.measureText(text).width + 18, x = Math.min(Math.max(6, mx - tw / 2), w - tw - 6), y = my - 46;
+  ctx.fillStyle = "rgba(13,22,28,0.94)"; ctx.strokeStyle = THEME.amber; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.roundRect(x, y - 12, tw, 24, 5); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = THEME.amberText; ctx.fillText(text, x + 9, y + 0.5);
+}
+
 export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: DrawOpts) {
   const { width: w, height: h, variant } = o;
   const project = makeProjection(obs, w, h);
   const echo = variant === "echo";
   const down = !obs.towerUp;
 
-  ctx.fillStyle = COLORS.bg;
-  ctx.fillRect(0, 0, w, h);
+  const prep = !!o.prepare && echo;
+  if (prep) ctx.clearRect(0, 0, w, h); // Prepare floats over the Strata backdrop
+  else { ctx.fillStyle = COLORS.bg; ctx.fillRect(0, 0, w, h); }
+  if (prep) { // the network's ground plate: a dark slab with a Strata panel edge, so the map reads against the busy scene
+    const quad = [project([0, 0]), project([1, 0]), project([1, 1]), project([0, 1])];
+    ctx.beginPath(); quad.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.closePath();
+    ctx.fillStyle = "rgba(13,22,28,0.56)"; ctx.fill();
+    ctx.strokeStyle = THEME.line2; ctx.lineWidth = 1.5; ctx.stroke();
+  }
 
   // The slanted grid follows the network's ground plane.
   ctx.strokeStyle = COLORS.grid;
@@ -199,10 +233,10 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
     const [a, b] = lane(project, s);
     ctx.lineCap = "round";
     const dead = echo && s.beacon === false;
-    ctx.setLineDash(dead ? [3, 5] : []);
-    ctx.strokeStyle = "#080f12"; ctx.lineWidth = 7;
+    ctx.setLineDash(dead ? (prep ? [6, 7] : [3, 5]) : []);
+    ctx.strokeStyle = prep ? "#05090c" : "#080f12"; ctx.lineWidth = prep ? 12 : 7;
     ctx.beginPath(); ctx.moveTo(a[0], a[1] + 4); ctx.lineTo(b[0], b[1] + 4); ctx.stroke();
-    ctx.strokeStyle = dead ? "#334348" : "#50645f"; ctx.lineWidth = 5;
+    ctx.strokeStyle = prep ? (dead ? "#27343a" : "#5f7a73") : dead ? "#334348" : "#50645f"; ctx.lineWidth = prep ? 8 : 5;
     ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b); ctx.stroke();
     ctx.setLineDash([]);
   }
@@ -214,13 +248,16 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
     const dead = echo && s.beacon === false;
     ctx.lineCap = "round";
     if (o.hover === s.id) {
-      ctx.strokeStyle = "rgba(210,167,106,0.5)"; ctx.lineWidth = 9;
+      ctx.strokeStyle = prep ? "rgba(228,196,148,0.55)" : "rgba(210,167,106,0.5)"; ctx.lineWidth = prep ? 16 : 9;
       ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
     }
     if (s.sealed) {
       ctx.strokeStyle = COLORS.seal; ctx.lineWidth = 1.6; ctx.setLineDash([3, 3]);
     } else if (holder) {
       ctx.strokeStyle = PRIORITY_COLOR[holder.priority]; ctx.lineWidth = 2.6; ctx.setLineDash([]);
+    } else if (prep) {
+      if (dead) { ctx.strokeStyle = "rgba(138,162,155,0.7)"; ctx.lineWidth = 1.4; ctx.setLineDash([3, 6]); }
+      else { ctx.strokeStyle = THEME.amberHi; ctx.lineWidth = 2.2; ctx.setLineDash([]); }
     } else if (dead) {
       ctx.strokeStyle = "#728983"; ctx.lineWidth = 1.2; ctx.setLineDash([3, 5]);
     } else {
@@ -237,11 +274,12 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
     const pop = o.pops?.find((q) => q.sectorId === s.id);
     const age = pop ? o.time - pop.born : Infinity;
     const grow = pop?.kind === "place" && age < POP_MS ? easeOutBack(age / POP_MS) : 1; // the amber light pops in
-    if (echo && !s.sealed && !dead) {
+    if (prep && !s.sealed) prepBeacon(ctx, m, dead, grow, o.hover === s.id);
+    if (echo && !s.sealed && !dead && !prep) {
       ctx.strokeStyle = "#738780"; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(m[0], m[1]); ctx.lineTo(m[0], m[1] - 6); ctx.stroke();
     }
-    if (scarce && !s.sealed && !dead) {
+    if (prep) { /* drawn above */ } else if (scarce && !s.sealed && !dead) {
       ctx.fillStyle = "rgba(210,167,106,0.22)"; ctx.beginPath(); ctx.arc(m[0], m[1] - 6, 4.2 * grow, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = COLORS.light; ctx.beginPath(); ctx.arc(m[0], m[1] - 6, 1.9 * grow, 0, Math.PI * 2); ctx.fill();
     } else if (echo && !s.sealed && !dead) {
@@ -448,6 +486,10 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
       ctx.fillStyle = "#3a1512"; lines.forEach((l, i) => ctx.fillText(l, x + 8, y + 12.5 + i * 15));
       ctx.globalAlpha = 1;
     }
+  }
+  if (prep && o.hover) { // what a click does, on top of everything
+    const hs = obs.sectors.find((x) => x.id === o.hover);
+    if (hs) { const [ha, hb] = lane(project, hs); prepChip(ctx, lerp(ha, hb, 0.5), hs.beacon !== false, w); }
   }
 }
 const rank = (p: Priority) => (p === "medical" ? 2 : p === "supply" ? 1 : 0);
