@@ -100,6 +100,7 @@ export function findPath(from: string, to: string, blocked: ReadonlySet<string> 
 export function validateWorld(w: World = world): string[] {
   const errs: string[] = [];
   const ids = new Set(w.cities.map((c) => c.id));
+  const cityOf = new Map(w.cities.map((c) => [c.id, c]));
   const bySector = new Map(w.sectors.map((s) => [s.id, s]));
   if (bySector.size !== w.sectors.length) errs.push("duplicate sector id");
   const near = (p: [number, number], c: City) => Math.hypot(p[0] - c.x, p[1] - c.y) < 1e-9;
@@ -114,9 +115,10 @@ export function validateWorld(w: World = world): string[] {
       if (i > 0 && (ch[i - 1].b[0] !== s.a[0] || ch[i - 1].b[1] !== s.a[1])) errs.push(`${s.id}: does not meet previous sector`);
     });
     if (ch.length < 3 || ch.length > 6) errs.push(`${rid}: ${ch.length} sectors, want 3-6`);
-    if (!near(ch[0].a, city(ch[0].from))) errs.push(`${rid}: start not at ${ch[0].from}`);
-    if (!near(ch[ch.length - 1].b, city(ch[0].to))) errs.push(`${rid}: end not at ${ch[0].to}`);
+    if (!near(ch[0].a, cityOf.get(ch[0].from)!)) errs.push(`${rid}: start not at ${ch[0].from}`);
+    if (!near(ch[ch.length - 1].b, cityOf.get(ch[0].to)!)) errs.push(`${rid}: end not at ${ch[0].to}`);
   }
+  if (w.cities.length !== cities.length) return errs; // a small mission world (descent.ts) is checked per chain only; the 16-route and connectivity rules are the Hollow's
   if (chains.size !== 32) errs.push(`${chains.size} one-way chains, want 32 (16 routes)`);
   for (const a of w.cities) for (const b of w.cities) if (a !== b && !findPath(a.id, b.id, new Set(), w)) errs.push(`no path ${a.id} -> ${b.id}`);
   return errs;
