@@ -1,7 +1,7 @@
 // The Descent: a small vertical world, one protocol mechanism per level. The UI page is driven by this mission's observations.
 // Deterministic, no randomness. Numbers and credentials are simulated (see docs/specs/echo/DESCENT.md). Not part of MISSIONS.
 import { sign } from "./credential";
-import type { City, Mission, Pod, Sector, World } from "./types";
+import type { City, Command, Mission, Pod, Sector, World } from "./types";
 import { findPath } from "./world";
 
 type Level = 1 | 2 | 3 | 4 | 5;
@@ -91,3 +91,38 @@ export function descent(): Mission {
     sealAt: T.seal, sealSectorId: "main0", pods,
   };
 }
+
+// ---- Live play: the Relay places beacons during the run (placeBeacon commands). See DESCENT.md "Live play". ----
+
+const LIVE_START = ["ramp0", "ramp1", "ramp2"]; // the L1 depot ramp and the first relay sector
+
+/** Same world, pods and seal as descent(), but only LIVE_START has a beacon. Every other sector is a dead zone: a pod waits 3 minutes
+ * blind before entering it. Run is longer than descent() so slow, unbeaconed runs can still arrive late and score. */
+export function descentLive(): Mission {
+  const m = descent();
+  for (const s of m.world.sectors) s.beacon = LIVE_START.includes(s.id);
+  return { ...m, id: "descent-live", title: "The Descent (live)", endTick: 120, beaconBudget: 5 };
+}
+
+/** Star table, calibrated by exhaustive search over every placement set (scenarios/live-search.ts). Each beacon on Mara's route
+ * saves 3 minutes. 0 beacons: Mara t92, medicine t97 (0 stars). Best with 5: Mara t77, medicine t82. Deadlines are arrive-by ticks. */
+export const DESCENT_LIVE_GOALS: { stars: 1 | 2 | 3; maraBy: number; medicineBy?: number; text: string }[] = [
+  { stars: 1, maraBy: 86, text: "Nurse Mara reaches the deep clinic by minute 86." },
+  { stars: 2, maraBy: 83, medicineBy: 88, text: "Mara by minute 83 and the medicine by minute 88." },
+  { stars: 3, maraBy: 79, medicineBy: 84, text: "Mara by minute 79 and the medicine by minute 84." },
+];
+
+/** Stars earned by a finished live run: the highest goal whose deadlines were all met (each star includes the one below). */
+export function descentLiveStars(pods: Pick<Pod, "id" | "arriveTick">[]): 0 | 1 | 2 | 3 {
+  const by = (id: string, t = Infinity) => (pods.find((p) => p.id === id)?.arriveTick ?? Infinity) <= t;
+  return DESCENT_LIVE_GOALS.reduce<0 | 1 | 2 | 3>((n, g) => (by("MED-1", g.maraBy) && (g.medicineBy === undefined || by("SUP-3", g.medicineBy)) ? g.stars : n), 0);
+}
+
+/** A replayable run worth 3 stars (Mara t77, medicine t82): the Relay stays two sectors ahead of Mara, one beacon every 4 minutes. */
+export const DESCENT_LIVE_SOLUTION: Command[] = [
+  { type: "placeBeacon", sectorId: "link0", atTick: 16 },
+  { type: "placeBeacon", sectorId: "link1", atTick: 20 },
+  { type: "placeBeacon", sectorId: "link2", atTick: 24 },
+  { type: "placeBeacon", sectorId: "trunk0", atTick: 28 },
+  { type: "placeBeacon", sectorId: "trunk1", atTick: 32 },
+];

@@ -69,7 +69,8 @@ export type LogKind =
   | "release"
   | "arrive"
   | "credential-reject"
-  | "blind"; // v2: an Echo pod waits at an unbeaconed sector because it can't hear whether it is clear
+  | "blind" // v2: an Echo pod waits at an unbeaconed sector because it can't hear whether it is clear
+  | "beacon-placed"; // v2: a live placeBeacon took effect; sectorId is the sector that now has a beacon
 
 export interface LogEvent {
   tick: number;
@@ -113,8 +114,9 @@ export interface Observation {
   over: boolean;
 }
 
-// Makes a scheduled medical pod depart at atTick. Apply the same command to every engine in a split screen.
-export type Command = { type: "dispatchMedical"; podId: string; atTick: number };
+// dispatchMedical makes a scheduled medical pod depart at atTick. Apply the same command to every engine in a split screen.
+// placeBeacon (additive, echo mode only): the Relay bolts a beacon into sectorId at the start of tick atTick, before the protocol steps; it counts against Mission.beaconBudget.
+export type Command = { type: "dispatchMedical"; podId: string; atTick: number } | { type: "placeBeacon"; sectorId: string; atTick: number };
 
 export interface Mission {
   id: string; // v2: any mission id ("tower-down", "grounding", ...)

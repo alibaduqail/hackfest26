@@ -62,7 +62,45 @@ export interface Sim {
   yielded: Set<string>; // "pod|sector" yields already logged
   announced: Set<string>;
   blind: Map<string, number>; // "pod|sector" -> tick the pod started waiting blind at that unbeaconed sector
+  beaconAt: Map<string, number>; // beaconed sector -> tick its beacon went live (-Infinity: from the start)
+  pending: { atTick: number; sectorId: string }[]; // accepted placeBeacon commands not yet applied
+  placed: number; // live placements applied so far
   score: Score;
+}
+
+/** Beacon graph: chain neighbours plus every sector touching the same city; an unbeaconed sector neither hears nor relays. */
+function adjacent(t: Topo, on: Map<string, number>, id: string): string[] {
+  const out = [t.pred.get(id), t.succ.get(id)].filter((x): x is string => !!x);
+  for (const c of [t.start.get(id), t.end.get(id)]) if (c) out.push(...t.touching.get(c)!);
+  return out.filter((n) => on.has(n)).sort();
+}
+
+/** News reach per seal: hops from the sealed sector, one per tick, through beaconed sectors. A beacon that went live at tick T
+ * (`on`) can only relay from T on, so a sector hears at max(T, neighbour's tick + 1). With every beacon live from the start this is plain BFS. */
+function refreshNews(t: Topo, on: Map<string, number>) {
+  for (const n of t.seals) {
+    // ponytail: news starts only from a beaconed sealed sector; an unbeaconed seal is learned by standing at it
+    const dist = new Map<string, number>();
+    const best = new Map<string, { t: number; seq: number }>();
+    const open = new Set<string>();
+    let seq = 0;
+    const offer = (id: string, tick: number) => {
+      const b = best.get(id);
+      if (dist.has(id) || (b && b.t <= tick)) return;
+      best.set(id, { t: tick, seq: b?.seq ?? seq++ });
+      open.add(id);
+    };
+    if (on.has(n.sectorId)) offer(n.sectorId, Math.max(n.at, on.get(n.sectorId)!));
+    while (open.size) {
+      let id = "";
+      for (const o of open) if (!id || best.get(o)!.t < best.get(id)!.t || (best.get(o)!.t === best.get(id)!.t && best.get(o)!.seq < best.get(id)!.seq)) id = o;
+      open.delete(id);
+      const tick = best.get(id)!.t;
+      dist.set(id, tick - n.at);
+      for (const nb of adjacent(t, on, id)) offer(nb, Math.max(on.get(nb)!, tick + 1));
+    }
+    n.dist = dist;
+  }
 }
 
 function buildTopo(sectors: Sector[], seals: { at: number; sectorId: string }[]): Topo {
@@ -92,26 +130,8 @@ function buildTopo(sectors: Sector[], seals: { at: number; sectorId: string }[])
     if (b) add(t.touching, b, s.id);
   }
   for (const l of [...t.startingAt.values(), ...t.touching.values()]) l.sort();
-  // beacon graph: chain neighbours, plus every sector touching the same city; an unbeaconed sector neither hears nor relays
-  const beaconed = new Set(sectors.filter(hasBeacon).map((s) => s.id));
-  const adj = (id: string): string[] => {
-    const out = [t.pred.get(id), t.succ.get(id)].filter((x): x is string => !!x);
-    for (const c of [t.start.get(id), t.end.get(id)]) if (c) out.push(...t.touching.get(c)!);
-    return out.filter((n) => beaconed.has(n)).sort();
-  };
-  for (const { at, sectorId } of seals) {
-    const dist = new Map<string, number>();
-    if (beaconed.has(sectorId)) {
-      // ponytail: news starts only from a beaconed sealed sector; an unbeaconed seal is learned by standing at it
-      dist.set(sectorId, 0);
-      const q = [sectorId];
-      while (q.length) {
-        const id = q.shift()!;
-        for (const n of adj(id)) if (!dist.has(n)) (dist.set(n, dist.get(id)! + 1), q.push(n));
-      }
-    }
-    t.seals.push({ at, sectorId, dist });
-  }
+  for (const { at, sectorId } of seals) t.seals.push({ at, sectorId, dist: new Map() });
+  refreshNews(t, new Map(sectors.filter(hasBeacon).map((s) => [s.id, -Infinity])));
   return t;
 }
 
@@ -128,6 +148,7 @@ export function makeSim(m: Mission, mode: Mode): Sim {
     topo: buildTopo(sectors, mode === "normal" ? [] : sealsOf(m)),
     log: [], pulses: [], tokens: 0, grantsEver: 0, entries: 0, hist: [], released: new Map(),
     flown: new Set(), yielded: new Set(), announced: new Set(), blind: new Map(),
+    beaconAt: new Map(sectors.filter(hasBeacon).map((x) => [x.id, -Infinity])), pending: [], placed: 0,
     score: { nursesArrived: 0, nursesTotal: pods.filter((p) => p.nurse).length, suppliesDelivered: 0, suppliesTotal: pods.filter((p) => p.cargo).length, passengerDelayMin: 0, capacityPct: 100, realFlights: 0, towerClaimed: 0 },
   };
 }
@@ -200,8 +221,25 @@ function lastChange(h: number[]): number {
   return i;
 }
 
+/** Live beacons due this tick go in first, in (atTick, sectorId) order, so the protocol below already hears them. */
+function placeBeacons(s: Sim) {
+  const due = s.pending.filter((c) => c.atTick <= s.tick).sort((a, b) => a.atTick - b.atTick || (a.sectorId < b.sectorId ? -1 : 1));
+  if (!due.length) return;
+  s.pending = s.pending.filter((c) => c.atTick > s.tick);
+  for (const c of due) {
+    const sec = s.sec.get(c.sectorId)!;
+    if (hasBeacon(sec)) continue; // act() already refuses these; kept so the engine never double-counts
+    sec.beacon = true;
+    s.beaconAt.set(sec.id, s.tick);
+    s.placed++;
+    say(s, "beacon-placed", `Relay places a beacon at ${sec.id}`, undefined, sec.id);
+  }
+  refreshNews(s.topo, s.beaconAt); // news can hop through the new beacons from this tick on
+}
+
 export function stepSim(s: Sim) {
   s.pulses = [];
+  placeBeacons(s);
   towerPhase(s);
   movement(s);
   if (s.mode === "echo") echoPhase(s);
@@ -233,7 +271,19 @@ export const createEngine: CreateEngine = (m, mode): EchoEngineApi => {
       });
     },
     act(c: Command) {
-      const p = s.pods.find((x) => x.id === (c as Command).podId);
+      if (c.type === "placeBeacon") {
+        const sec = s.sec.get(c.sectorId);
+        if (s.mode !== "echo") return { ok: false, reason: "only echo mode has beacons" };
+        if (!sec) return { ok: false, reason: "unknown sector" };
+        if (c.atTick < s.tick) return { ok: false, reason: "atTick is in the past" };
+        if (c.atTick >= s.m.endTick) return { ok: false, reason: "atTick is past the end of the run" };
+        if (hasBeacon(sec) || s.pending.some((x) => x.sectorId === c.sectorId)) return { ok: false, reason: "sector already has a beacon" };
+        // ponytail: the budget caps live placements (applied + queued); beacons already in the mission data are the free starting layout
+        if (typeof s.m.beaconBudget === "number" && s.placed + s.pending.length >= s.m.beaconBudget) return { ok: false, reason: "no beacons left" };
+        s.pending.push({ atTick: c.atTick, sectorId: c.sectorId });
+        return { ok: true };
+      }
+      const p = s.pods.find((x) => x.id === (c as { podId?: string }).podId);
       if (c.type !== "dispatchMedical" || !p) return { ok: false, reason: "unknown pod" };
       if (p.priority !== "medical") return { ok: false, reason: "not a medical pod" };
       if (p.status !== "scheduled") return { ok: false, reason: "already departed" };
