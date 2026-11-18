@@ -2,6 +2,7 @@ import type { Scenario } from "../engine/types";
 import { project } from "./projection";
 
 export function connectedSlice(scenario: Scenario) {
+  // shortcut: only cross-0-1 is styled; generalize after the visual slice is approved.
   const link = scenario.links.find((item) => item.id === "cross-0-1" && item.kind === "corridor");
   if (!link) return;
   const a = scenario.rooms.find((room) => room.id === link.a);
