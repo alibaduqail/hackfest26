@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#10191e">
+  <title>The Descent · Echo</title>
+</head>
+<body>
+  <header>
+    <div><a class="brand" href="./index.html" aria-label="Echo game title">ECHO</a><h1>The Descent</h1></div>
+    <div class="mode"><time id="clock">t+00</time><div class="switch" role="group" aria-label="Clearance system">
+      <button data-mode="tower">Tower</button><button data-mode="echo">Echo</button>
+    </div></div>
+  </header>
+  <main>
+    <div class="world-scroll" tabindex="0" role="region" aria-label="Five-level cutaway, scroll horizontally on small screens">
+      <div class="world"><canvas id="scene" role="img" aria-label="Pod locations, occupied tracks and beacon activity in the five-level cutaway" aria-describedby="manifest"></canvas></div>
+    </div>
+    <aside aria-label="Run observations">
+      <div class="eyebrow" id="level"></div>
+      <div aria-live="polite" aria-atomic="true"><h2 id="headline"></h2><p id="caption"></p></div>
+      <ol id="rules" aria-label="System rules">
+        <li><b>L1</b><span>Tower claims vs actual</span></li>
+        <li><b>L2</b><span>Beacon relay · Rule 3 · credentials</span></li>
+        <li><b>L3</b><span>Rule 1 · one pod per section<br>Rule 2 · medical › supply › passenger</span></li>
+        <li><b>L4</b><span>News hops · reroute</span></li>
+        <li><b>L5</b><span>Care and medicine</span></li>
+      </ol>
+      <dl class="stats">
+        <div><dt>flights authorized</dt><dd id="claim"></dd></div>
+        <div><dt>actually moving</dt><dd id="actual"></dd></div>
+      </dl>
+      <section class="ward"><h3>Deep clinic</h3><p id="ward"></p></section>
+      <ol id="events" aria-label="Latest system events"></ol>
+      <p id="manifest" class="sr"></p>
+    </aside>
+  </main>
+  <footer>
+    <nav aria-label="Run playback">
+      <div class="controls">
+        <button id="play" aria-keyshortcuts="Space">▶ Play</button>
+        <button id="step" aria-keyshortcuts="ArrowRight" title="Step forward (→), back (←)">Step</button>
+        <div class="switch" role="group" aria-label="Playback speed"><button data-speed="1">1×</button><button data-speed="4">4×</button></div>
+      </div>
+      <div id="beats" role="group" aria-label="Jump to a beat"></div>
+    </nav>
+    <div class="fine"><span>Simulated run · deterministic engine (npm run harness)</span><span>Credential check uses a simulated signature.</span></div>
+  </footer>
+  <noscript>Enable JavaScript to run the Echo engine and compare the two clearance systems.</noscript>
+  <script type="module" src="./src/echo-view/cutaway/main.ts"></script>
+</body>
+</html>
