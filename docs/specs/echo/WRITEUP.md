@@ -1,6 +1,6 @@
 # Echo: keeping essential movement going when the center fails
 
-**Echo is a playable simulation of the Hollow: you are the Relay, you place scarce radio beacons before the Directorate's tower goes dark, and the pods use only what you built.**
+**Echo is a backup protocol for the Hollow's tunnels: battery beacons and three rules let pods keep moving, medicine first, when the Directorate's tower goes dark or lies. The game is how you plan and test it.**
 
 **Play:** https://hollow-world-eight.vercel.app/ (the game) · **Tower Down only:** https://hollow-world-eight.vercel.app/echo.html · **Repo:** https://github.com/alibaduqail/hackfest26
 
@@ -10,7 +10,7 @@ In the Hollow, a network of underground cities, tunnel pods carry nurses, medici
 
 In November 2026, every departure in the United States was halted for hours.
 
-Echo addresses **#7** (organize and call for help without the central network) as the core, **#2** (water, food and medicine reach the deep cities, medical first), **#9 in part** (nurses and supplies reach the outbreak city; we do not track the outbreak), and the lore: the Directorate controls movement and fakes its numbers. We do not claim #8 or #10.
+Echo addresses several track problems with one mechanism (see below).
 
 ## How Echo works
 
@@ -22,7 +22,17 @@ Every pod becomes its own navigator:
 
 When the Directorate seals a tunnel, the news hops beacon to beacon and pods re-plan around it. A pod that cannot hear waits. A missing beacon makes Echo slower, never unsafe.
 
-**Precedents:** US coal mines run node-to-node radio (required after the 2006 Sago disaster). Airports without a tower run on pilots announcing intent. Phone mesh apps served Hong Kong in 2019.
+**Precedents:** US coal mines run node-to-node radio (required after the 2006 Sago disaster). Airports without a tower run on pilots announcing intent.
+
+## Track problems addressed
+
+One mechanism, five problems. Echo backs up movement; it does not fix shortages.
+
+- **#7, organize without the Directorate's network.** Battery beacons talk only to neighbors. No center, no internet.
+- **#9, numbers that don't match reality.** The tower claims 84 flights authorized while 5 move. Echo's picture comes from the pods' own announcements, so it shows what really moves, and nurses and supplies reach the outbreak city. We do not track the outbreak.
+- **#10, medicine runs out in the deep levels first.** Medical traffic goes first, and only clinic-credentialed nurses can file it. Tower Down: 8 of 8 nurses and 10 of 10 supply runs arrive. We move medicine; we do not make it.
+- **#5, a flooded tunnel cuts off a neighborhood.** A seal is passed hop by hop and pods reroute.
+- **#2, share fairly.** Priority is fixed in advance: medical, then supply (water, food, medicine), then passengers. We do not allocate power.
 
 ## The game
 
@@ -48,7 +58,7 @@ Tower Down: 12 deep cities, 40 pods. The tower goes dark at minute 20. At minute
 | Network capacity | 5% | 94% | 100% |
 | Mara arrives | never | t+137 | t+80 |
 
-**Beacon layouts (Dead Zones, `npm run harness:all`).** Everyone still arrives; placement changes the time. With no beacons, Mara arrives at t+167 and the last supply at t+201. With 40 beacons on the detour first: t+137 and t+189. With the best layout our search found: t+143 and t+162.
+**Beacon layouts (Dead Zones, `npm run harness:all` and `npm run harness:search`).** Everyone still arrives; placement changes the time. With no beacons, Mara arrives at t+167 and the last supply at t+201. With 40 beacons on the detour first: t+137 and t+189. With the best layout our search found: t+143 and t+162.
 
 **Where Echo is worse:** passengers wait 2.4 times as long as on a normal day, the network runs at 94% of normal, and Mara's trip takes 137 minutes instead of 80. Echo is a fallback, not a replacement for the tower.
 
@@ -60,7 +70,7 @@ Tower Down: 12 deep cities, 40 pods. The tower goes dark at minute 20. At minute
 
 ## How it was built
 
-Two students and a team of coordinated AI agents. The engine is headless and deterministic: the same seed gives the same numbers. It has 63 tests, and every pull request got an independent review before merging.
+Two students and a team of coordinated AI agents. The engine is headless and deterministic: the same seed gives the same numbers. It has 67 tests, and every pull request got an independent review before merging.
 
 ## Questions we expect
 
@@ -68,4 +78,3 @@ Two students and a team of coordinated AI agents. The engine is headless and det
 - **Who verifies nurses?** Clinics issue credentials before any outage. Pods check them locally. Here the signature is simulated.
 - **What carries broadcasts if the network is down?** Battery trackside beacons, each talking only to its neighbors. The Directorate can't switch off what it doesn't run.
 - **Where is Echo worse?** Lower throughput than a working tower, and passengers wait longer. The scoreboard shows it.
-- **Is it real?** Airports without towers already run this way.

@@ -1,71 +1,167 @@
 # Echo demo video: script and shot list
 
-_v2.0 · Tue Nov 17, 2026 (leads with the game, #69; builds on the #62 dry run fixes) · target 2:45 · owner `@m_opus` with M and Ali · numbers come from `npm run harness` (seed 20261117). Re-run it before recording and update any number that changed. Capture after the Strata reskin (#71, merged) so every screen has the final look._
+_v3.0 · Wed Nov 18, 2026 (system first; replaces the game-first v2.0 from #69) · target 3:00 (judges allow 2:00 to 4:00) · owner `@m_opus` with M and Ali · numbers come from `npm run harness` (seed 20261117). Re-run it before recording and update any number that changed._
 
-## What changed in v2.0
+## What changed in v3.0
 
-The video now opens on the game: title, prologue, briefing, mission select, Prepare (placing beacons), then the Tower Down run on `/echo.html`, then the game's debrief stars and end card. All sim ticks are unchanged (tower down t+20, seal t+30, MED-1 departs t+31 and yields around t+31–43, arrives t+137). The old Strata cut-away is now an optional insert. Total stays 2:45.
+The video now pitches the **system** (the Echo protocol), not the game. Judges reward one connected solution that addresses several track problems, so the video names them (#7, #9, #10 up front, then #5 and #2 inside the system section) and spends its longest block, 58 seconds, on how Echo works, drawn as diagram cards. The game is evidence and a planning tool: it shows up as the proof run (`/echo.html`) and as the Prepare screen ("where do we put the radios?"). No title-screen tour, prologue or story beats. Sim ticks are unchanged: tower dark t+20, seal t+30, MED-1 departs t+31 and PAX-1 yields at about t+31 to t+43, Mara arrives t+137.
 
 ## Rules for the whole video
 
-- **Voiceover uses four names:** the Hollow, the Directorate (the tower), Echo, and Nurse Mara Vale (say "Mara," not "MED-1"). Never say CTAF, protocol stack, sector claim, mutex or contract. The few place names in the lines (Lagos, São Paulo) are fine.
-- **On-screen labels are the build's own, so crop and caption instead of hiding them.** The game screens show story text ("the Relay", "2087"), mission names, city labels (São Paulo Deep, Lagos Deep), pod IDs (MED-1, PAX-1) and other nurses' names. Do not edit them out. Crop to the pane or area the shot is about, and let the caption name what matters.
-- Say "pods" once, then "flights." Say "tunnels," never "airspace."
-- Each claim on screen must be visible in the build at that moment. Nothing is mocked in the final cut.
-- **Honest framing:** Echo is a fallback, not a replacement. Name its cost (passengers wait longer). The signature is simulated. Never state a cause for the FAA outage: shot 1 shows the headline and says only that departures were halted. Crop the screenshot to the headline, with no subhead, URL bar or web address on screen, and do not say or caption any reason for the halt. Do not capture the game's epilogue.
-- **Whose footage is whose:** Prepare (shot 4) is Mission 2, Dead Zones. Everything from shot 5 on is Mission 1, Tower Down. The caption on shot 4 says so, and no voiceover claims otherwise. The numbers below are Mission 1's.
-- Sound stays off (the game's default). Voiceover and any music are added in the edit.
-- Captions on every line (judges may watch muted).
+- **Voiceover names:** the Hollow, the Directorate, Echo, beacons, pods, Mara. Never say CTAF, protocol stack, sector claim, mutex, contract or "MED-1". Say "tunnels," never "airspace." The banner on screen says "flights" (the Directorate's own word), so the voiceover quotes it once.
+- **Never state or imply a cause for the FAA halt.** Shot 1 shows the headline, cropped, with no subhead, URL bar or web address, and says only that departures were halted. The next line moves straight to the Hollow. No caption names a reason. Do not capture the game's epilogue.
+- **On-screen labels are the build's own.** Crop and caption; do not edit out story text, city names or pod IDs.
+- **Honest framing, said out loud:** it is slower (2.4x delay, Mara 137 min vs 80), it is a fallback not a replacement, beacons must exist before the crisis, the numbers come from a deterministic simulation (the signature check is simulated too; the write-up says so).
+- Nothing mocked: every gameplay frame is the real build. The diagram cards are explanation and look like cards, not UI.
+- Sound off in the game. Voiceover (and optional music) added in the edit. Captions on every line.
+- Word budget: about 150 wpm. Recount with `grep '^VO:' docs/specs/echo/VIDEO.md | sed 's/^VO: //' | wc -w`.
 
 ## Shot list
 
-| # | Time | Screen | Voiceover (read slowly) | On-screen text |
-|---|---|---|---|---|
-| 1 | 0:00–0:10 | Black, then the real headline, cropped (editorial screenshot of a news article, Nov 13 FAA ground stop, "FAA lifts ground stop at U.S. airports, leaving travel chaos"). Not an in-game state; no cause on screen | "Last week, every departure in America was halted for over four hours." | `Nov 13, 2026 · every US departure halted` |
-| 2 | 0:10–0:22 | **Game, `/`.** The ECHO title ("when the tower goes dark") with beacons pulsing on the tunnel map for about 4 s, then click **Begin**: the prologue types out over the next ~8 s (click the text to finish it early) | "Now imagine that tower never comes back, and the people running it want it that way. This is the Hollow: two billion people, in cities underground. Pods run the tunnels between them. Everyone still calls them flights, and one Directorate tower clears every one." | `The Hollow · one tower clears every flight` |
-| 3 | 0:22–0:32 | **Game.** Click Continue: Mission 1 briefing, "Tower Down". The text types, then the Directorate's BROADCAST ("ALL FLIGHTS REMAIN AUTHORIZED...") and the three star objectives appear | "Mara Vale is a nurse in Sector 07. Her patients are in Lagos, where a lung sickness is spreading." | `Nurse Mara Vale · Sector 07 → Lagos Deep` |
-| 4 | 0:32–0:44 | **Game, take 2.** Missions screen (four mission cards, Mission 1 starred) for ~3 s, click **Dead Zones**, briefing, **Place beacons**: the tunnel map with the beacon counter. Place a few beacons, counter ticks 0/40 → 3/40 | "Later missions hand you forty beacons for a hundred and fourteen tunnels, and you choose where each one goes." | `Mission 2 · you place the beacons` |
-| 5 | 0:44–0:58 | `/echo.html`, 1× take from t+8: Run is already going. At t+20 the Echo log shows "Directorate tower offline" and the left tower panel changes from "tower online" to "84 flights authorized / 5 actually moving". The panel never says "offline": that word comes from the log line, so highlight the log line, then the panel | "Tonight, in Mission 1, every tunnel already has a beacon. At minute twenty, the tower goes dark." (beat) "On the left, the Directorate alone. Nothing new moves. And the tower keeps announcing: eighty-four flights authorized." | Highlight the panel: `84 flights authorized` vs `5 actually moving` |
-| 6 | 0:58–1:08 | Same take, t+24 to t+34. Seal at t+30: log line "Directorate seals s07-lagos-f0" and a red X on the Sector 07–Lagos tunnel, on both maps. Do not press Dispatch: Mara's pod departs on its own at t+31 | "Then they seal the tunnel to Lagos." | `Directorate seals the Lagos tunnel` |
-| 7 | 1:08–1:36 | Same take, t+31 to t+59, crop to the right pane (crop in the editor, there is no in-app zoom). Beacon pulses hop; MED-1's old path fades, the reroute through São Paulo draws in red; at the Sector 07–São Paulo junction the log line (t+31) and map tag (around t+33, brief, so use the close-up take if the main one misses it) show `PAX-1 yields to MED-1`, then MED-1 passes. Highlight the log line | "With Echo, every pod is its own navigator. It carries the tunnel map, it talks only to the radio beacon beside it, and it follows three rules: announce before you move, one pod per tunnel, medicine first. The news of the seal hops beacon to beacon, and Mara's pod re-plans through São Paulo. At the junction, a passenger pod yields. The rules decide, not the Directorate." | `announce · one per tunnel · medicine first`, then `PAX-1 yields to MED-1` |
-| 8 | 1:36–1:50 | Same take, switch to 10× at t+60 so Mara arrives at Lagos Deep around t+137 (about 8 s real time), echo log scrolling | "No towers, no network, just a battery radio in every tunnel that talks to its neighbors. Mines already run this way. The Directorate can't switch off what it doesn't run." | `Mara arrives · t+137` |
-| 9 | 1:50–2:02 | **Game, take 1.** The run ends on its own at t+360 and the game's debrief opens: the three stars pop in one by one and the verdict appears ("Mara made it, and every nurse and every crate with her. The passengers waited. That was the price.") | "Three stars. Mara made it, and every nurse and every crate with her. The passengers waited. That was the price." | `Mission 1 · 3 of 3 stars` |
-| 10 | 2:02–2:30 | Same debrief screen, tower vs Echo side by side (hold the screen, crop to the numbers) | "Directorate alone: zero of eight nurses arrive, zero of ten supply runs. With Echo: eight of eight, ten of ten. The cost is honest: passengers wait about two and a half times longer than on a normal day. Echo is slower. But nurses arrive, medicine arrives, water arrives." | End card as built |
-| 11 | 2:30–2:45 | Closing title card with the hosted link and repo link, added as an editing overlay (the game's title screen at `/` can sit behind it; the URLs are not an in-app screen) | "Echo is a fallback for when the center fails, or is turned against you. We built the Hollow to prove it works. Try it yourself." | `Echo · a fallback that keeps essential movement going` + hosted URL + repo |
+Cards are in `docs/specs/echo/DIAGRAM_CARDS.md`. Capture owners are proposals for the lead to confirm: **M** screen recordings, **Ali** voiceover and fact cross-check, **card builder** whoever the lead assigns to render the HTML cards.
 
-Sum check: 10 + 12 + 10 + 12 + 14 + 10 + 28 + 14 + 12 + 28 + 15 = 165 s = 2:45.
+### 1. Hook (0:00 to 0:12)
 
-Optional, only if time allows (do not let it push the total past 2:45):
-- A 5-second insert in shot 8 of the ESP32 board in hand, with the caption `a beacon is this small`.
-- A 5-second Strata cut-away at the end of shot 3 (steps below).
+VO: Last week, every departure in America was halted for over four hours. Now go underground.
 
-## Capture settings
+- **On screen:** black, then the real headline, cropped to the headline only (editorial screenshot, Nov 13 FAA ground stop, "FAA lifts ground stop at U.S. airports, leaving travel chaos"). Hold about 6 s after the first sentence so the headline reads, then a hard cut on "underground."
+- **Caption:** `Nov 13, 2026 · every US departure halted`
+- **Visual source:** news screenshot (take E). No cause, no subhead, no URL.
+- **Captures:** M.
 
-- **Browser:** Chrome, window 1920×1080, zoom 100%, no extensions bar, dark OS theme. Use a **fresh profile or an incognito window** for takes 1 and 2 (the prologue only plays once, and Dead Zones unlocks from Mission 1's stars; both are kept in that browser's local storage).
-- **Build:** `npm run build && npm run preview`, or the hosted build.
-- **Take 1, the game (shots 2, 3, 9, 10):** open `/`. Click **Begin** (prologue, then Continue to the Mission 1 briefing), click **Begin** on the briefing. The run screen opens paused at t+0: click **60×** then **Run** and let it play to the end. Do not press Dispatch Nurse Mara Vale (she departs at t+31). At t+360 the debrief opens by itself; leave it on screen for 30 s so the stars and the numbers are both captured. Mission 1 gives 3 of 3 stars.
-- **Take 2, Prepare (shot 4):** same window, straight after take 1 so Dead Zones is unlocked. From the title click **Missions** (or press Esc from the debrief), click **Dead Zones**, click **Place beacons**. On the map either click a tunnel or Tab to the map, press an arrow, then Enter (the counter goes 0/40 to 1/40).
-- **Take 3, the split screen (shots 5–8):** open `/echo.html`, the bare Tower Down split screen with no story overlays or hint cards. Click **1×**, then **Run** at t+0 and record to about t+60. Do not press Dispatch: Mara departs automatically at t+31, and the yield and reroute shots rely on that. Then switch to **10×** until she arrives at about t+137. At 10× the sim moves 10 ticks a second, so the seal-to-yield beats (t+30 to t+43) pass in about 1.3 s: that is why the first 60 ticks are recorded at 1×. If the yield tag is missed, Reset and record t+28 to t+40 again at 1× (Run at 10×, switch to 1× shortly before t+30) and crop to the right pane.
-- **Optional Strata insert (shot 3):** open `/strata.html` (or click "Sector 07 city sim →" on `/echo.html`). The sim starts at 60×, so select 1× immediately. Choose Explore (magnifying glass), pick "Mara Vale, Nurse", then "Follow Mara Vale". **Walking is not guaranteed:** in the dry run (07:03–07:06) she was working in the upper clinic. Scrub to a time when she is commuting, or follow a different nurse who is moving, and only claim "walks" if the take shows it.
-- **Recording:** QuickTime screen recording or OBS at 60 fps. Voiceover is recorded separately, then laid over in the editor.
+### 2. The problem in the Hollow (0:12 to 0:37)
 
-## Numbers used (from `npm run harness`, seed 20261117; re-run on current main after the reskin, unchanged)
+VO: In the Hollow, two billion people live in underground cities, and one Directorate tower clears every pod between them. It can go dark. It can lie: this banner says eighty-four flights authorized, and five are moving. That is tracks seven, nine and ten. A network the Directorate controls. Numbers that don't match reality. And medicine that runs out in the deep levels first.
+
+- **Visual source:** `/echo.html?t=22&run=1&speed=1` (take A), Tower Down split screen at 1x, left pane cropped to the tower panel: "84 flights authorized / 5 actually moving". `?t=N` alone loads paused at 10x; `run=1` starts it and `speed=1` sets 1x. Record t+22 to t+45 so the panel flips from "tower online" to the claim and the log line "Directorate tower offline" appears first (t+20).
+- **Captions (chips beside the cropped panel, in this order):** `84 authorized · 5 actually moving`, then `#7 The Directorate controls the network`, `#9 Directorate numbers don't match reality`, `#10 Medicine runs out in the deep levels first`. Each chip appears on its voiceover beat; build them in the edit.
+- **Captures:** M.
+
+### 3. The system (0:37 to 1:35, 58 s, the core)
+
+One card per beat. Each card holds for the whole sentence plus about 1 s. Items on a card may build in as spoken.
+
+**3a. Beacons (0:37 to 0:47).** Card 1.
+VO: Our answer is Echo. Residents install battery radios, beacons, along the tunnels. Each beacon talks only to its neighbors. No center. No internet.
+- **Caption:** `beacons · battery radios · neighbors only`
+
+**3b. Rule 1 (0:47 to 0:54).** Card 2.
+VO: Rule one: announce before you move, and one pod per sector. Safety, with no controller.
+- **Caption:** `Rule 1 · announce · one pod per sector`
+
+**3c. Rule 2 (0:54 to 1:05).** Card 3.
+VO: Rule two: medical goes first, then supplies, then passengers. When there isn't enough to go around, the order is already decided, and the Directorate isn't the one deciding.
+- **Caption:** `Rule 2 · medical, then supply, then passenger` (ties to #2, fair sharing)
+
+**3d. Rule 3 (1:05 to 1:13).** Card 4.
+VO: Rule three: only a nurse with a clinic credential can file a medical claim, so nobody can fake the priority.
+- **Caption:** `Rule 3 · only credentialed nurses file medical`
+
+**3e. News hops, pods reroute (1:13 to 1:21).** Card 5.
+VO: News of a sealed or flooded tunnel hops from beacon to beacon, and pods route around it.
+- **Caption:** `news hops beacon to beacon · pods reroute` (ties to #5)
+
+**3f. Real-world anchor (1:21 to 1:35).** Card 6.
+VO: Pilots at airports with no control tower already do this. They announce on a shared frequency and take turns. Echo does it for a whole network. The Directorate can't switch off what it doesn't run.
+- **Caption:** `Already real: towerless airports run on announce and yield`
+
+- **Visual source:** cards 1 to 6. **Captures:** card builder renders; Ali checks every claim against `SPEC.md`.
+
+### 4. Proof (1:35 to 2:15)
+
+One continuous take, `/echo.html?t=10&run=1&speed=1` at 1x, then 10x (take B). The right pane is Echo; the left is the Directorate alone. Do not press Dispatch: Mara departs on her own at t+31.
+
+**4a. Setup (1:35 to 1:42).**
+VO: Same scenario, run twice, side by side. The Directorate alone on the left, Echo on the right.
+- **Visual:** full split screen, t+10 to t+19, both panes.
+- **Caption:** `Same scenario, same seed · Directorate alone | Echo`
+
+**4b. Dark and seal (1:42 to 1:50).**
+VO: At minute twenty, the tower goes dark. At thirty, they seal the tunnel to Lagos.
+- **Visual:** t+19 to t+32. Log lines "Directorate tower offline" (t+20) and "Directorate seals s07-lagos-f0" (t+30); red X on the Sector 07 to Lagos tunnel on both maps.
+- **Captions:** `t+20 tower dark`, then `t+30 Lagos tunnel sealed`
+
+**4c. Yield (1:50 to 1:58).**
+VO: At thirty-one, a passenger pod yields to Mara's. The rules decide, not the tower.
+- **Visual:** crop to the right pane, t+31 to t+43 at 1x. Log line and map tag for PAX-1 yielding to MED-1 at the Sector 07 to São Paulo junction, reroute drawn in red. Highlight the log line (the engine's text reads "PAX-1 · Passenger yields s07-sao-f0 to MED-1 · Nurse Mara Vale"; the map tag reads "PAX-1 yields to MED-1").
+- **Caption:** `t+31 PAX-1 yields to MED-1`
+
+**4d. Arrival (1:58 to 2:03).**
+VO: Nurse Mara arrives at minute one thirty-seven.
+- **Visual:** switch to 10x at t+60; Mara reaches Lagos Deep at t+137 (about 8 s real time), Echo log scrolling.
+- **Caption:** `Mara arrives · t+137`
+
+**4e. Result card (2:03 to 2:15).**
+VO: Nurses: zero of eight, against eight of eight. Supplies: zero of ten, against ten of ten. Flights moving: five against forty. All from a deterministic simulation. Run it yourself with npm run harness.
+- **Visual:** Card 7 (the numbers, from the verified table below). Alternative: capture `/?screen=debrief&mission=tower-down` (take B2, the game plays the mission to the end and opens its debrief) and crop to the numbers. Use the card if the crop is hard to read at 1080p.
+- **Caption:** `deterministic simulation · npm run harness`
+- **Captures:** M (take B, optionally B2); card builder (Card 7).
+
+### 5. Honest cost and planning (2:15 to 2:40)
+
+VO: It has a cost. Passengers wait two point four times longer than on a normal day, and Mara's trip takes a hundred and thirty-seven minutes instead of eighty. Echo is a fallback, not a replacement, and the beacons have to exist before the crisis. That is what the Prepare screen is for: where do we put the radios? The campaign, Dead Zones, the Grounding, Ghost Flight, is how people learn it and test it.
+
+- **2:15 to 2:25** Card 7 stays up, rows highlighted: delay `31.7x vs 2.4x`, capacity `5% vs 94%`, Mara `never vs t+137 (80 on a normal day)`. Caption: `Slower: 2.4x delay · Mara 137 min vs 80`
+- **2:25 to 2:34** Prepare screen: `/?screen=prepare&mission=dead-zones` (take C1). Place a few beacons so the counter goes 0/40 to 3/40. Caption: `Prepare (Mission 2): where do we put the radios? · 40 beacons, 114 tunnels`
+- **2:34 to 2:40** Missions screen, four mission cards: `/?screen=missions` (take C2). Caption: `Dead Zones · The Grounding · Ghost Flight`. Card states (locked or starred) depend on the browser profile; leave them as they are.
+- **Caption (whole shot, small):** `fallback, not a replacement · beacons first`
+- **Captures:** M.
+
+### 6. Close (2:40 to 3:00)
+
+VO: Any network run from one center has the same weakness, and the same fix. Build the backup first. Play it, or read the code, with the links on screen.
+
+- **Visual:** Card 8 (title, hosted link, repo link) over a dimmed loop of `/` (take D). Hold the card for the last 8 s so the links can be read and paused.
+- **Caption:** `Echo · build the backup first` + `https://hollow-world-eight.vercel.app/` + `https://github.com/alibaduqail/hackfest26`
+- **Captures:** card builder; M for take D.
+
+**Timing check:** 12 + 25 + 58 + 40 + 25 + 20 = 180 s = 3:00. Hard cap 4:00, so there is a minute of margin if a beat needs to breathe.
+
+## Numbers used (from `npm run harness`, seed 20261117; verified, re-run before recording)
 
 | | Tower failed | Echo | Normal day |
 |---|---|---|---|
 | Nurses arrived | 0/8 | 8/8 | 8/8 |
 | Supplies delivered | 0/10 | 10/10 | 10/10 |
-| Passenger delay | 31.7× normal | 2.4× normal (550 min) | 1.0× |
+| Passenger delay | 31.7x normal | 2.4x normal (550 min) | 1.0x |
 | Network capacity | 5% | 94% | 100% |
-| Real / claimed flights | 5 / 84 | 40 / 84 | 40 / — |
+| Real / claimed flights | 5 / 84 | 40 / 84 | 40 / n/a |
 | Mara arrives | never | t+137 (rerouted) | t+80 |
 
-Mission 1 stars with these numbers (checked against the game's own star rules): 3 of 3. Mara arrives, every nurse arrives, every supply run arrives, and the passenger delay is 2.4×, under the 3× limit.
+If the harness output changes, update this table, Card 7, and the voiceover lines in shots 2, 4e and 5.
 
-If the harness output changes after tuning, update this table and the voiceover lines in shots 5, 8, 9 and 10 before recording.
+## Thursday capture checklist
+
+All screen recordings: Chrome, window 1440x900, zoom 100%, no extension bar, dark OS theme, QuickTime or OBS at 60 fps (30 fps is acceptable). Build: `npm run build && npm run preview`, or the hosted build. Sound off. Use a fresh profile or incognito for each take so progress state is known. Record 5 s of handle at each end. Capture after the 8 PM freeze.
+
+| Take | URL | Setup | Duration | Feeds |
+|---|---|---|---|---|
+| A | `/echo.html?t=22&run=1&speed=1` | Loads running at 1x. Play to about t+45. Do not press Dispatch. | 25 s | shot 2 |
+| B | `/echo.html?t=10&run=1&speed=1` | Loads running at 1x. Record to t+60 without touching anything. At t+60 click 10x until Mara arrives (about t+137), then record 3 s more. If the yield tag at t+31 to t+43 is missed, Reset, Run at 10x, switch to 1x shortly before t+28 and record to t+45. | about 60 s plus 10 s | 4a to 4d |
+| B2 | `/?screen=debrief&mission=tower-down` | Optional, only if used instead of Card 7. Hold the tower vs Echo numbers for 20 s. | 25 s | 4e |
+| C1 | `/?screen=prepare&mission=dead-zones` | Click a few tunnels (or Tab to the map, arrow keys, Enter). Counter goes 0/40 to 3/40. | 15 s | shot 5 |
+| C2 | `/?screen=missions` | Hold the four mission cards still. For starred cards, finish Tower Down once in that profile first. | 10 s | shot 5 |
+| D | `/` | Title screen, beacons pulsing. Background for the close card. | 15 s | shot 6 |
+| E | news article | Screenshot or recording of the FAA headline. Crop to the headline only: no subhead, URL bar or web address. | still | shot 1 |
+
+Query params (from `GameApp.tsx` and `MissionScreen.tsx`): `?screen=missions|prepare|run|debrief|briefing|title`, `&mission=<tower-down|dead-zones|grounding|ghost-flight>`, `&t=N` (starts the run at tick N, paused), `&run=1` (start running), `&speed=1|10|60` (default 10x), `&story=0` (no in-run story beats; `/echo.html` has none anyway). On `/echo.html`, `?t=N` loads paused at 10x unless `run=1` and `speed=1` are added (verified in `MissionScreen.tsx`). Test every link once on the hosted build before recording.
+
+**Voiceover notes.** Quiet room with soft furnishings, mic about a hand-width from the mouth, a pop filter. 48 kHz WAV. Record each of the six sections as a separate take, three reads each, with a one-second gap before and after. Read at about 150 wpm, slower in section 3. Keep the numbers flat and clear. Re-take a flubbed line instead of fixing it later. Name the files `vo-1-hook.wav` through `vo-6-close.wav`.
+
+## Friday edit plan (ffmpeg)
+
+Deadline: export by 5 PM. Cap 4:00, target 3:00.
+
+1. **Prepare assets.** Render the eight cards to 1920x1080 PNG (and a short build-in MP4 each if the card builder made one). Crop screen takes to 16:9 and scale to 1920x1080 (`-vf "crop=...,scale=1920:1080"`). Pick the best voiceover read per section.
+2. **Assemble in order:** 1 hook, 2 problem, 3a to 3f cards, 4a to 4e, 5, 6. Cut each segment (`ffmpeg -ss -to -i take.mp4 -c:v libx264 ...`), then join with the concat demuxer, or `xfade` for 0.3 s dissolves between cards. Hard cuts on the hook and between the proof beats.
+3. **Voiceover:** place the section takes on one audio track at the shot start times above (`adelay`, or concatenate with silence). Normalize to about -16 LUFS (`loudnorm`).
+4. **Captions:** burn in the caption lines under each shot with `drawtext`, plus a voiceover transcript as `.srt` through `subtitles=`. Chips and call-outs use the Strata palette: cream text on slate, amber for emphasis, red for the Directorate.
+5. **Music:** optional. A quiet drone under shots 3 and 5 at about -26 dB, ducked under the voice with `sidechaincompress`. Royalty-free only.
+6. **Export:** 1080p, H.264 (`-c:v libx264 -crf 18 -preset slow -pix_fmt yuv420p`), AAC 192 kbps, `-movflags +faststart`. Check it plays muted, runs about 3:00 (never over 4:00), and watch it once on a phone.
+7. **Final checks:** no cause for the FAA halt anywhere (screen or voice), no personal info, links readable and correct on the close card, every number matches the table above.
 
 ## Schedule
 
-- **Wed night:** rough cut using these shots, even with rough audio. Show it to one outsider cold and ask: "What does Echo do?"
-- **Thu night:** final footage capture after the 8 PM freeze.
-- **Fri until 5 PM:** voiceover, edit, captions, export (1080p, under 3:00).
+- **Wed night:** scratch voiceover plus a rough cut with placeholder cards. Show it to one outsider cold and ask: "What does Echo do, and what does it fix?"
+- **Thu night:** final footage capture after the 8 PM freeze; voiceover takes.
+- **Fri until 5 PM:** edit, captions, export (1080p, about 3:00).
