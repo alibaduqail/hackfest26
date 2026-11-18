@@ -14,7 +14,6 @@ const W = 1672, H = 941;
 const floors = [.07, .247, .419, .61, .789, 1];
 const spriteUrls = { med, freight, passenger, forged, mara, loader, technician, attendant };
 type Sprite = keyof typeof spriteUrls;
-const images = new Map<Sprite, HTMLImageElement>();
 type Box = { x: number; y: number; w: number; h: number };
 function lamp(track: Track): Point {
   const [x, y] = along(track, .5);
@@ -33,10 +32,8 @@ function color(p: Pod, rejected: boolean) {
 function overlaps(a: Box, b: Box) {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 }
-export function createScene(canvas: HTMLCanvasElement) {
-  const backdrop = document.createElement("canvas");
-  backdrop.setAttribute("aria-hidden", "true");
-  canvas.before(backdrop);
+export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasElement) {
+  const images = new Map<Sprite, HTMLImageElement>();
   const ground = backdrop.getContext("2d")!;
   const live = canvas.getContext("2d")!;
   let redraw = () => {};
@@ -380,5 +377,13 @@ export function createScene(canvas: HTMLCanvasElement) {
     redraw = () => render(0);
     render(duration);
   }
-  return show;
+  return {
+    show,
+    dispose() {
+      resize.disconnect();
+      cancelAnimationFrame(anim);
+      for (const image of images.values()) image.onload = null;
+      redraw = () => {};
+    },
+  };
 }

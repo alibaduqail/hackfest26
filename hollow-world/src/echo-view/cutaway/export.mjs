@@ -23,8 +23,7 @@ const html = output.find((file) => file.fileName === "cutaway.html").source
     /<script type="module"[^>]*src="[^"]*"[^>]*><\/script>/,
     () => '<script type="module">' + script.replace(/<\/script/gi, "<\\/script") + "</script>",
   )
-  .replace(/<link rel="stylesheet"[^>]*>/, () => "<style>" + css + "</style>")
-  .replace('href="./index.html"', 'href="https://hollow-world-eight.vercel.app/"');
+  .replace(/<link rel="stylesheet"[^>]*>/, () => "<style>" + css + "</style>");
 const folder = resolve(root, "../cutaway-mockup");
 await mkdir(folder, { recursive: true });
 await writeFile(resolve(folder, "index.html"), html);
