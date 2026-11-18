@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import type { Observation } from "../echo/types";
 
 const css = `
-.echo-end{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:24px;background:rgba(16,25,30,.95);color:var(--text);font:15px var(--sans)}
+.echo-end{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:24px;background:var(--bg);color:var(--text);font:15px var(--sans)}
 .echo-end h2{margin:0;font-size:22px;letter-spacing:.06em;font-weight:600}
 .echo-end-grid{background:var(--panel);border:1px solid var(--line2);border-radius:8px;box-shadow:0 5px 22px #050d1260;padding:22px 34px;display:grid;grid-template-columns:minmax(0,auto) repeat(2,minmax(0,300px));gap:14px 40px;align-items:baseline}
 .echo-end-grid .h{color:var(--muted);font-size:13px;letter-spacing:.08em;text-transform:uppercase}
