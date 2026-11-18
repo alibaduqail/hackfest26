@@ -1,29 +1,10 @@
-// Echo acceptance tests, AC-1..AC-10, AC-13..AC-15 (docs/specs/echo/PLAN.md §4). Written before the engine.
-// engine.ts / credential.ts / missions.ts are loaded lazily: until they land, the tests that need them are
-// skipped (loudly, with a reason) so `npm test` and `tsc` stay green on main. Once they land, nothing to edit.
+// Echo acceptance tests, AC-1..AC-10, AC-13..AC-15 (docs/specs/echo/PLAN.md §4).
 import test from "node:test";
 import assert from "node:assert/strict";
 import type { CreateEngine, Mission, Mode, Observation, LogEvent, Pod, Priority, Sector, World } from "./types";
-
-async function load<T>(path: string): Promise<T | null> {
-  try {
-    return (await import(path)) as T;
-  } catch (e) {
-    const err = e as { code?: string; message?: string };
-    // only "this module is missing" counts as not-landed; anything else (syntax error, a missing nested import) must fail the run
-    const missing = /Cannot find module '([^']+)'/.exec(err.message ?? "")?.[1] ?? "";
-    if (err.code === "ERR_MODULE_NOT_FOUND" && /^(\.\/|.*[\\/])/.test(missing) && missing.replace(/\.(ts|js)$/, "").endsWith(path.replace("./", "/"))) return null;
-    throw e;
-  }
-}
-const engineMod = await load<{ createEngine: CreateEngine }>("./engine");
-const credMod = await load<{ sign: (id: string) => string }>("./credential");
-const missionsMod = await load<Record<string, unknown>>("./missions");
-const createEngine = engineMod?.createEngine;
-const sign = credMod?.sign ?? ((id: string) => `unsigned-${id}`); // only used to build medical pods
-const ready = !!createEngine && !!credMod;
-const t = (name: string, fn: () => void | Promise<void>) =>
-  test(name, { skip: ready ? false : "engine.ts / credential.ts not landed yet" }, fn);
+import { createEngine } from "./engine";
+import { sign } from "./credential";
+import { MISSIONS, validateMission, towerDown } from "./missions";
 
 // ---------- tiny worlds, independent of world.ts / missions.ts ----------
 type SecDef = { id: string; from: string; to: string; minutes: number };
@@ -78,7 +59,7 @@ const clone = <T>(x: T): T => structuredClone(x);
 interface Run { obs: Observation[]; events: LogEvent[]; final: Observation }
 /** Steps one tick at a time to endTick (or `until`). obs[0] is tick 0. events = every log line ever, in order. */
 function run(m: Mission, mode: Mode, opts: { until?: number; before?: (tick: number, e: ReturnType<CreateEngine>) => void } = {}): Run {
-  const e = createEngine!(m, mode);
+  const e = createEngine(m, mode);
   const obs: Observation[] = [clone(e.observe())];
   const events: LogEvent[] = [];
   let prevLog: LogEvent[] = obs[0].log;
@@ -121,7 +102,7 @@ function assertExclusive(o: Observation, where: string) {
 }
 
 // ======================= AC-1 =======================
-t("AC-1 deterministic: two runs deep-equal, mission is not mutated", () => {
+test("AC-1 deterministic: two runs deep-equal, mission is not mutated", () => {
   for (const mode of ["tower", "echo", "normal"] as Mode[]) {
     const m = chainMission({ sealAt: 30, sealSectorId: "s2" });
     const before = clone(m);
@@ -133,7 +114,7 @@ t("AC-1 deterministic: two runs deep-equal, mission is not mutated", () => {
 });
 
 // ======================= AC-2 =======================
-t("AC-2 echo == tower before down", () => {
+test("AC-2 echo == tower before down", () => {
   const m = chainMission({ sealAt: 30, sealSectorId: "s2" });
   const tw = run(m, "tower", { until: m.towerDownAt });
   const ec = run(m, "echo", { until: m.towerDownAt });
@@ -143,7 +124,7 @@ t("AC-2 echo == tower before down", () => {
 });
 
 // ======================= AC-3 =======================
-t("AC-3 failed tower grants nothing; pods hold at the next boundary", () => {
+test("AC-3 failed tower grants nothing; pods hold at the next boundary", () => {
   const m = chainMission();
   const r = run(m, "tower");
   const down = kinds(r, "tower-down");
@@ -165,7 +146,7 @@ t("AC-3 failed tower grants nothing; pods hold at the next boundary", () => {
 });
 
 // ======================= AC-4 =======================
-t("AC-4 tower lies, log tells truth", () => {
+test("AC-4 tower lies, log tells truth", () => {
   const m = chainMission();
   const r = run(m, "tower");
   const grants = kinds(r, "grant").length;
@@ -180,7 +161,7 @@ t("AC-4 tower lies, log tells truth", () => {
 });
 
 // ======================= AC-5 =======================
-t("AC-5 sector exclusivity invariant, every tick, every mode", () => {
+test("AC-5 sector exclusivity invariant, every tick, every mode", () => {
   for (const mode of ["tower", "echo", "normal"] as Mode[]) {
     const r = run(chainMission({ sealAt: 40, sealSectorId: "s3" }), mode);
     r.obs.forEach((o) => assertExclusive(o, `(${mode}, tick ${o.tick})`));
@@ -190,7 +171,7 @@ t("AC-5 sector exclusivity invariant, every tick, every mode", () => {
 // ======================= AC-6 =======================
 // all pods depart after tower-down (towerDownAt=1, departTick>=2), so the protocol decides who goes first
 const enterOrder = (r: Run, sector: string) => kinds(r, "enter", { sectorId: sector }).map((x) => x.podId);
-t("AC-6 priority and yield log: medical > supply > passenger", () => {
+test("AC-6 priority and yield log: medical > supply > passenger", () => {
   const w = mkWorld([{ id: "a0", from: "A", to: "B", minutes: 3 }]);
   const p = mkPods(w);
   const m = mkMission(w, [
@@ -204,7 +185,7 @@ t("AC-6 priority and yield log: medical > supply > passenger", () => {
   assert.equal(kinds(r, "yield", { podId: "sup", sectorId: "a0" }).length, 1, "supply yields once");
   assert.equal(kinds(r, "yield", { podId: "pax", sectorId: "a0" }).length, 1, "passenger yields once, not per tick");
 });
-t("AC-6 priority and yield log: longer waited wins, then lower id", () => {
+test("AC-6 priority and yield log: longer waited wins, then lower id", () => {
   const w = mkWorld([{ id: "a0", from: "A", to: "B", minutes: 6 }]);
   const p = mkPods(w);
   // blocker holds a0 while both contenders wait; early has waited longer
@@ -224,7 +205,7 @@ t("AC-6 priority and yield log: longer waited wins, then lower id", () => {
 });
 
 // ======================= AC-7 =======================
-t("AC-7 no preemption: medical waits for an occupied sector", () => {
+test("AC-7 no preemption: medical waits for an occupied sector", () => {
   const w = mkWorld([{ id: "a0", from: "A", to: "B", minutes: 8 }]);
   const p = mkPods(w);
   const m = mkMission(w, [
@@ -244,7 +225,7 @@ t("AC-7 no preemption: medical waits for an occupied sector", () => {
 });
 
 // ======================= AC-8 =======================
-t("AC-8 credential reject: forged medical competes as a passenger", () => {
+test("AC-8 credential reject: forged medical competes as a passenger", () => {
   const w = mkWorld([{ id: "a0", from: "A", to: "B", minutes: 6 }]);
   const p = mkPods(w);
   const m = mkMission(w, [
@@ -261,13 +242,8 @@ t("AC-8 credential reject: forged medical competes as a passenger", () => {
 });
 
 // ======================= AC-9 =======================
-function findTowerDown(): Mission | null {
-  const fn = missionsMod?.towerDown;
-  return typeof fn === "function" ? (fn as () => Mission)() : null;
-}
-test("AC-9 tower-down shape: echo beats failed tower, capacity below a normal day",
-  { skip: ready && findTowerDown() ? false : "engine / missions.ts not landed yet" }, () => {
-  const m = findTowerDown()!;
+test("AC-9 tower-down shape: echo beats failed tower, capacity below a normal day", () => {
+  const m = towerDown();
   const tw = run(m, "tower").final.score;
   const ec = run(m, "echo").final.score;
   const nm = run(m, "normal").final.score;
@@ -281,7 +257,7 @@ test("AC-9 tower-down shape: echo beats failed tower, capacity below a normal da
 });
 
 // ======================= AC-10 =======================
-t("AC-10 no deadlock: heavy contention drains to arrival", () => {
+test("AC-10 no deadlock: heavy contention drains to arrival", () => {
   const p = mkPods(CHAIN);
   const pods: Pod[] = [];
   for (let i = 0; i < 14; i++) {
@@ -292,9 +268,8 @@ t("AC-10 no deadlock: heavy contention drains to arrival", () => {
   const stuck = r.final.pods.filter((x) => x.status !== "arrived").map((x) => x.id);
   assert.deepEqual(stuck, [], "pods never arrived");
 });
-test("AC-10 no deadlock: no pod waits on a free, unsealed sector for 3 ticks (real mission)",
-  { skip: ready && findTowerDown() ? false : "engine / missions.ts not landed yet" }, () => {
-  const m = findTowerDown()!;
+test("AC-10 no deadlock: no pod waits on a free, unsealed sector for 3 ticks (real mission)", () => {
+  const m = towerDown();
   const r = run(m, "echo");
   assert.ok(r.final.over, "mission did not reach endTick");
   const streak = new Map<string, number>();
@@ -310,11 +285,11 @@ test("AC-10 no deadlock: no pod waits on a free, unsealed sector for 3 ticks (re
 });
 
 // ======================= AC-13 =======================
-t("AC-13 act applies at atTick, same tick on every engine", () => {
+test("AC-13 act applies at atTick, same tick on every engine", () => {
   const w = mkWorld([{ id: "a0", from: "A", to: "B", minutes: 3 }, { id: "a1", from: "B", to: "C", minutes: 3 }]);
   const p = mkPods(w);
   const m = mkMission(w, [p("nurse", "medical", ["a0", "a1"], { departTick: 9999 })], { towerDownAt: 60, endTick: 120 });
-  const engines = (["tower", "echo"] as Mode[]).map((mode) => createEngine!(m, mode));
+  const engines = (["tower", "echo"] as Mode[]).map((mode) => createEngine(m, mode));
   for (const e of engines) assert.deepEqual(e.act({ type: "dispatchMedical", podId: "nurse", atTick: 10 }), { ok: true });
   assert.equal(engines[0].act({ type: "dispatchMedical", podId: "nobody", atTick: 10 }).ok, false);
   for (let tick = 0; tick < 30; tick++) {
@@ -340,7 +315,7 @@ const diamondMission = (withAlt: boolean) => {
   const p = mkPods(w);
   return mkMission(w, [p("med", "medical", ["d0", "d1"], { departTick: 2 })], { towerDownAt: 1, endTick: 150, sealAt: 8, sealSectorId: "d1" });
 };
-t("AC-14 seal reroute: pod hears of a seal ahead and goes around", () => {
+test("AC-14 seal reroute: pod hears of a seal ahead and goes around", () => {
   const r = run(diamondMission(true), "echo");
   const sealTick = kinds(r, "seal")[0].tick;
   const heard = kinds(r, "seal-heard", { podId: "med" })[0];
@@ -354,7 +329,7 @@ t("AC-14 seal reroute: pod hears of a seal ahead and goes around", () => {
   assert.equal(med.status, "arrived");
   for (const o of r.obs) if (o.tick > sealTick) assert.ok(!o.sectors.find((s) => s.id === "d1")!.holder, `entered sealed d1 at ${o.tick}`);
 });
-t("AC-14 seal hold: no way around means holding, never entering", () => {
+test("AC-14 seal hold: no way around means holding, never entering", () => {
   const r = run(diamondMission(false), "echo");
   const med = r.final.pods[0];
   assert.equal(med.status, "holding");
@@ -363,13 +338,13 @@ t("AC-14 seal hold: no way around means holding, never entering", () => {
   assert.ok(kinds(r, "hold", { podId: "med" }).length >= 1);
   assert.equal(kinds(r, "enter", { sectorId: "d1" }).length, 0, "entered a sealed sector");
 });
-t("AC-14 seal applies in tower mode too: nobody enters a sealed sector", () => {
+test("AC-14 seal applies in tower mode too: nobody enters a sealed sector", () => {
   const r = run(diamondMission(true), "tower");
   assert.equal(kinds(r, "enter", { sectorId: "d1" }).length, 0);
 });
 
 // ======================= AC-15 =======================
-t("AC-15 news latency: one beacon hop per tick, pods hear in distance order", () => {
+test("AC-15 news latency: one beacon hop per tick, pods hear in distance order", () => {
   // slow chain so pods barely move: seal s5, pod A sits in s4 (1 hop away), pod B in s2 (3 hops away)
   const w = mkWorld([0, 1, 2, 3, 4, 5].map((i) => ({ id: `s${i}`, from: `C${i}`, to: `C${i + 1}`, minutes: 300 })));
   const p = mkPods(w);
@@ -395,7 +370,7 @@ const unbeacon = (m: Mission, ...ids: string[]) => {
   for (const s of m.world.sectors) if (ids.includes(s.id)) s.beacon = false;
   return m;
 };
-t("v2 beacons: seal news does not cross an unbeaconed sector", () => {
+test("v2 beacons: seal news does not cross an unbeaconed sector", () => {
   // AC-15's slow chain with s3 dark: A (in s4) still hears, B (in s2) is cut off behind s3
   const w = mkWorld([0, 1, 2, 3, 4, 5].map((i) => ({ id: `s${i}`, from: `C${i}`, to: `C${i + 1}`, minutes: 300 })));
   const p = mkPods(w);
@@ -409,7 +384,7 @@ t("v2 beacons: seal news does not cross an unbeaconed sector", () => {
   const pulsed = new Set(r.obs.flatMap((o) => o.pulses.filter((x) => x.kind === "seal").map((x) => x.sectorId)));
   assert.ok(!pulsed.has("s3") && !pulsed.has("s2"), `seal pulse beyond the dead zone: ${[...pulsed]}`);
 });
-t("v2 beacons: an unbeaconed seal is still seen at its boundary", () => {
+test("v2 beacons: an unbeaconed seal is still seen at its boundary", () => {
   const m = unbeacon(diamondMission(true), "d1");
   const r = run(m, "echo");
   const release = kinds(r, "release", { podId: "med", sectorId: "d0" })[0];
@@ -419,7 +394,7 @@ t("v2 beacons: an unbeaconed seal is still seen at its boundary", () => {
   assert.deepEqual(r.final.pods[0].path, ["d0", "r0", "r1"]);
   assert.equal(r.final.pods[0].status, "arrived");
 });
-t("v2 beacons: a pod at a city after a dark sector hears news from the city's other beaconed sectors", () => {
+test("v2 beacons: a pod at a city after a dark sector hears news from the city's other beaconed sectors", () => {
   // reviewer case: O -a0(dark)-> M, then M -b0-> N -b1-> D or M -c0-> D. b1 is sealed while the pod is inside a0.
   // At M the pod must hear via b0/c0 and take c0; deaf at M it would enter b0, hear too late and hold forever at N.
   const w = mkWorld([
@@ -439,7 +414,7 @@ t("v2 beacons: a pod at a city after a dark sector hears news from the city's ot
   assert.deepEqual(r.final.pods[0].path, ["a0", "c0"]);
   assert.equal(r.final.pods[0].status, "arrived");
 });
-t("v2 blind wait: logs 'blind' once and enters 3 ticks later than with a beacon", () => {
+test("v2 blind wait: logs 'blind' once and enters 3 ticks later than with a beacon", () => {
   const mk = () => {
     const w = mkWorld([{ id: "a0", from: "A", to: "B", minutes: 6 }]);
     const p = mkPods(w);
@@ -462,7 +437,7 @@ t("v2 blind wait: logs 'blind' once and enters 3 ticks later than with a beacon"
   const strip = (r: Run) => r.events;
   assert.deepEqual(strip(run(unbeacon(mk(), "a0"), "normal")), strip(run(mk(), "normal")));
 });
-t("v2 multiple seals: both seal and the pod reroutes around each", () => {
+test("v2 multiple seals: both seal and the pod reroutes around each", () => {
   // O -d0-> M, then M -d1-> D (direct), M -r0-> R -r1-> D, or M -q0-> Q -q1-> X -q2-> D (longest)
   const w = mkWorld([
     { id: "d0", from: "O", to: "M", minutes: 10 },
@@ -487,7 +462,7 @@ t("v2 multiple seals: both seal and the pod reroutes around each", () => {
   assert.equal(kinds(r, "enter", { sectorId: "d1" }).length + kinds(r, "enter", { sectorId: "r0" }).length, 0, "entered a sealed sector");
   assert.deepEqual(run(m, "echo").obs, r.obs, "multi-seal run is not deterministic");
 });
-t("v2 ghost pod: forged medical ghost ranks as passenger and is rejected", () => {
+test("v2 ghost pod: forged medical ghost ranks as passenger and is rejected", () => {
   const w = mkWorld([{ id: "a0", from: "A", to: "B", minutes: 6 }]);
   const p = mkPods(w);
   const m = mkMission(w, [
@@ -501,32 +476,29 @@ t("v2 ghost pod: forged medical ghost ranks as passenger and is rejected", () =>
   assert.equal(r.final.pods.find((x) => x.id === "ghost")!.credentialOk, false);
 });
 
-type MissionsMod = { MISSIONS: { id: string; build: () => Mission }[]; validateMission: (m: Mission) => string[] };
-const mm = missionsMod as unknown as MissionsMod | null;
-const tm = (name: string, fn: () => void) => test(name, { skip: ready && mm?.MISSIONS ? false : "missions.ts MISSIONS not landed yet" }, fn);
-tm("v2 missions: every campaign mission validates, in campaign order", () => {
-  assert.deepEqual(mm!.MISSIONS.map((x) => x.id), ["tower-down", "dead-zones", "grounding", "ghost-flight"]);
-  for (const { id, build } of mm!.MISSIONS) {
+test("v2 missions: every campaign mission validates, in campaign order", () => {
+  assert.deepEqual(MISSIONS.map((x) => x.id), ["tower-down", "dead-zones", "grounding", "ghost-flight"]);
+  for (const { id, build } of MISSIONS) {
     const m = build();
     assert.equal(m.id, id);
-    assert.deepEqual(mm!.validateMission(m), [], id);
+    assert.deepEqual(validateMission(m), [], id);
   }
-  const dz = mm!.MISSIONS[1].build();
+  const dz = MISSIONS[1].build();
   assert.equal(dz.beaconBudget, 40);
   assert.ok(dz.world.sectors.every((s) => s.beacon === false), "dead zones should start with no beacons");
-  const ghost = run(mm!.MISSIONS[3].build(), "echo");
+  const ghost = run(MISSIONS[3].build(), "echo");
   assert.ok(kinds(ghost, "credential-reject", { podId: "GHOST-1" }).length >= 1, "ghost not rejected");
   assert.ok(ghost.final.pods.find((x) => x.id === "MED-1")!.arriveTick !== null, "Mara did not arrive in Ghost Flight");
 });
-tm("v2 grounding: deterministic, three seals, second wave", () => {
-  const m = mm!.MISSIONS[2].build();
+test("v2 grounding: deterministic, three seals, second wave", () => {
+  const m = MISSIONS[2].build();
   const before = clone(m);
   assert.equal(m.endTick, 1440);
   const wave = m.pods.filter((p) => p.departTick >= 200);
   assert.ok(wave.length >= 20 && wave.every((p) => p.departTick <= 700), "second wave t200..t700");
   assert.ok(wave.filter((p) => p.nurse && p.dest === "lagos").length >= 4);
   assert.ok(wave.filter((p) => p.cargo).length >= 4);
-  const [a, b] = [createEngine!(m, "echo"), createEngine!(m, "echo")];
+  const [a, b] = [createEngine(m, "echo"), createEngine(m, "echo")];
   for (let tick = 0; tick < m.endTick; tick += 60) {
     a.step(60);
     b.step(60);
@@ -534,7 +506,7 @@ tm("v2 grounding: deterministic, three seals, second wave", () => {
   }
   assert.ok(a.observe().over);
   assert.deepEqual(m, before, "engine mutated the mission");
-  const tw = createEngine!(m, "tower");
+  const tw = createEngine(m, "tower");
   tw.step(m.endTick);
   assert.equal(tw.observe().sectors.filter((s) => s.sealed).length, 3, "three seals in tower mode");
 });

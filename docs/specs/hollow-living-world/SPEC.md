@@ -46,7 +46,7 @@ This is a fictional setting brief, not an engineering dataset. It does not speci
 
 ### 2.2 Explicit product decisions
 
-The repository’s [team direction note](../../../hackathon-summary.md) specifies eight floors, a web-game cutaway, React/TypeScript/PixiJS, and building the world before choosing a fix. This specification retains those compatible decisions. Candidate fixes and hardware in that note remain future options, not requirements of the simulation.
+The original team direction note specified eight floors, a web-game cutaway, React/TypeScript/PixiJS, and building the world before choosing a fix. This specification retains those compatible decisions. Candidate fixes and hardware in that note remain future options, not requirements of the simulation.
 
 - The viewer observes and explores an autonomous city. Construction and room-upgrade gameplay are outside the first release.
 - Ordinary life must be legible before a crisis. The default world opens during a normal shift transition; an incident fixture is a separate selectable starting state.

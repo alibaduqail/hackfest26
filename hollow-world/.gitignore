@@ -2,3 +2,5 @@ node_modules
 dist/
 *.tsbuildinfo
 qa/states/
+benchmark-results.json
+.vercel
