@@ -86,6 +86,24 @@ test("the pulse pool never grows across many frames of varying pulse counts", ()
   assert.equal(poolAfter.length, 6);
 });
 
+test("setReducedMotion forces an immediate redraw only when the value actually changes", () => {
+  const core = new LightCore({ sectorIds: SECTORS, flickerHz: 8 });
+  core.syncSectors(SECTORS.map((id) => ({ id, beacon: false })), 0);
+  core.markRedrawn(0);
+  assert.equal(core.needsRedraw(5), false);
+
+  core.setReducedMotion(true); // false -> true: must force a redraw right away
+  assert.equal(core.needsRedraw(5), true);
+  core.markRedrawn(5);
+  assert.equal(core.needsRedraw(6), false);
+
+  core.setReducedMotion(true); // no change: should not re-dirty
+  assert.equal(core.needsRedraw(7), false);
+
+  core.setReducedMotion(false); // true -> false: forces a redraw again
+  assert.equal(core.needsRedraw(8), true);
+});
+
 test("fadeProgress eases from 0 to 1 across the configured window and holds at 1 afterwards", () => {
   const core = new LightCore({ sectorIds: SECTORS, fadeInMs: 150 });
   core.syncSectors([{ id: "link0", beacon: true }], 0);

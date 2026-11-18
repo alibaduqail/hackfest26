@@ -91,7 +91,9 @@ export class LightCore {
     }));
   }
 
+  /** Changing this mid-run forces an immediate redraw, so darkness/flicker never shows stale state. */
   setReducedMotion(value: boolean) {
+    if (this.reduced !== value) this.dirty = true;
     this.reduced = value;
   }
 
