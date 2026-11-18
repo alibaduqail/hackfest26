@@ -110,56 +110,82 @@ test("a live beacon removes a blind wait", () => {
   const enterLit = firstTick(lit.log, (l) => l.kind === "enter" && l.podId === "MED-1" && l.sectorId === "link0")!;
   assert.ok(enterLit < enterDark, "beacon lands mid-wait: MED-1 goes in at once");
   assert.ok(enterLit <= blind.tick + 2);
-  assert.ok(arrive(lit.obs, "MED-1")! < arrive(dark.obs, "MED-1")!);
   // placed before it gets there: no blind wait is ever logged for that sector
   const early = run([place("link0", 0)]);
   assert.ok(!early.log.some((l) => l.kind === "blind" && l.podId === "MED-1" && l.sectorId === "link0"));
 });
 
-test("a live beacon lets seal news arrive earlier, and only hops through it from the tick it goes live", () => {
-  // main0 is sealed at t41. Dark: nobody hears it, a pod learns only by standing at it.
-  const chain = ["main0", "trunk2", "trunk1", "trunk0", "link2"].map((id) => place(id, 0));
+test("a live beacon lets seal news arrive, and only hops through it from the tick it goes live", () => {
+  // main1 is sealed at t41. Dark: nobody hears it, and a pod that goes into main0 is trapped at main1 for good.
   const dark = run([]);
-  const lit = run(chain);
+  const lit = run([place("main1", 0), place("main0", 0)]);
   const heard = (r: ReturnType<typeof run>, id: string) => firstTick(r.log, (l) => l.kind === "seal-heard" && l.podId === id);
-  assert.ok(heard(lit, "MED-1")! < heard(dark, "MED-1")!, "MED-1 hears the seal earlier over the live chain");
-  // pulses show the news front one hop per tick; trunk1 goes live late, so the front waits for it
+  assert.ok(heard(dark, "MED-1")! > 60, "no beacons: MED-1 only learns it by standing at the sealed sector, long after");
+  assert.ok(heard(lit, "MED-1")! < heard(dark, "MED-1")!, "over the live chain MED-1 hears it at the fork and reroutes in time");
+  assert.equal(arrive(dark.obs, "MED-1"), null);
+  assert.ok(arrive(lit.obs, "MED-1") !== null);
+  // news that arrives earlier because a beacon sits on its way: trunk2 in the chain lets MED-1 hear while it is still inside trunk2
+  const early = run([place("main1", 0), place("main0", 0), place("trunk2", 0)]);
+  assert.ok(heard(early, "MED-1")! <= heard(lit, "MED-1")!);
+  // pulses show the news front one hop per tick; trunk2 goes live late, so the front waits for it
   const front = (cmds: Command[]) => {
     const hits = new Map<string, number>();
     run(cmds, { mission: { ...descentLive(), beaconBudget: null }, onTick: (o) => o.pulses.filter((p) => p.kind === "seal").forEach((p) => hits.set(p.sectorId, o.tick - 1)) });
     return hits;
   };
-  const eager = front([place("main0", 0), place("trunk2", 0), place("trunk1", 0)]);
-  assert.deepEqual([eager.get("main0"), eager.get("trunk2"), eager.get("trunk1")], [41, 42, 43]);
-  const late = front([place("main0", 0), place("trunk2", 0), place("trunk1", 60)]);
-  assert.deepEqual([late.get("main0"), late.get("trunk2"), late.get("trunk1")], [41, 42, 60], "trunk1 hears at the tick its beacon goes live");
+  const eager = front([place("main1", 0), place("main0", 0), place("trunk2", 0)]);
+  assert.deepEqual([eager.get("main1"), eager.get("main0"), eager.get("trunk2")], [41, 42, 43]);
+  const late = front([place("main1", 0), place("main0", 0), place("trunk2", 60)]);
+  assert.deepEqual([late.get("main1"), late.get("main0"), late.get("trunk2")], [41, 42, 60], "trunk2 hears at the tick its beacon goes live");
   // a beacon on the sealed sector placed after the seal starts the news then
-  assert.equal(front([place("main0", 50), place("trunk2", 0)]).get("trunk2"), 51);
+  assert.equal(front([place("main1", 50), place("main0", 0)]).get("main0"), 51);
 });
 
 test("stars: no live beacons 0, a decent play 2, the stored solution 3, all within budget", () => {
   const zero = run([]);
   assert.equal(descentLiveStars(zero.obs.pods), 0);
-  assert.deepEqual([arrive(zero.obs, "MED-1"), arrive(zero.obs, "SUP-3")], [92, 97]);
-  const decent = run(["link0", "link1", "link2"].map((id, i) => place(id, 16 + 4 * i)));
+  assert.deepEqual([arrive(zero.obs, "MED-1"), arrive(zero.obs, "SUP-3")], [null, null], "unwarned pods are trapped at the flood");
+  const warn = [place("main1", 0), place("main0", 0)];
+  assert.equal(descentLiveStars(run(warn).obs.pods), 0, "warning alone is too slow");
+  assert.equal(descentLiveStars(run([...warn, place("link0", 0)]).obs.pods), 1);
+  const decent = run([...warn, place("link0", 16), place("trunk0", 28)]);
   assert.equal(descentLiveStars(decent.obs.pods), 2);
-  assert.equal(descentLiveStars(run([place("link0", 0), place("trunk0", 0)]).obs.pods), 1);
   const sol = run(DESCENT_LIVE_SOLUTION);
   assert.ok(sol.acts.every((a) => a.ok));
   assert.equal(descentLiveStars(sol.obs.pods), 3);
-  assert.deepEqual([arrive(sol.obs, "MED-1"), arrive(sol.obs, "SUP-3")], [77, 82]);
+  assert.deepEqual([arrive(sol.obs, "MED-1"), arrive(sol.obs, "SUP-3")], [83, 88]);
   assert.equal(DESCENT_LIVE_SOLUTION.length, descentLive().beaconBudget);
   assert.deepEqual(DESCENT_LIVE_GOALS.map((g) => g.stars), [1, 2, 3]);
   // tower mode never gets anyone there, whatever the Relay does
   assert.equal(descentLiveStars(run(DESCENT_LIVE_SOLUTION, { mode: "tower" }).obs.pods), 0);
-  // beacons off Mara's route (she reroutes around main) buy nothing
-  assert.equal(descentLiveStars(run(["main0", "main1", "main2"].map((id) => place(id, 0))).obs.pods), 0);
+});
+
+test("the flood warning matters: route-only play never beats 0 stars, and the best play needs the warning placed before the seal", () => {
+  const sealAt = descentLive().sealAt!;
+  // (a) all five beacons on Mara's path (the fastest route-only set) still trap her at main1
+  const routeOnly = run(["link0", "link1", "link2", "trunk0", "trunk1"].map((id, i) => place(id, 12 + 4 * i)));
+  assert.equal(arrive(routeOnly.obs, "MED-1"), null);
+  assert.equal(descentLiveStars(routeOnly.obs.pods), 0);
+  assert.ok(descentLiveStars(routeOnly.obs.pods) <= 2);
+  // (b) the 3-star solution places the warning before the seal, and dropping either half of it loses everything
+  const sealed = (DESCENT_LIVE_SOLUTION as { sectorId: string; atTick: number }[]).filter((c) => ["main0", "main1"].includes(c.sectorId));
+  assert.equal(sealed.length, 2);
+  assert.ok(sealed.every((c) => c.atTick < sealAt), "warning goes in before the seal tick");
+  for (const drop of ["main0", "main1"]) {
+    const r = run(DESCENT_LIVE_SOLUTION.filter((c) => (c as { sectorId: string }).sectorId !== drop));
+    assert.equal(descentLiveStars(r.obs.pods), 0, `no ${drop} beacon: no stars`);
+  }
+  // another 3-star layout: the bypass route beacons instead of link2
+  const alt = run([place("link0", 16), place("link1", 20), place("trunk0", 24), place("main1", 30), place("main0", 34)]);
+  assert.equal(descentLiveStars(alt.obs.pods), 3);
 });
 
 test("descentLive: valid, descent() untouched", () => {
   assert.deepEqual(validateMission(descentLive()), []);
   const live = descentLive();
   assert.deepEqual(live.world.sectors.filter((s) => s.beacon).map((s) => s.id), ["ramp0", "ramp1", "ramp2"]);
+  assert.equal(live.sealSectorId, "main1");
+  assert.equal(descent().sealSectorId, "main0");
   assert.ok(descent().world.sectors.every((s) => s.beacon === undefined && s.beacon !== false), "descent() keeps every sector beaconed");
   assert.equal(descent().endTick, 72);
   assert.equal(descent().beaconBudget, undefined);

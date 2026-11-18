@@ -95,21 +95,25 @@ export function descent(): Mission {
 // ---- Live play: the Relay places beacons during the run (placeBeacon commands). See DESCENT.md "Live play". ----
 
 const LIVE_START = ["ramp0", "ramp1", "ramp2"]; // the L1 depot ramp and the first relay sector
+// The flood seals main1, not main0. A pod that does not know goes into main0 and is trapped at main1 for good: the engine never
+// backs a pod out. News reaches pods at the fork only over beacons on main1 (the seal) and main0, so the warning is worth two beacons.
+const LIVE_SEAL = "main1";
 
 /** Same world, pods and seal as descent(), but only LIVE_START has a beacon. Every other sector is a dead zone: a pod waits 3 minutes
  * blind before entering it. Run is longer than descent() so slow, unbeaconed runs can still arrive late and score. */
 export function descentLive(): Mission {
   const m = descent();
   for (const s of m.world.sectors) s.beacon = LIVE_START.includes(s.id);
-  return { ...m, id: "descent-live", title: "The Descent (live)", endTick: 120, beaconBudget: 5 };
+  return { ...m, id: "descent-live", title: "The Descent (live)", endTick: 120, sealSectorId: LIVE_SEAL, beaconBudget: 5 };
 }
 
-/** Star table, calibrated by exhaustive search over every placement set (scenarios/live-search.ts). Each beacon on Mara's route
- * saves 3 minutes. 0 beacons: Mara t92, medicine t97 (0 stars). Best with 5: Mara t77, medicine t82. Deadlines are arrive-by ticks. */
+/** Star table, calibrated by exhaustive search over every placement set (scenarios/live-search.ts). Each route beacon saves 3 minutes,
+ * but unwarned pods are trapped at the flooded main1 and never arrive, so main1 and main0 must be beaconed (2 of the 5). Zero beacons or
+ * route-only beacons: 0 stars. Warning plus 3 route beacons: Mara t83, medicine t88. Deadlines are arrive-by ticks. */
 export const DESCENT_LIVE_GOALS: { stars: 1 | 2 | 3; maraBy: number; medicineBy?: number; text: string }[] = [
-  { stars: 1, maraBy: 86, text: "Nurse Mara reaches the deep clinic by minute 86." },
-  { stars: 2, maraBy: 83, medicineBy: 88, text: "Mara by minute 83 and the medicine by minute 88." },
-  { stars: 3, maraBy: 79, medicineBy: 84, text: "Mara by minute 79 and the medicine by minute 84." },
+  { stars: 1, maraBy: 89, text: "Nurse Mara reaches the deep clinic by minute 89." },
+  { stars: 2, maraBy: 86, medicineBy: 91, text: "Mara by minute 86 and the medicine by minute 91." },
+  { stars: 3, maraBy: 85, medicineBy: 90, text: "Mara by minute 85 and the medicine by minute 90." },
 ];
 
 /** Stars earned by a finished live run: the highest goal whose deadlines were all met (each star includes the one below). */
@@ -118,11 +122,11 @@ export function descentLiveStars(pods: Pick<Pod, "id" | "arriveTick">[]): 0 | 1 
   return DESCENT_LIVE_GOALS.reduce<0 | 1 | 2 | 3>((n, g) => (by("MED-1", g.maraBy) && (g.medicineBy === undefined || by("SUP-3", g.medicineBy)) ? g.stars : n), 0);
 }
 
-/** A replayable run worth 3 stars (Mara t77, medicine t82): the Relay stays two sectors ahead of Mara, one beacon every 4 minutes. */
+/** A replayable run worth 3 stars (Mara t83, medicine t88): three route beacons just ahead of Mara, then the flood warning (main1, main0) before the seal lands at t41. */
 export const DESCENT_LIVE_SOLUTION: Command[] = [
   { type: "placeBeacon", sectorId: "link0", atTick: 16 },
   { type: "placeBeacon", sectorId: "link1", atTick: 20 },
   { type: "placeBeacon", sectorId: "link2", atTick: 24 },
-  { type: "placeBeacon", sectorId: "trunk0", atTick: 28 },
-  { type: "placeBeacon", sectorId: "trunk1", atTick: 32 },
+  { type: "placeBeacon", sectorId: "main1", atTick: 30 },
+  { type: "placeBeacon", sectorId: "main0", atTick: 34 },
 ];
