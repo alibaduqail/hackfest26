@@ -31,6 +31,7 @@ import {
   type Point,
 } from "./projection";
 import { blocked } from "../engine/routing";
+import { connectedSlice } from "./connected-slice";
 import {
   appearance,
   cargoUnits,
@@ -352,6 +353,7 @@ export class WorldRenderer {
   private inspectorOpen = false;
   private motionPreference = matchMedia("(prefers-reduced-motion: reduce)");
   private allRooms: Map<string, RoomDef>;
+  private corridor: ReturnType<typeof connectedSlice>;
   private pointerPositions = new Map<number, { x: number; y: number }>();
   private pinchDistance = 0;
   private bounds = { left: 0, top: 0, right: 0, bottom: 0 };
@@ -364,6 +366,7 @@ export class WorldRenderer {
     public onCamera: () => void,
   ) {
     this.allRooms = new Map(scenario.rooms.map((r) => [r.id, r]));
+    this.corridor = connectedSlice(scenario);
     this.linkDefs = new Map(scenario.links.map((l) => [l.id, l]));
     this.personDefs = new Map(scenario.residents.map((p) => [p.id, p]));
     this.liftRoomIds = new Set(
@@ -486,6 +489,34 @@ export class WorldRenderer {
       }
     }
     this.world.addChild(back);
+    const corridor = this.corridor;
+    if (corridor) {
+      const p = corridor.start, q = corridor.end;
+      const tunnel = new Graphics();
+      tunnel.zIndex = -5100;
+      polygon(tunnel, [
+        { x: p.x, y: p.y - 99 }, { x: q.x, y: q.y - 99 },
+        { x: q.x, y: q.y + 16 }, { x: p.x, y: p.y + 16 },
+      ], 0x111d22);
+      polygon(tunnel, [
+        { x: p.x, y: p.y - 83 }, { x: q.x, y: q.y - 83 },
+        { x: q.x, y: q.y - 1 }, { x: p.x, y: p.y - 1 },
+      ], 0x304046);
+      polygon(tunnel, [
+        { x: p.x, y: p.y - 6 }, { x: q.x, y: q.y - 6 },
+        { x: q.x, y: q.y + 14 }, { x: p.x, y: p.y + 14 },
+      ], 0x56635f);
+      line(tunnel, { x: p.x, y: p.y - 5 }, { x: q.x, y: q.y - 5 }, 0x899087, 3);
+      line(tunnel, { x: p.x, y: p.y - 83 }, { x: q.x, y: q.y - 83 }, 0x73807b, 4);
+      const ribs = Math.min(12, Math.max(2, Math.ceil((q.x - p.x) / 65)));
+      for (let i = 0; i <= ribs; i++) {
+        const t = i / ribs, x = p.x + (q.x - p.x) * t, y = p.y + (q.y - p.y) * t;
+        line(tunnel, { x, y: y - 82 }, { x, y: y - 6 }, 0x17282c, 8);
+        line(tunnel, { x: x + 3, y: y - 80 }, { x: x + 3, y: y - 8 }, 0x68716a, 2);
+        line(tunnel, { x: x - 8, y: y + 1 }, { x: x + 8, y: y + 4 }, 0x303d3c, 2);
+      }
+      this.world.addChild(tunnel);
+    }
     const links = new Graphics();
     links.zIndex = -5000;
     for (const l of this.scenario.links) {
@@ -601,6 +632,13 @@ export class WorldRenderer {
         0x6c7473,
         2,
       );
+    for (const room of served.filter((r) => r.id === "d1-f0" || r.id === "d1-f1")) {
+      const shift = (liftBay(room).y - first.y) * 1.25;
+      for (const h of [105 - shift, -8 - shift]) {
+        line(near, local(-5, 0, h), local(first.w + 8, 0, h), 0x26373b, 9);
+        line(near, local(-5, 0, h + 2), local(first.w + 8, 0, h + 2), 0x8b9385, 2);
+      }
+    }
     block(rear, -8, 0, first.w + 22, first.d + 16, 13, 0x5b6869, 112);
     for (const room of served) {
       const base = roomBase(room),
@@ -734,7 +772,13 @@ export class WorldRenderer {
           shade(floorColor, (x + z + d.floor * 5) % 3 ? 0.92 : 1.08),
         );
     block(g, 0, depth - 10, w, 15, h, wall);
-    block(g, -8, 0, 9, depth, h, shade(wall, 0.9));
+    const corridorEntrance = this.corridor?.right.id === d.id;
+    if (corridorEntrance) {
+      block(g, -8, 55, 9, depth - 55, h, shade(wall, 0.9));
+      block(g, -8, 0, 9, 55, 20, shade(wall, 0.9), h - 20);
+    } else {
+      block(g, -8, 0, 9, depth, h, shade(wall, 0.9));
+    }
     for (let x = 0; x < w; x += 62) {
       line(
         g,
@@ -1068,6 +1112,10 @@ export class WorldRenderer {
         0xe4be7c,
         0.035,
       );
+    }
+    if (d.id === "d0-f1" || d.id === "d1-f1") {
+      glow(lights, local(w * 0.46, 92, 46), 88, 56, 0xe2b46f);
+      glow(lights, local(w * 0.46, 62, 1), 94, 31, 0xe7bd78);
     }
     // Place wall-mounted rotors above the wall drawing, below the unpowered shade.
     root.addChildAt(g, 0);
