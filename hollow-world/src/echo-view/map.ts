@@ -59,7 +59,7 @@ export const COLORS = {
 } as const;
 const PRIORITY_COLOR: Record<Priority, string> = { medical: COLORS.medical, supply: COLORS.supply, passenger: COLORS.passenger };
 // label side per city, chosen so neighbours (NY/Sector 07, London/Moscow, Beijing/Tokyo) never collide
-const LABEL_SIDE: Record<string, "l" | "r" | "t" | "b"> = { ny: "t", s07: "l", lon: "t", mow: "r", bei: "t", tok: "r", cairo: "t", lagos: "l", mum: "r", jak: "r", syd: "l", sao: "r" };
+const LABEL_SIDE: Record<string, "l" | "r" | "t" | "b"> = { ny: "r", s07: "l", lon: "t", mow: "r", bei: "t", tok: "r", cairo: "t", lagos: "l", mum: "r", jak: "r", syd: "l", sao: "r" };
 
 type XY = [number, number];
 export interface Projection { (p: XY): XY }
@@ -146,17 +146,17 @@ type Box = [x: number, y: number, w: number, h: number];
 const overlaps = (a: Box, b: Box) => a[0] < b[0] + b[2] && b[0] < a[0] + a[2] && a[1] < b[1] + b[3] && b[1] < a[1] + a[3];
 
 /** Where a city's name goes: left edge, middle line, width. */
-function labelAt(ctx: CanvasRenderingContext2D, c: City, [x, y]: XY): [number, number, number] {
-  const side = LABEL_SIDE[c.id] ?? "r";
+function labelAt(ctx: CanvasRenderingContext2D, c: City, [x, y]: XY, prepare: boolean): [number, number, number] {
+  const side = prepare && c.id === "ny" ? "t" : LABEL_SIDE[c.id] ?? "r";
   ctx.font = LABEL_FONT;
   const wText = ctx.measureText(c.name).width;
-  return side === "t" ? [x - wText / 2, y - 25, wText] :
+  return side === "t" ? [x - wText / 2, y - 42, wText] :
     side === "b" ? [x - wText / 2, y + 15, wText] :
     side === "l" ? [x - 11 - wText, y, wText] : [x + 11, y, wText];
 }
 
-function cityLabel(ctx: CanvasRenderingContext2D, c: City, xy: XY) {
-  const [tx, ty, width] = labelAt(ctx, c, xy);
+function cityLabel(ctx: CanvasRenderingContext2D, c: City, xy: XY, prepare: boolean) {
+  const [tx, ty, width] = labelAt(ctx, c, xy, prepare);
   ctx.fillStyle = "rgba(13,22,28,0.85)"; ctx.fillRect(tx - 2, ty - 8, width + 4, 16);
   ctx.fillStyle = c.outbreak ? COLORS.outbreak : c.strata ? COLORS.strata : COLORS.label;
   ctx.textBaseline = "middle";
@@ -234,9 +234,11 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
     ctx.lineCap = "round";
     const dead = echo && s.beacon === false;
     ctx.setLineDash(dead ? (prep ? [6, 7] : [3, 5]) : []);
-    ctx.strokeStyle = prep ? "#05090c" : "#080f12"; ctx.lineWidth = prep ? 12 : 7;
+    ctx.strokeStyle = "#070d10"; ctx.lineWidth = prep ? 14 : 11;
+    ctx.beginPath(); ctx.moveTo(a[0], a[1] + 7); ctx.lineTo(b[0], b[1] + 7); ctx.stroke();
+    ctx.strokeStyle = prep ? "#263a3e" : "#203136"; ctx.lineWidth = prep ? 13 : 10;
     ctx.beginPath(); ctx.moveTo(a[0], a[1] + 4); ctx.lineTo(b[0], b[1] + 4); ctx.stroke();
-    ctx.strokeStyle = prep ? (dead ? "#27343a" : "#5f7a73") : dead ? "#334348" : "#50645f"; ctx.lineWidth = prep ? 8 : 5;
+    ctx.strokeStyle = prep ? (dead ? "#27343a" : "#5f7a73") : dead ? "#334348" : "#50645f"; ctx.lineWidth = prep ? 9 : 7;
     ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b); ctx.stroke();
     ctx.setLineDash([]);
   }
@@ -372,17 +374,20 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
   for (const c of [...obs.cities].sort((a, b) => project([a.x, a.y])[1] - project([b.x, b.y])[1])) {
     const [x, y] = project([c.x, c.y]);
     const col = c.outbreak ? COLORS.outbreak : c.strata ? COLORS.strata : COLORS.city;
-    const r = c.strata || c.outbreak ? 9 : 7, height = c.strata ? 16 : 12;
-    ctx.fillStyle = "#26373d";
+    const r = c.strata || c.outbreak ? 10 : 8, height = c.strata ? 30 : 24;
+    ctx.fillStyle = "#1e3037";
     ctx.beginPath(); ctx.moveTo(x-r, y); ctx.lineTo(x, y+4); ctx.lineTo(x, y-height+4); ctx.lineTo(x-r, y-height); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = "#40555b";
+    ctx.fillStyle = "#405b5e";
     ctx.beginPath(); ctx.moveTo(x, y+4); ctx.lineTo(x+r, y); ctx.lineTo(x+r, y-height); ctx.lineTo(x, y-height+4); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = "#687b78";
+    ctx.fillStyle = "#788b80";
     ctx.beginPath(); ctx.moveTo(x-r, y-height); ctx.lineTo(x, y-height-4); ctx.lineTo(x+r, y-height); ctx.lineTo(x, y-height+4); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = THEME.amberHi; ctx.fillRect(x-r+2, y-height+5, 2, 2); ctx.fillRect(x+3, y-height+5, 2, 2);
+    ctx.fillStyle = THEME.amberHi;
+    for (let wy = y - height + 7; wy < y - 3; wy += 7) {
+      ctx.fillRect(x-r+2, wy, 2, 2); ctx.fillRect(x+3, wy, 2, 2);
+    }
     ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y-height-2, 2.2, 0, Math.PI * 2); ctx.fill();
     if (c.outbreak) { ctx.strokeStyle = col; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(x, y, 12, 0, Math.PI * 2); ctx.stroke(); }
-    cityLabel(ctx, c, [x, y]);
+    cityLabel(ctx, c, [x, y], prep);
   }
 
   // SEALED stamps: pop in, then stay on the seal
@@ -461,7 +466,11 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
       const at = pos.get(podId) ?? (city ? project([city.x, city.y]) : undefined);
       if (!at) continue;
       // keep clear of city names and Mara's own label: first spot (above, above-left, below, below-left, higher) that hits none
-      const avoid: Box[] = obs.cities.map((c) => { const [lx, ly, lw] = labelAt(ctx, c, project([c.x, c.y])); return [lx - 2, ly - 8, lw + 4, 16]; });
+      const avoid: Box[] = obs.cities.flatMap((c): Box[] => {
+        const [cx, cy] = project([c.x, c.y]);
+        const [lx, ly, lw] = labelAt(ctx, c, [cx, cy], prep);
+        return [[lx - 2, ly - 8, lw + 4, 16], [cx - 10, cy - (c.strata ? 34 : 28), 20, c.strata ? 38 : 32]];
+      });
       for (const st of fx.stamps) { // SEALED stamps (drawn at the seal's midpoint + (8, 24), about 64x24 once popped)
         const sec = byId.get(st.sectorId); if (!sec) continue;
         const [sa, sb] = lane(project, sec); const sm = lerp(sa, sb, 0.5);
