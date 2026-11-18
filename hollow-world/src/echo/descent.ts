@@ -107,13 +107,14 @@ export function descentLive(): Mission {
   return { ...m, id: "descent-live", title: "The Descent (live)", endTick: 120, sealSectorId: LIVE_SEAL, beaconBudget: 5 };
 }
 
-/** Star table, calibrated by exhaustive search over every placement set (scenarios/live-search.ts). Each route beacon saves 3 minutes,
- * but unwarned pods are trapped at the flooded main1 and never arrive, so main1 and main0 must be beaconed (2 of the 5). Zero beacons or
- * route-only beacons: 0 stars. Warning plus 3 route beacons: Mara t83, medicine t88. Deadlines are arrive-by ticks. */
+/** Star table, calibrated by exhaustive search over every placement set (scripts: scenarios/live-search.ts). Unwarned pods are trapped at
+ * the flooded main1 and never arrive, so the warning (beacons on main1 and main0, 2 of the 5) is the gate to any star; route beacons
+ * (3 minutes each) decide how many. No warning: 0 stars. Warning only: Mara t92, medicine t97. Warning + 2 route: t86 / t91.
+ * Warning + 3 route, the best possible: t83 / t88. Deadlines are arrive-by ticks. */
 export const DESCENT_LIVE_GOALS: { stars: 1 | 2 | 3; maraBy: number; medicineBy?: number; text: string }[] = [
-  { stars: 1, maraBy: 89, text: "Nurse Mara reaches the deep clinic by minute 89." },
+  { stars: 1, maraBy: 92, text: "Warn the shaft: Nurse Mara reaches the deep clinic by minute 92." },
   { stars: 2, maraBy: 86, medicineBy: 91, text: "Mara by minute 86 and the medicine by minute 91." },
-  { stars: 3, maraBy: 85, medicineBy: 90, text: "Mara by minute 85 and the medicine by minute 90." },
+  { stars: 3, maraBy: 83, medicineBy: 88, text: "Mara by minute 83 and the medicine by minute 88." },
 ];
 
 /** Stars earned by a finished live run: the highest goal whose deadlines were all met (each star includes the one below). */

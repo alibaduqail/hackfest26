@@ -146,7 +146,8 @@ test("stars: no live beacons 0, a decent play 2, the stored solution 3, all with
   assert.equal(descentLiveStars(zero.obs.pods), 0);
   assert.deepEqual([arrive(zero.obs, "MED-1"), arrive(zero.obs, "SUP-3")], [null, null], "unwarned pods are trapped at the flood");
   const warn = [place("main1", 0), place("main0", 0)];
-  assert.equal(descentLiveStars(run(warn).obs.pods), 0, "warning alone is too slow");
+  assert.equal(descentLiveStars(run(warn).obs.pods), 1, "warning alone: they arrive, slowly");
+  assert.deepEqual([arrive(run(warn).obs, "MED-1"), arrive(run(warn).obs, "SUP-3")], [92, 97]);
   assert.equal(descentLiveStars(run([...warn, place("link0", 0)]).obs.pods), 1);
   const decent = run([...warn, place("link0", 16), place("trunk0", 28)]);
   assert.equal(descentLiveStars(decent.obs.pods), 2);
@@ -175,9 +176,20 @@ test("the flood warning matters: route-only play never beats 0 stars, and the be
     const r = run(DESCENT_LIVE_SOLUTION.filter((c) => (c as { sectorId: string }).sectorId !== drop));
     assert.equal(descentLiveStars(r.obs.pods), 0, `no ${drop} beacon: no stars`);
   }
-  // another 3-star layout: the bypass route beacons instead of link2
-  const alt = run([place("link0", 16), place("link1", 20), place("trunk0", 24), place("main1", 30), place("main0", 34)]);
+  // another 3-star layout: trunk beacons instead of link1 and link2
+  const alt = run([place("link0", 16), place("trunk0", 24), place("trunk1", 28), place("main1", 30), place("main0", 34)]);
   assert.equal(descentLiveStars(alt.obs.pods), 3);
+});
+
+test("a pod that never heard the flood is legibly stuck: seal-heard then hold at the sealed sector, and the run still ends", () => {
+  const r = run([]);
+  const mara = r.log.filter((l) => l.podId === "MED-1" && (l.kind === "seal-heard" || l.kind === "hold"));
+  assert.deepEqual(mara.map((l) => l.kind), ["seal-heard", "hold"]);
+  assert.equal(mara[0].sectorId, "main1");
+  assert.match(mara[1].text, /no way around the seal/);
+  const med = r.obs.pods.find((p) => p.id === "MED-1")!;
+  assert.deepEqual([med.status, med.path[med.at], r.obs.tick, r.obs.over], ["holding", "main0", 120, true], "holding at the end of main0, facing the sealed main1");
+  assert.equal(med.path[med.at + 1], "main1");
 });
 
 test("descentLive: valid, descent() untouched", () => {
@@ -195,4 +207,24 @@ test("no two pods ever share a sector, whichever sector gets a beacon and whenev
   const dark = descentLive().world.sectors.filter((s) => !s.beacon).map((s) => s.id);
   for (const id of dark) for (const t of [0, 15, 30, 41, 55, 90]) run([place(id, t)]); // run() asserts exclusivity every tick
   for (const mode of ["echo"] as const) run(DESCENT_LIVE_SOLUTION.map((c) => ({ ...c, atTick: (c as { atTick: number }).atTick + 7 })), { mode });
+});
+
+test("a late warning that lands the tick after a claim reroutes the pod cleanly: path, holder and exclusivity stay consistent", () => {
+  // MED-1 stands at the fork, claims main0 at t56; the warning's news reaches her at t57 and she re-plans onto the bypass.
+  // Her stale claim on main0 must be dropped, or she would enter main0 while path[at] says byp0.
+  const cmds = [place("link0", 16), place("link1", 20), place("link2", 24), place("main1", 55), place("main0", 56)];
+  const r = run(cmds, {
+    onTick: (o) => {
+      for (const s of o.sectors) {
+        if (!s.holder) continue;
+        const p = o.pods.find((x) => x.id === s.holder)!;
+        assert.equal(p.status, "moving", `t${o.tick}: ${s.id} is held by ${p.id}, who is not moving`);
+        assert.equal(p.path[p.at], s.id, `t${o.tick}: ${p.id} holds ${s.id} but its path says ${p.path[p.at]}`);
+      }
+      for (const p of o.pods) if (p.status === "moving") assert.equal(o.sectors.find((s) => s.id === p.path[p.at])!.holder, p.id, `t${o.tick}: ${p.id} moves in a sector it does not hold`);
+    },
+  });
+  assert.ok(r.log.some((l) => l.kind === "reroute" && l.podId === "MED-1"), "MED-1 re-plans on the late news");
+  assert.ok(!r.log.some((l) => l.kind === "enter" && l.podId === "MED-1" && l.sectorId === "main0"), "she never goes into main0");
+  assert.ok(arrive(r.obs, "MED-1") !== null);
 });

@@ -71,16 +71,19 @@ The numbers (grants, claimed flights, capacity) are simulated, and so is the cre
 
 **Budget.** `mission.beaconBudget` caps live placements (applied plus queued); beacons already in the mission data are the free starting layout. `descentLive()` has `beaconBudget: 5`: 2 for the warning plus 3 for speed. With 4 the best play is Mara 86 / medicine 91, so 5 is the smallest budget that reaches 3 stars.
 
-**Stars** (`DESCENT_LIVE_GOALS`, `descentLiveStars(o.pods)`; each star includes the one below):
+**Stars** (`DESCENT_LIVE_GOALS`, `descentLiveStars(o.pods)`; each star includes the one below). The flood warning is the gate to any star; route efficiency decides how many:
 
-| Stars | Mara (MED-1) arrives by | SUP-3 medicine arrives by |
-|---|---|---|
-| 1 | minute 89 | any |
-| 2 | minute 86 | minute 91 |
-| 3 | minute 85 | minute 90 |
+| Stars | Mara (MED-1) arrives by | SUP-3 medicine arrives by | What it takes |
+|---|---|---|---|
+| 0 | | | no warning: both pods are trapped |
+| 1 | minute 92 | any | warning (`main1` + `main0`), any route |
+| 2 | minute 86 | minute 91 | warning + 2 good route beacons |
+| 3 | minute 83 | minute 88 | warning + 3 good route beacons: the best possible |
 
-Calibration (`npx tsx scenarios/live-search.ts`, every set of up to 5 beacons placed at tick 0): zero beacons, or any set without both `main1` and `main0`, leaves Mara and the medicine trapped (0 stars). Warning only: Mara 92 / medicine 97 (0 stars). Warning plus 1 route beacon: 89 / 94 (1 star). Plus 2: 86 / 91 (2 stars). Plus 3: 83 / 88 (3 stars). All 120 three-star sets contain the warning, and there are many (any three of `link0-2`, `trunk0-2` and `byp0-3` that Mara actually passes).
+Calibration (`npx tsx scenarios/live-search.ts`, every set of up to 5 beacons placed at tick 0): zero beacons, or any set without both `main1` and `main0`, is 0 stars. Warning only: Mara 92 / medicine 97 (1 star). Warning plus 1 route beacon: 89 / 94 (1 star). Plus 2: 86 / 91 (2 stars). Plus 3: 83 / 88 (3 stars). 99 distinct layouts tie for 3 stars, all containing the warning (any three of `link0-2`, `trunk0-2` and `byp0-3` that Mara actually passes: some pairs overlap a queue and save less).
 
-**Solution.** `DESCENT_LIVE_SOLUTION` is a replayable command list worth 3 stars (Mara t83, medicine t88): `link0@16, link1@20, link2@24, main1@30, main0@34`. Route beacons go in just ahead of Mara, then the warning before the seal at t41. Apply it with `act` before stepping, or at the listed ticks; the run is identical.
+**A trapped pod, for the UI and the debrief.** An unwarned pod does not get a special event; read it from the observation. It enters `main0`, reaches the sealed boundary and logs `seal-heard` (`sectorId: "main1"`, "hears main1 is sealed") and then `hold` ("holds: no way around the seal"), both with its `podId`. From then on `pod.status === "holding"`, `path[at] === "main0"` and `path[at + 1] === "main1"` (the sealed sector) until the run ends. So "stuck at the flood" = `status === "holding"` and the next sector is `sealed`; the debrief cause line can name the pod and say no beacon carried the warning. Stuck pods keep their sector (`main0`) occupied but nothing else needs it; the run still ends at tick 120 with `over: true`.
+
+**Solution.** `DESCENT_LIVE_SOLUTION` is a replayable command list worth 3 stars (Mara t83, medicine t88): `link0@16, link1@20, link2@24, main1@30, main0@34`. Route beacons go in just ahead of Mara, then the warning before the seal at t41. A late warning also works while pods are still before the fork (a stale-claim bug that a late warning could trigger is fixed in `protocol.ts`). Apply it with `act` before stepping, or at the listed ticks; the run is identical.
 
 **Animate.** Log kind `beacon-placed` (`sectorId` set, no `podId`) is the placement event: flash the sector and flip its dead-zone look to a beacon. Also `blind` (a pod waits at a dark sector; it stops once the sector is lit), `seal` (t41, `main1`), and `pulses` of kind `seal` (the news front, one hop per tick through lit sectors), then `seal-heard` and `reroute` for each warned pod. A pod that never heard the seal ends in a `hold` at `main1`.
