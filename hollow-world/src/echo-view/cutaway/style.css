@@ -28,7 +28,7 @@ button:disabled { opacity: .55; cursor: default; }
 .switch button:last-child { border-radius: 0 4px 4px 0; border-left: 0; }
 button[aria-pressed="true"], button[aria-current="step"] { background: var(--amber); color: var(--ink); border-color: var(--amber); }
 .mode button { min-width: 4.8em; font-size: clamp(14px, 1vw, 19px); }
-main { display: grid; grid-template-columns: minmax(0, 3.25fr) minmax(260px, 1fr); gap: clamp(15px, 1.4vw, 30px); align-items: start; }
+main { display: grid; grid-template-columns: minmax(0, 1fr) clamp(260px, 21vw, 370px); gap: clamp(15px, 1.4vw, 30px); align-items: start; }
 .world-scroll { overflow: auto; border: 1px solid var(--line2); }
 .world { min-width: 620px; aspect-ratio: 1672/941; position: relative; background-color: var(--stage);
   background-image: url('./art/descent.webp'), linear-gradient(to bottom, #503d2e 0 24.7%, #40372b 24.7% 41.9%, #343538 41.9% 61%, #193c44 61% 78.9%, #244044 78.9%);
@@ -53,7 +53,6 @@ h3 { color: var(--text2); text-transform: uppercase; margin-bottom: 5px; }
 #ward.stocked { color: var(--good); }
 #events li { display: flex; align-items: baseline; gap: .7em; padding: .12em 0; color: var(--text2); font-size: clamp(13px, .82vw, 16px); }
 #events time { color: var(--amber); font: .9em var(--mono); white-space: nowrap; }
-footer { margin-top: auto; }
 nav { border-top: 1px solid var(--line); padding-top: .85em; gap: clamp(12px, 1.5vw, 30px); }
 .controls { gap: 6px; }
 #play { min-width: 5.3em; }

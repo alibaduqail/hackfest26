@@ -141,12 +141,13 @@ export function createScene(canvas: HTMLCanvasElement) {
       const medical = obs.pods.find((p) => p.nurse)!;
       const pax = obs.pods.find((p) => p.id === "PAX-1")!;
       const fixed: Box[] = [];
+      const signs: { box: Box; copy: string; ink: string }[] = [];
       ground.clearRect(0, 0, W, H);
       function fixedTag(copy: string, x: number, y: number, ink: string) {
         ground.font = font;
         const w = Math.ceil(ground.measureText(copy).width) + 18;
         const box = { x: x * W - w / 2, y: y * H - 14, w, h: 28 };
-        tag(ground, box, copy, ink);
+        signs.push({ box, copy, ink });
         fixed.push(box);
       }
       for (let i = 0; i < 5; i++) {
@@ -156,7 +157,9 @@ export function createScene(canvas: HTMLCanvasElement) {
           ground.fillRect(0, top, W, bottom - top);
         }
         ground.fillStyle = i + 1 === level ? T.amber : "#10191eee";
-        ground.fillRect(18, (top + bottom) / 2 - 17, 55, 34);
+        const badge = { x: 18, y: (top + bottom) / 2 - 17, w: 55, h: 34 };
+        fixed.push(badge);
+        ground.fillRect(badge.x, badge.y, badge.w, badge.h);
         ground.fillStyle = i + 1 === level ? T.ink : T.head;
         ground.font = "650 20px " + FONT_MONO;
         ground.textAlign = "center";
@@ -168,7 +171,11 @@ export function createScene(canvas: HTMLCanvasElement) {
         ground.fillRect(0, .07 * H, W, .177 * H);
       }
       fixedTag(obs.towerUp ? "TOWER ONLINE" : "TOWER OFFLINE", .359, .147, obs.towerUp ? T.good : T.redText);
-      if (supply.at === -1) crate(.265 * W, .225 * H, true);
+      // The medicine bay is always visible. SUP-3 takes the marked crate when it enters the rail.
+      const bayX = .268 * W, bayY = .225 * H;
+      ground.fillStyle = T.amberDim;
+      ground.fillRect(bayX - 4, bayY + 1, 58, 4);
+      if (supply.at < 0) crate(bayX, bayY, true);
       if (delivered) {
         crate(.645 * W, .943 * H);
         crate(.677 * W, .943 * H);
@@ -247,6 +254,7 @@ export function createScene(canvas: HTMLCanvasElement) {
         const holder = obs.sectors.find((s) => s.id === "trunk0")?.holder;
         fixedTag(holder ? holder + " FIRST · PAX-1 HOLDS" : "PAX-1 HOLDS AT BOUNDARY", .82, .624, T.redText);
       }
+      for (const sign of signs) tag(ground, sign.box, sign.copy, sign.ink);
       const pods = obs.pods.filter((p) => visible(p, obs.tick)).map((p) => {
         const old = previous.obs.pods.find((o) => o.id === p.id)!;
         const [x, y] = podPose(p), [px, py] = podPose(old);
@@ -311,6 +319,13 @@ export function createScene(canvas: HTMLCanvasElement) {
       function draw(now: number) {
         const t = duration ? Math.min(1, (now - start) / duration) : 1;
         live.clearRect(0, 0, W, H);
+        // Keep moving leader lines behind every fixed sign even between simulation ticks.
+        for (const p of pods) {
+          if (!p.box.w) continue;
+          const x = p.px + (p.x - p.px) * t, y = p.py + (p.y - p.py) * t;
+          line(live, p.box.x + p.box.w / 2, p.box.y + p.box.h, x, y - 40, p.ink + "90", 1.5);
+        }
+        for (const box of fixed) live.clearRect(box.x - 2, box.y - 2, box.w + 4, box.h + 4);
         for (const pulse of pulses) {
           const [x, y] = pulse.to;
           if (pulse.from) {
@@ -341,7 +356,6 @@ export function createScene(canvas: HTMLCanvasElement) {
         }
         for (const p of pods) {
           const x = p.px + (p.x - p.px) * t, y = p.py + (p.y - p.py) * t;
-          if (p.box.w) line(live, p.box.x + p.box.w / 2, p.box.y + p.box.h, x, y - 40, p.ink + "90", 1.5);
           drawSprite(live, p.ship, x, y, 112, 41, p.facesLeft);
           if (p.fake) {
             const crossX = x + (p.facesLeft ? 34 : -34);

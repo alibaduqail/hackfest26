@@ -7,6 +7,7 @@ export function Title({ onBegin, onMissions }: { onBegin: () => void; onMissions
       <div className="g-row">
         <button className="g-btn primary" autoFocus onClick={onBegin}>Begin</button>
         <button className="g-btn" onClick={onMissions}>Missions</button>
+        <a className="g-btn" href="./cutaway.html">See how Echo works</a>
       </div>
       <div className="foot">A fallback for the Hollow, when the Directorate's tower fails.</div>
     </div>

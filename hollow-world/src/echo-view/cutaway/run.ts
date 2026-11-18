@@ -120,10 +120,37 @@ export function createRun(mode: System) {
 export function beatAt(tick: number) {
   return beats.filter((b) => b.tick <= tick).length;
 }
-export function beatTick(number: number, reduced: boolean, end: number) {
-  // Event tick N is first visible in observe() at N+1.
-  if (!reduced) return beats[number - 1].tick + 1;
-  return number < beats.length ? beats[number].tick - 1 : end;
+// The comparison uses Echo's capture clock in both modes, including when Tower never reroutes.
+export function captureStops(echo: ReturnType<typeof createRun>) {
+  const end = echo(0).obs.endTick;
+  return beats.map((beat, i) => {
+    const settled = beats[i + 1] ? beats[i + 1].tick - 1 : end;
+    const first = beat.tick + 1;
+    let cue = first;
+    if (beat.beat === 5) {
+      for (let t = first; t <= settled; t++) {
+        if (echo(t).obs.pods.some((p) => p.nurse && p.rerouted)) {
+          cue = t;
+          break;
+        }
+      }
+    }
+    return { cue, settled };
+  });
+}
+
+const routeLabels: Record<string, string> = {
+  ramp: "depot ramp",
+  link: "relay track",
+  trunk: "junction track",
+  main: "main shaft",
+  byp: "dry bypass",
+};
+const sectorNames = new Map(
+  descent().world.sectors.map((s) => [s.id, routeLabels[s.routeId] + " section " + (s.index + 1)]),
+);
+export function displayLocations(text: string) {
+  return text.replace(/\b[a-z]+\d+\b/g, (id) => sectorNames.get(id) ?? id);
 }
 export function describe(frame: Frame, beat: number): [string, string] {
   const { obs, arrived, rejected } = frame;

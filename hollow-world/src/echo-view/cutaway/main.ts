@@ -1,7 +1,17 @@
 import "./style.css";
 import { DESCENT_LAYOUT } from "../../echo/descent";
 import { installTheme } from "../theme";
-import { beatAt, beatLevels, beatNames, beats, beatTick, createRun, describe, type System } from "./run";
+import {
+  beatAt,
+  beatLevels,
+  beatNames,
+  beats,
+  captureStops,
+  createRun,
+  describe,
+  displayLocations,
+  type System,
+} from "./run";
 import { createScene } from "./scene";
 
 installTheme();
@@ -14,10 +24,12 @@ const url = new URL(location.href);
 const motion = matchMedia("(prefers-reduced-motion: reduce)");
 let mode: System = url.searchParams.get("mode") === "tower" ? "tower" : "echo";
 const end = runs[mode](0).obs.endTick;
+const stops = captureStops(runs.echo);
+function seekTick(beat: number) {
+  return motion.matches ? stops[beat - 1].settled : stops[beat - 1].cue;
+}
 const requested = Number(url.searchParams.get("beat"));
-let tick = Number.isInteger(requested) && requested >= 1 && requested <= beats.length
-  ? beatTick(requested, motion.matches, end)
-  : 0;
+let tick = Number.isInteger(requested) && requested >= 1 && requested <= beats.length ? seekTick(requested) : 0;
 let playing = false;
 let speed = 1;
 let timer = 0;
@@ -37,7 +49,7 @@ for (const beat of beats) {
   button.title = "Beat " + beat.beat + " · t+" + beat.tick + " · " + beat.rule;
   button.onclick = () => {
     playing = false;
-    tick = beatTick(beat.beat, motion.matches, end);
+    tick = seekTick(beat.beat);
     bookmark(beat.beat);
     refresh();
   };
@@ -73,19 +85,22 @@ function paint(smooth: boolean) {
       time = document.createElement("time"),
       message = document.createElement("span");
     time.textContent = "t+" + e.tick;
-    message.textContent = e.text;
+    message.textContent = displayLocations(e.text);
     li.append(time, message);
     return li;
   }));
   text(
     "manifest",
     obs.pods.map((p) =>
-      p.label + ", " + p.status + " at " + (p.status === "arrived" ? p.dest : p.path[p.at] ?? p.origin)
+      p.label + ", " + p.status + " at " +
+      (p.status === "arrived" || p.at < 0
+        ? obs.cities.find((city) => city.id === (p.status === "arrived" ? p.dest : p.origin))!.name
+        : displayLocations(p.path[p.at]))
     ).join(". "),
   );
   for (const [i, node] of [...el("rules").children].entries()) {
     node.classList.toggle("active", i + 1 === level);
-    node.classList.toggle("past", i + 1 !== level && beatLevels.slice(0, active - 1).includes(i + 1));
+    node.classList.toggle("past", active > 0 && i + 1 !== level && beatLevels.slice(0, active - 1).includes(i + 1));
   }
   for (const [i, marker] of markers.entries()) {
     if (i + 1 === active) marker.setAttribute("aria-current", "step");
@@ -100,14 +115,14 @@ function paint(smooth: boolean) {
 }
 function advance() {
   if (!motion.matches) return Math.min(end, tick + 1);
-  return beats.map((b) => beatTick(b.beat, true, end)).find((t) => t > tick) ?? end;
+  return stops.map((s) => s.settled).find((t) => t > tick) ?? end;
 }
 function refresh(smooth = false) {
   clearTimeout(timer);
   if (tick >= end || document.hidden) playing = false;
   paint(smooth);
   if (playing) {
-    const hold = beats.some((b) => b.tick + 1 === tick);
+    const hold = stops.some((s) => s.cue === tick);
     const delay = motion.matches ? 2200 : stepMs + (hold ? 2000 : 0);
     timer = window.setTimeout(() => {
       tick = advance();
@@ -126,7 +141,7 @@ function togglePlay() {
 function manual(direction: number) {
   playing = false;
   if (direction === 1) tick = advance();
-  else if (motion.matches) tick = beats.map((b) => beatTick(b.beat, true, end)).filter((t) => t < tick).at(-1) ?? 0;
+  else if (motion.matches) tick = stops.map((s) => s.settled).filter((t) => t < tick).at(-1) ?? 0;
   else tick = Math.max(0, tick - 1);
   refresh();
 }
@@ -163,7 +178,7 @@ document.addEventListener("visibilitychange", () => {
   }
 });
 motion.addEventListener("change", () => {
-  if (motion.matches && beatAt(tick)) tick = beatTick(beatAt(tick), true, end);
+  if (motion.matches && beatAt(tick)) tick = seekTick(beatAt(tick));
   refresh();
 });
 playing = url.searchParams.get("autoplay") === "1";

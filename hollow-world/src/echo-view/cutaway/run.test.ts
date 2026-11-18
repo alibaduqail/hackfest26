@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { DESCENT_LAYOUT } from "../../echo/descent";
-import { beatAt, beats, beatTick, createRun, podPose, tracks } from "./run";
+import { beatAt, beats, captureStops, createRun, displayLocations, podPose, tracks } from "./run";
 
 test("every track has geometry and every observed pod can be located in either mode", () => {
   assert.equal(tracks.size, DESCENT_LAYOUT.sectors.length);
@@ -17,9 +17,15 @@ test("every track has geometry and every observed pod can be located in either m
 test("seeking and rewinding preserve the observed rejection, departures and separate clinic arrivals", () => {
   const echo = createRun("echo"), tower = createRun("tower");
   const end = echo(0).obs.endTick;
-  for (const b of beats) {
-    for (const reduced of [false, true]) assert.equal(beatAt(beatTick(b.beat, reduced, end)), b.beat);
+  const stops = captureStops(echo);
+  for (const [i, b] of beats.entries()) {
+    assert.equal(beatAt(stops[i].cue), b.beat);
+    assert.equal(beatAt(stops[i].settled), b.beat);
   }
+  const cue = stops[4].cue;
+  assert.equal(echo(cue - 1).obs.pods.find((p) => p.nurse)?.rerouted, false);
+  assert.equal(echo(cue).obs.pods.find((p) => p.nurse)?.rerouted, true);
+  assert.equal(tower(cue).obs.pods.find((p) => p.nurse)?.rerouted, false);
   const finish = echo(end);
   assert.equal(finish.rejected.size, 1);
   assert.equal(finish.rejected.get("GHOST-1")?.sectorId, "link0");
@@ -33,4 +39,10 @@ test("seeking and rewinding preserve the observed rejection, departures and sepa
   const medicineAt = (mode: typeof echo) => mode(68).obs.pods.find((p) => p.cargo === "medicine")!.at;
   assert.ok(medicineAt(echo) >= 0);
   assert.equal(medicineAt(tower), -1);
+});
+
+test("ticker and location descriptions use track names without changing engine IDs", () => {
+  assert.equal(displayLocations("Directorate seals main0"), "Directorate seals main shaft section 1");
+  for (const id of tracks.keys()) assert.notEqual(displayLocations(id), id);
+  assert.equal(displayLocations("MED-1"), "MED-1");
 });
