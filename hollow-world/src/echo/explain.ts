@@ -42,7 +42,7 @@ export function explainRun(log: LogEvent[], mission: Mission): string[] {
     else lines.push(`Beacons on ${s} (minute ${placed(s) ?? 0})${prev ? ` and ${prev} (minute ${placed(prev) ?? 0})` : ""} went in too late: ${name} was already past the fork.`);
   } else {
     const dark = [...new Set(log.filter((l) => l.kind === "blind" && l.podId === mara.id).map((l) => l.sectorId!))];
-    if (dark.length) lines.push(`${name} waited blind at ${dark.length} dark sector${dark.length > 1 ? "s" : ""} (${dark.join(", ")}): up to ${dark.length * BLIND_MIN} minutes lost.`);
+    if (dark.length) lines.push(`${name} waited blind at ${dark.length} dark sector${dark.length > 1 ? "s" : ""}${dark.length <= 3 ? ` (${dark.join(", ")})` : ""}: up to ${dark.length * BLIND_MIN} minutes lost.`);
     else if (arrived !== null) lines.push(`Every sector on ${name}'s route was lit: no blind waits.`);
   }
 
