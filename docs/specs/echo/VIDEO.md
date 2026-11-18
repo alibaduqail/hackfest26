@@ -1,6 +1,10 @@
 # Echo demo video: script and shot list
 
-_v3.0 · Wed Nov 18, 2026 (system first; replaces the game-first v2.0 from #69) · target 3:00 (judges allow 2:00 to 4:00) · owner `@m_opus` with M and Ali · numbers come from `npm run harness` (seed 20261117). Re-run it before recording and update any number that changed._
+_v3.1 · Wed Nov 18, 2026 (system first; replaces the game-first v2.0 from #69) · target 3:00 (judges allow 2:00 to 4:00) · owner `@m_opus` with M and Ali · numbers come from `npm run harness` (seed 20261117). Re-run it before recording and update any number that changed._
+
+## What changed in v3.1
+
+Card 5 ("News hops, pods reroute") is no longer a diagram card. It now cuts to real gameplay from the playable Descent (`/?screen=descent-live`): a flood-warning beacon going in live and a pod rerouting around the seal, with a one-second glimpse of **Watch the solution**. Same slot, same 8 seconds, same caption; total runtime is unchanged. Everything else in v3.0 below still applies.
 
 ## What changed in v3.0
 
@@ -57,15 +61,17 @@ VO: Rule two: medical goes first, then supplies, then passengers. When there isn
 VO: Rule three: only a nurse with a clinic credential can file a medical claim, so nobody can fake the priority.
 - **Caption:** `Rule 3 · only credentialed nurses file medical`
 
-**3e. News hops, pods reroute (1:13 to 1:21).** Card 5.
+**3e. News hops, pods reroute — live gameplay (1:13 to 1:21).** Take F, real build, not a card.
 VO: News of a sealed or flooded tunnel hops from beacon to beacon, and pods route around it.
-- **Caption:** `news hops beacon to beacon · pods reroute` (ties to #5)
+- **Visual:** `/?screen=descent-live`, take F. 0:00 to 0:03 (of the take): click the `main1` then `main0` rail sockets to bolt the two flood-warning beacons; the lamp lights and the beacon pip counts down. 0:03 to 0:06: cut to MED-1 nearing the fork as the seal news reaches it over the new beacons — red tint recedes, the dashed reroute path draws onto the bypass. 0:06 to 0:08: hard cut to a one-second flash of the **Watch the solution** badge over the same shaft, chip reading `3★ solution · link0 → link1 → link2 → main1 → main0`.
+- **Caption:** `news hops beacon to beacon · pods reroute` (ties to #5), then a 1 s `Watch the solution · 3★ replay`
+- **Captures:** M (gameplay, take F); Ali checks the beat against `docs/specs/echo/DESCENT.md`.
 
 **3f. Real-world anchor (1:21 to 1:35).** Card 6.
 VO: Pilots at airports with no control tower already do this. They announce on a shared frequency and take turns. Echo does it for a whole network. The Directorate can't switch off what it doesn't run.
 - **Caption:** `Already real: towerless airports run on announce and yield`
 
-- **Visual source:** cards 1 to 6. **Captures:** card builder renders; Ali checks every claim against `SPEC.md`.
+- **Visual source:** cards 1 to 4 and 6; card 5 is take F, live gameplay (see the Thursday capture checklist). **Captures:** card builder renders cards 1 to 4 and 6; M captures take F; Ali checks every claim against `SPEC.md` (and `DESCENT.md` for the live beat).
 
 ### 4. Proof (1:35 to 2:15)
 
@@ -143,6 +149,7 @@ All screen recordings: Chrome, window 1440x900, zoom 100%, no extension bar, dar
 | C2 | `/?screen=missions` | Hold the four mission cards still. For starred cards, finish Tower Down once in that profile first. | 10 s | shot 5 |
 | D | `/` | Title screen, beacons pulsing. Background for the close card. | 15 s | shot 6 |
 | E | news article | Screenshot or recording of the FAA headline. Crop to the headline only: no subhead, URL bar or web address. | still | shot 1 |
+| F | `/?screen=descent-live` | Fresh run. Click `main1` then `main0` to place the flood-warning beacons as MED-1 nears the fork, let the reroute draw, then open **Watch the solution** for one second and cut. Re-take if the reroute line doesn't finish drawing in frame. | 8 s | shot 3e |
 
 Query params (from `GameApp.tsx` and `MissionScreen.tsx`): `?screen=missions|prepare|run|debrief|briefing|title`, `&mission=<tower-down|dead-zones|grounding|ghost-flight>`, `&t=N` (starts the run at tick N, paused), `&run=1` (start running), `&speed=1|10|60` (default 10x), `&story=0` (no in-run story beats; `/echo.html` has none anyway). On `/echo.html`, `?t=N` loads paused at 10x unless `run=1` and `speed=1` are added (verified in `MissionScreen.tsx`). Test every link once on the hosted build before recording.
 
@@ -152,7 +159,7 @@ Query params (from `GameApp.tsx` and `MissionScreen.tsx`): `?screen=missions|pre
 
 Deadline: export by 5 PM. Cap 4:00, target 3:00.
 
-1. **Prepare assets.** Render the eight cards to 1920x1080 PNG (and a short build-in MP4 each if the card builder made one). Crop screen takes to 16:9 and scale to 1920x1080 (`-vf "crop=...,scale=1920:1080"`). Pick the best voiceover read per section.
+1. **Prepare assets.** Render the seven remaining cards (card 5 is take F, live gameplay, not a card) to 1920x1080 PNG (and a short build-in MP4 each if the card builder made one). Crop screen takes to 16:9 and scale to 1920x1080 (`-vf "crop=...,scale=1920:1080"`). Pick the best voiceover read per section.
 2. **Assemble in order:** 1 hook, 2 problem, 3a to 3f cards, 4a to 4e, 5, 6. Cut each segment (`ffmpeg -ss -to -i take.mp4 -c:v libx264 ...`), then join with the concat demuxer, or `xfade` for 0.3 s dissolves between cards. Hard cuts on the hook and between the proof beats.
 3. **Voiceover:** place the section takes on one audio track at the shot start times above (`adelay`, or concatenate with silence). Normalize to about -16 LUFS (`loudnorm`).
 4. **Captions:** burn in the caption lines under each shot with `drawtext`, plus a voiceover transcript as `.srt` through `subtitles=`. Chips and call-outs use the Strata palette: cream text on slate, amber for emphasis, red for the Directorate.
