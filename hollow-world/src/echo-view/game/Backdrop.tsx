@@ -6,7 +6,8 @@ import { HollowEngine } from "../../engine/engine";
 import type { Scenario } from "../../engine/types";
 import { WorldRenderer } from "../../world/render";
 
-export function Backdrop() {
+/** `deep` darkens the scene further, for the Prepare map that is drawn on top of it. */
+export function Backdrop({ deep = false }: { deep?: boolean }) {
   const host = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = host.current!;
@@ -32,5 +33,5 @@ export function Backdrop() {
       .catch(() => {}); // no backdrop is fine: the page background shows
     return () => { dead = true; clearInterval(timer); view?.destroy(); };
   }, []);
-  return <div className="g-backdrop" ref={host} aria-hidden="true" />;
+  return <div className={`g-backdrop${deep ? " deep" : ""}`} ref={host} aria-hidden="true" />;
 }

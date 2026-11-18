@@ -55,7 +55,7 @@ function initial(): State {
 export const GameApp = () => <><Game /><SoundToggle /></>;
 
 // The Strata scene sits behind every screen except the map screens (prepare, run).
-const withBackdrop = (screen: Screen) => screen !== "prepare" && screen !== "run";
+const withBackdrop = (screen: Screen) => screen !== "run";
 
 function Game() {
   const [st, setSt] = useState<State>(initial);
@@ -94,7 +94,7 @@ function Game() {
     return () => removeEventListener("keydown", onKey);
   });
 
-  return <>{withBackdrop(st.screen) && <Backdrop />}{screenFor()}</>;
+  return <>{withBackdrop(st.screen) && <Backdrop deep={st.screen === "prepare"} />}{screenFor()}</>;
 
   function screenFor() {
   const { cm } = st;
