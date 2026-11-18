@@ -58,7 +58,7 @@ Tower Down: 12 deep cities, 40 pods. The tower goes dark at minute 20. At minute
 | Network capacity | 5% | 94% | 100% |
 | Mara arrives | never | t+137 | t+80 |
 
-**Beacon layouts (Dead Zones, `npm run harness:all`).** Everyone still arrives; placement changes the time. With no beacons, Mara arrives at t+167 and the last supply at t+201. With 40 beacons on the detour first: t+137 and t+189. With the best layout our search found: t+143 and t+162.
+**Beacon layouts (Dead Zones, `npm run harness:all` and `npm run harness:search`).** Everyone still arrives; placement changes the time. With no beacons, Mara arrives at t+167 and the last supply at t+201. With 40 beacons on the detour first: t+137 and t+189. With the best layout our search found: t+143 and t+162.
 
 **Where Echo is worse:** passengers wait 2.4 times as long as on a normal day, the network runs at 94% of normal, and Mara's trip takes 137 minutes instead of 80. Echo is a fallback, not a replacement for the tower.
 
@@ -70,7 +70,7 @@ Tower Down: 12 deep cities, 40 pods. The tower goes dark at minute 20. At minute
 
 ## How it was built
 
-Two students and a team of coordinated AI agents. The engine is headless and deterministic: the same seed gives the same numbers. It has 63 tests, and every pull request got an independent review before merging.
+Two students and a team of coordinated AI agents. The engine is headless and deterministic: the same seed gives the same numbers. It has 67 tests, and every pull request got an independent review before merging.
 
 ## Questions we expect
 

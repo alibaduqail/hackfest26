@@ -33,7 +33,7 @@ VO: Last week, every departure in America was halted for over four hours. Now go
 
 VO: In the Hollow, two billion people live in underground cities, and one Directorate tower clears every pod between them. It can go dark. It can lie: this banner says eighty-four flights authorized, and five are moving. That is tracks seven, nine and ten. A network the Directorate controls. Numbers that don't match reality. And medicine that runs out in the deep levels first.
 
-- **Visual source:** `/echo.html?t=22` (take A), Tower Down split screen at 1x, left pane cropped to the tower panel: "84 flights authorized / 5 actually moving". If the page loads paused, click **Run**. Record t+22 to t+45 so the panel flips from "tower online" to the claim and the log line "Directorate tower offline" appears first (t+20).
+- **Visual source:** `/echo.html?t=22&run=1&speed=1` (take A), Tower Down split screen at 1x, left pane cropped to the tower panel: "84 flights authorized / 5 actually moving". `?t=N` alone loads paused at 10x; `run=1` starts it and `speed=1` sets 1x. Record t+22 to t+45 so the panel flips from "tower online" to the claim and the log line "Directorate tower offline" appears first (t+20).
 - **Captions (chips beside the cropped panel, in this order):** `84 authorized · 5 actually moving`, then `#7 The Directorate controls the network`, `#9 Directorate numbers don't match reality`, `#10 Medicine runs out in the deep levels first`. Each chip appears on its voiceover beat; build them in the edit.
 - **Captures:** M.
 
@@ -69,7 +69,7 @@ VO: Pilots at airports with no control tower already do this. They announce on a
 
 ### 4. Proof (1:35 to 2:15)
 
-One continuous take, `/echo.html?t=10` at 1x, then 10x (take B). The right pane is Echo; the left is the Directorate alone. Do not press Dispatch: Mara departs on her own at t+31.
+One continuous take, `/echo.html?t=10&run=1&speed=1` at 1x, then 10x (take B). The right pane is Echo; the left is the Directorate alone. Do not press Dispatch: Mara departs on her own at t+31.
 
 **4a. Setup (1:35 to 1:42).**
 VO: Same scenario, run twice, side by side. The Directorate alone on the left, Echo on the right.
@@ -83,7 +83,7 @@ VO: At minute twenty, the tower goes dark. At thirty, they seal the tunnel to La
 
 **4c. Yield (1:50 to 1:58).**
 VO: At thirty-one, a passenger pod yields to Mara's. The rules decide, not the tower.
-- **Visual:** crop to the right pane, t+31 to t+43 at 1x. Log line and map tag `PAX-1 yields to MED-1` at the Sector 07 to São Paulo junction, reroute drawn in red. Highlight the log line.
+- **Visual:** crop to the right pane, t+31 to t+43 at 1x. Log line and map tag for PAX-1 yielding to MED-1 at the Sector 07 to São Paulo junction, reroute drawn in red. Highlight the log line (the engine's text reads "PAX-1 · Passenger yields s07-sao-f0 to MED-1 · Nurse Mara Vale"; the map tag reads "PAX-1 yields to MED-1").
 - **Caption:** `t+31 PAX-1 yields to MED-1`
 
 **4d. Arrival (1:58 to 2:03).**
@@ -136,15 +136,15 @@ All screen recordings: Chrome, window 1440x900, zoom 100%, no extension bar, dar
 
 | Take | URL | Setup | Duration | Feeds |
 |---|---|---|---|---|
-| A | `/echo.html?t=22` | 1x. If paused, click Run. Play to about t+45. Do not press Dispatch. | 25 s | shot 2 |
-| B | `/echo.html?t=10` | 1x, Run. Record to t+60 without touching anything. At t+60 click 10x until Mara arrives (about t+137), then record 3 s more. If the yield tag at t+31 to t+43 is missed, Reset, Run at 10x, switch to 1x shortly before t+28 and record to t+45. | about 60 s plus 10 s | 4a to 4d |
+| A | `/echo.html?t=22&run=1&speed=1` | Loads running at 1x. Play to about t+45. Do not press Dispatch. | 25 s | shot 2 |
+| B | `/echo.html?t=10&run=1&speed=1` | Loads running at 1x. Record to t+60 without touching anything. At t+60 click 10x until Mara arrives (about t+137), then record 3 s more. If the yield tag at t+31 to t+43 is missed, Reset, Run at 10x, switch to 1x shortly before t+28 and record to t+45. | about 60 s plus 10 s | 4a to 4d |
 | B2 | `/?screen=debrief&mission=tower-down` | Optional, only if used instead of Card 7. Hold the tower vs Echo numbers for 20 s. | 25 s | 4e |
 | C1 | `/?screen=prepare&mission=dead-zones` | Click a few tunnels (or Tab to the map, arrow keys, Enter). Counter goes 0/40 to 3/40. | 15 s | shot 5 |
 | C2 | `/?screen=missions` | Hold the four mission cards still. For starred cards, finish Tower Down once in that profile first. | 10 s | shot 5 |
 | D | `/` | Title screen, beacons pulsing. Background for the close card. | 15 s | shot 6 |
 | E | news article | Screenshot or recording of the FAA headline. Crop to the headline only: no subhead, URL bar or web address. | still | shot 1 |
 
-Query params (from `GameApp.tsx` and `MissionScreen.tsx`): `?screen=missions|prepare|run|debrief|briefing|title`, `&mission=<tower-down|dead-zones|grounding|ghost-flight>`, `&t=N` (starts the run at tick N), `&story=0` (no in-run story beats; `/echo.html` has none anyway). Test every link once on the hosted build before recording; whether `?t=N` starts paused is untested, so check on the first take.
+Query params (from `GameApp.tsx` and `MissionScreen.tsx`): `?screen=missions|prepare|run|debrief|briefing|title`, `&mission=<tower-down|dead-zones|grounding|ghost-flight>`, `&t=N` (starts the run at tick N, paused), `&run=1` (start running), `&speed=1|10|60` (default 10x), `&story=0` (no in-run story beats; `/echo.html` has none anyway). On `/echo.html`, `?t=N` loads paused at 10x unless `run=1` and `speed=1` are added (verified in `MissionScreen.tsx`). Test every link once on the hosted build before recording.
 
 **Voiceover notes.** Quiet room with soft furnishings, mic about a hand-width from the mouth, a pop filter. 48 kHz WAV. Record each of the six sections as a separate take, three reads each, with a one-second gap before and after. Read at about 150 wpm, slower in section 3. Keep the numbers flat and clear. Re-take a flubbed line instead of fixing it later. Name the files `vo-1-hook.wav` through `vo-6-close.wav`.
 
