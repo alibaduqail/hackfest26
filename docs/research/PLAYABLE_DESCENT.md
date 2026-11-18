@@ -13,7 +13,7 @@ The Descent feels like a playback because the player gets no forecast and no exp
 | 1 | Real time | Base 600 ms per tick, so the 72-tick run is about 43 s at 1x. The cutaway playback uses 410 ms; this is slower on purpose so a click has time to land. |
 | 2 | Active pause | Space pauses. Placement still works while paused. Stars are deadlines on sim ticks, so pausing never helps the clock. Speed options: 1x and 2x only. |
 | 3 | Auto slow-mo | The clock drops to about 0.35x inside telegraph windows (flood countdown, and MED-1 or SUP-3 within 3 ticks of an unbeaconed section). Show a "SLOW" pill. Any click or Space overrides it. |
-| 4 | Flood telegraph | From about 10 ticks before the seal (`mission.sealAt`, tick 41 today): a countdown banner ("Flood on Main 1 in 9"), rising water and a red tint on the sealed L4 rail, a ring on the timeline, a warning sound. At 600 ms that is at least 5 real seconds of lead at 1x. It shows when and where, not what to do. |
+| 4 | Flood telegraph | From about 10 ticks before the seal (`mission.sealAt`, tick 41 on main today; see DESCENT.md Live play for current budget and deadlines): a countdown banner ("Flood on Main 1 in 9"), rising water and a red tint on the sealed L4 rail, a ring on the timeline, a warning sound. At 600 ms that is at least 5 real seconds of lead at 1x. It shows when and where, not what to do. |
 | 5 | Click is a command | A click calls `act({type:"placeBeacon", sectorId, atTick: obs.tick})` on the echo engine only. It applies at the start of the next tick. The view draws a pulsing "queued" socket at once and resolves it when `obs.sectors[i].beacon === true`. |
 | 6 | Command log is the save | Every accepted command `{sectorId, atTick}` goes into `cmds[]`. That array is the save, the retry input, the replay and the "watch the 3-star solution" feed. Same input gives the same run. |
 
@@ -21,13 +21,13 @@ Honesty line for the HUD, because it is mission data and not a spoiler: "The Dir
 
 ## 3. The first 60 seconds
 
-**Safe first beat (cannot be failed).** Ticks 0 to 11. The tower goes dark at tick 6, and MED-1 does not leave the depot until tick 11, so nothing the player does or skips in this window can fail the run. Show one pulsing dashed socket on the first dark rail section, one beacon already highlighted in the budget pips, and one line of text. The first placement is free to be wrong; the level never depends on it. Pause is on by default until the first click or until tick 11, whichever comes first.
+**Safe first beat (cannot be failed).** Ticks 0 to about 10 on main today. The tower goes dark at tick 6, and MED-1 does not leave the depot until tick 10 (`T.med1` in `descent.ts`; re-check after #92), so nothing the player does or skips in this window can fail the run. Show one pulsing dashed socket on the first dark rail section, one beacon already highlighted in the budget pips, and one line of text. The first placement is free to be wrong; the level never depends on it. Pause is on by default until the first click or until MED-1 departs, whichever comes first.
 
 **One rule per level.** Each level gets one hint, shown when the pods first reach it, then gone. The world demonstrates the rule for about 10 seconds before a decision matters. Copy is a starting point; edit for length.
 
 | Level | Rule shown | Hint copy |
 |---|---|---|
-| 1 Upper depot | Tower claims vs reality | "The tower still says it is working. It is not. Click a rail to bolt a beacon. You have 5." |
+| 1 Upper depot | Tower claims vs reality | "The tower still says it is working. It is not. Click a rail to bolt a beacon. Beacons are limited." |
 | 2 Relay | Beacons carry news; credential check | "News only travels through beacons. A dark section hears nothing." and on first reject: "Forged medical pod. It is queued as a passenger." |
 | 3 Junction | Priority yield | "Medical goes first, then supply, then passengers. Waiting here is not a failure." |
 | 4 Flooded shaft | The seal | "The shaft is flooding. A pod that hears in time takes the bypass. A pod that does not will wait." |
@@ -72,7 +72,7 @@ Hover and placement: ghost beacon at the snapped rail slot (alpha 0.5, breathing
 - `prefers-reduced-motion`: read once, listen for `change`, add an in-game toggle that overrides it. One flag consulted in a single `emit()` place so every effect has one switch. Fallbacks are in the table above. Reduced motion also means no auto slow-mo flash or shake; the telegraph becomes text plus a static marker.
 - Colour plus shape: valid green + check + solid ring; invalid red + X + dashed ring; yield amber + chevron; forged X in a hexagon; flood blue + wave icon. Glyph contrast against the cutaway above 3:1. Check once with Chrome's vision-deficiency emulation.
 - Sound is never the only cue. Every audio event has a visual and the reverse. Mute and volume control present.
-- Keyboard: arrows walk the sector list (built from `DESCENT_LAYOUT`, track 0 to 9, main, bypass), Enter places, Space (or P) pauses. Add an `aria-live` line for "3 of 5 beacons placed".
+- Keyboard: arrows walk the sector list (built from `DESCENT_LAYOUT`, track 0 to 9, main, bypass), Enter places, Space (or P) pauses. Add an `aria-live` line for "N of M beacons placed".
 
 **Performance**
 - Pooled particles: fixed 256 to 512 slot typed arrays, swap-remove, no `new` or array methods in the frame loop; 16 pooled pop-up labels.
@@ -85,7 +85,7 @@ Hover and placement: ghost beacon at the snapped rail slot (alpha 0.5, breathing
 
 ## 7. Build plan
 
-**Dependency: engine PR "92-live-beacons" merges first.** It must export `placeBeacon` in the Command union, `descentLive()`, `DESCENT_LIVE_GOALS` (`Goal[]`, same shape as `campaign.ts:36`) and `DESCENT_LIVE_SOLUTION` (`Command[]`). Today only `placeBeacon` and `descentLive` exist, and only in an unpushed worktree. Until it lands, build `live/` against the types and stub the goals locally. **Trap:** `act(placeBeacon)` on a tower-mode engine returns `ok:false` ("only echo mode has beacons"). Send placement to the echo engine only; never reuse `MissionScreen.tsx:303` (`res.every(r=>r.ok)`). A failing `act()` must never throw: show its `reason`.
+**Dependency: engine PR "92-live-beacons" merges first.** It must export `placeBeacon` in the Command union, `descentLive()`, `DESCENT_LIVE_GOALS` (`Goal[]`, same shape as `campaign.ts:36`) and `DESCENT_LIVE_SOLUTION` (`Command[]`). Today only `placeBeacon` and `descentLive` exist, and only in an unpushed worktree. Until it lands, build `live/` against the types and stub the goals locally. **Trap:** `act(placeBeacon)` on a tower-mode engine returns `ok:false` ("only echo mode has beacons"). Send placement to the echo engine only; never reuse `MissionScreen.tsx:304` (`res.every(r=>r.ok)`, line 304 on main). A failing `act()` must never throw: show its `reason`.
 
 All new code goes under `hollow-world/src/echo-view/cutaway/live/` (call it `live/`). Branch from `main` after #91 merges (it adds `cutaway/**` and changes `GameApp.tsx`). Split so no two terminals edit the same file. Owners below are a proposal for the lead to assign.
 
