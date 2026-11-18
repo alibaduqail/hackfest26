@@ -12,7 +12,7 @@ When the Directorate's tower goes dark, every skiff in the Hollow is grounded. E
 
 ## Real-world framing (use these words, not stronger ones)
 
-- On Nov 13, 2026 the FAA halted every US departure for over four hours after a communications failure at its traffic control centers. One central system failed and everything stopped.
+- On Nov 13, 2026 every US departure was halted for over four hours. One central system stopped, and everything stopped.
 - Small airports already run without a tower: pilots announce position and intent on a shared frequency (CTAF) and follow right-of-way rules.
 - Echo is that contingency protocol for a world where the center fails, or is used as a weapon. It is a **fallback**, not a replacement for the tower.
 - Do **not** state a cause for the FAA outage (still unconfirmed and may be public by judging). Do not claim signatures prove data is correct; they prove who sent it.
