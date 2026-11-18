@@ -1,6 +1,7 @@
 import { FONT_MONO, FONT_SANS, THEME as T } from "../theme";
 import type { Pod } from "../../echo/types";
 import { along, type Frame, neighbors, podPose, type Point, type Track, tracks } from "./run";
+import { frameProgress } from "./motion";
 import med from "./art/med-1.webp";
 import freight from "./art/supply.webp";
 import passenger from "./art/pax-1.webp";
@@ -314,7 +315,7 @@ export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasEleme
       const liftSection = obs.sectors.find((s) => s.id === "ramp2");
       const liftPod = pods.find((p) => p.id === liftSection?.holder);
       function draw(now: number) {
-        const t = duration ? Math.min(1, (now - start) / duration) : 1;
+        const t = frameProgress(now, start, duration);
         live.clearRect(0, 0, W, H);
         // Keep moving leader lines behind every fixed sign even between simulation ticks.
         for (const p of pods) {
