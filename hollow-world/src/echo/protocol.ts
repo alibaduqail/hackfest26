@@ -64,6 +64,9 @@ function news(s: Sim) {
         p.path = [...p.path.slice(0, p.at + 1), ...around];
         p.rerouted = true;
         say(s, "reroute", `${p.label} re-plans around ${seal}`, p.id);
+        // Stale claim: news runs before claims, so a pod that won a sector last tick can re-plan this tick. Its claim would
+        // still enter the old sector next tick while path[at + 1] names another, leaving path and sector.holder out of sync.
+        if (r.claim && r.claim !== p.path[p.at + 1]) r.claim = null;
       } else r.stuck = true;
     }
   });

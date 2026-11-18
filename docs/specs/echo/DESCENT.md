@@ -58,3 +58,32 @@ const o = e.observe();                      // fresh snapshot each call
 ## Honesty note
 
 The numbers (grants, claimed flights, capacity) are simulated, and so is the credential: `sig` is a deterministic stand-in (`credential.ts`), not cryptography. Label it "simulated signature" on screen. The Descent is a teaching model of the rules, not a measurement of any real network.
+
+## Live play
+
+`descentLive()` (same file) is the Descent played in real time: the player is the Relay and bolts beacons in **during** the run. Same world and pods as `descent()`; only `ramp0`, `ramp1`, `ramp2` (the depot ramp and the first relay sector) have a beacon, every other sector is a dead zone (a pod waits 3 minutes blind before entering one), and the run is 120 ticks so slow runs still arrive late. The flood seals **`main1`** at t41 (not `main0`). `descent()` and `DESCENT_BEATS` are unchanged.
+
+**Why the warning matters.** The engine never backs a pod out. A pod that has not heard the seal goes into `main0`, reaches `main1`, finds it sealed with no way around, and holds there for good: it never arrives. Seal news travels only over beacons, one hop per tick: it starts at a beaconed `main1`, passes through a beaconed `main0`, and reaches pods standing at the fork, who then take the bypass. So the flood warning costs two beacons (`main1` and `main0`), and with no warning Mara and the medicine are lost whatever else you build. The rest of the budget buys speed: each beacon on Mara's route (`link*`, `trunk*`, `byp*`) saves her the 3-minute blind wait. Place the warning before the pods reach the fork; the telegraph is the seal at t41, so lay it before then.
+
+**Command.** `engine.act({ type: "placeBeacon", sectorId, atTick })`. It is queued and applies at the start of tick `atTick`, before the protocol steps, in the order (`atTick`, `sectorId`). It sets `sector.beacon = true` and rebuilds the seal-news reach: news hops through the new beacon from that tick on (a beacon that goes live at tick T relays from T, not retroactively). A pod already waiting blind at that sector goes in on the next claim. Pass `atTick = observe().tick` to place "now". Echo mode only: tower and normal modes return `ok: false`.
+
+**Rejected (no log line, no budget spent, never throws):** `ok: false` with a `reason` for an unknown sector, a sector that already has (or has queued) a beacon, `atTick` in the past or at/after `endTick`, no beacons left, or a mode other than echo.
+
+**Budget.** `mission.beaconBudget` caps live placements (applied plus queued); beacons already in the mission data are the free starting layout. `descentLive()` has `beaconBudget: 5`: 2 for the warning plus 3 for speed. With 4 the best play is Mara 86 / medicine 91, so 5 is the smallest budget that reaches 3 stars.
+
+**Stars** (`DESCENT_LIVE_GOALS`, `descentLiveStars(o.pods)`; each star includes the one below). The flood warning is the gate to any star; route efficiency decides how many:
+
+| Stars | Mara (MED-1) arrives by | SUP-3 medicine arrives by | What it takes |
+|---|---|---|---|
+| 0 | | | no warning: both pods are trapped |
+| 1 | minute 92 | any | warning (`main1` + `main0`), any route |
+| 2 | minute 86 | minute 91 | warning + 2 good route beacons |
+| 3 | minute 83 | minute 88 | warning + 3 good route beacons: the best possible |
+
+Calibration (`npx tsx scenarios/live-search.ts`, every set of up to 5 beacons placed at tick 0): zero beacons, or any set without both `main1` and `main0`, is 0 stars. Warning only: Mara 92 / medicine 97 (1 star). Warning plus 1 route beacon: 89 / 94 (1 star). Plus 2: 86 / 91 (2 stars). Plus 3: 83 / 88 (3 stars). 99 distinct layouts tie for 3 stars, all containing the warning (any three of `link0-2`, `trunk0-2` and `byp0-3` that Mara actually passes: some pairs overlap a queue and save less).
+
+**A trapped pod, for the UI and the debrief.** An unwarned pod does not get a special event; read it from the observation. It enters `main0`, reaches the sealed boundary and logs `seal-heard` (`sectorId: "main1"`, "hears main1 is sealed") and then `hold` ("holds: no way around the seal"), both with its `podId`. From then on `pod.status === "holding"`, `path[at] === "main0"` and `path[at + 1] === "main1"` (the sealed sector) until the run ends. So "stuck at the flood" = `status === "holding"` and the next sector is `sealed`; the debrief cause line can name the pod and say no beacon carried the warning. Stuck pods keep their sector (`main0`) occupied but nothing else needs it; the run still ends at tick 120 with `over: true`.
+
+**Solution.** `DESCENT_LIVE_SOLUTION` is a replayable command list worth 3 stars (Mara t83, medicine t88): `link0@16, link1@20, link2@24, main1@30, main0@34`. Route beacons go in just ahead of Mara, then the warning before the seal at t41. A late warning also works while pods are still before the fork (a stale-claim bug that a late warning could trigger is fixed in `protocol.ts`). Apply it with `act` before stepping, or at the listed ticks; the run is identical.
+
+**Animate.** Log kind `beacon-placed` (`sectorId` set, no `podId`) is the placement event: flash the sector and flip its dead-zone look to a beacon. Also `blind` (a pod waits at a dark sector; it stops once the sector is lit), `seal` (t41, `main1`), and `pulses` of kind `seal` (the news front, one hop per tick through lit sectors), then `seal-heard` and `reroute` for each warned pod. A pod that never heard the seal ends in a `hold` at `main1`.
