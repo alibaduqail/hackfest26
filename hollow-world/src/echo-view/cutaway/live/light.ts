@@ -39,6 +39,21 @@ export interface LightLayerOptions extends Pick<LightCoreOptions, "darknessAlpha
   readonly headlampRadius?: number;
 }
 
+export interface LightLayer {
+  setReducedMotion(value: boolean): void;
+  draw(frame: LightFrame): void;
+  dispose(): void;
+}
+
+/** Safe fallback when 2D context creation fails; same shape as the real layer, every call a no-op. */
+function noopLayer(): LightLayer {
+  return {
+    setReducedMotion() {},
+    draw() {},
+    dispose() {},
+  };
+}
+
 const DEFAULT_W = 1672, DEFAULT_H = 941;
 const LIGHT_SPRITE_W = 256, LIGHT_SPRITE_H = 72;
 const HEADLAMP_SPRITE_SIZE = 160;
@@ -54,9 +69,10 @@ function makeCanvas(w: number, h: number) {
 }
 
 /** One soft elongated gradient, prebaked once; stretched and rotated per lit section at draw time. */
-function makeLightSprite(): HTMLCanvasElement {
+function makeLightSprite(): HTMLCanvasElement | null {
   const sprite = makeCanvas(LIGHT_SPRITE_W, LIGHT_SPRITE_H);
-  const ctx = sprite.getContext("2d")!;
+  const ctx = sprite.getContext("2d");
+  if (!ctx) return null;
   const gradient = ctx.createRadialGradient(
     LIGHT_SPRITE_W / 2,
     LIGHT_SPRITE_H / 2,
@@ -79,9 +95,10 @@ function makeLightSprite(): HTMLCanvasElement {
 }
 
 /** One soft circular hole, prebaked once; punched at every headlamp position each frame. */
-function makeHeadlampSprite(): HTMLCanvasElement {
+function makeHeadlampSprite(): HTMLCanvasElement | null {
   const sprite = makeCanvas(HEADLAMP_SPRITE_SIZE, HEADLAMP_SPRITE_SIZE);
-  const ctx = sprite.getContext("2d")!;
+  const ctx = sprite.getContext("2d");
+  if (!ctx) return null;
   const r = HEADLAMP_SPRITE_SIZE / 2;
   const gradient = ctx.createRadialGradient(r, r, 0, r, r, r);
   gradient.addColorStop(0, "rgba(255,255,255,1)");
@@ -93,9 +110,10 @@ function makeHeadlampSprite(): HTMLCanvasElement {
 }
 
 /** One small tinted glow, prebaked once per pulse color, drawn with 'lighter' compositing. */
-function makeGlowSprite(color: string): HTMLCanvasElement {
+function makeGlowSprite(color: string): HTMLCanvasElement | null {
   const sprite = makeCanvas(GLOW_SPRITE_SIZE, GLOW_SPRITE_SIZE);
-  const ctx = sprite.getContext("2d")!;
+  const ctx = sprite.getContext("2d");
+  if (!ctx) return null;
   const r = GLOW_SPRITE_SIZE / 2;
   const gradient = ctx.createRadialGradient(r, r, 0, r, r, r);
   gradient.addColorStop(0, color);
@@ -106,16 +124,17 @@ function makeGlowSprite(color: string): HTMLCanvasElement {
 }
 
 /** One diagonal-hatch tile, prebaked once; tiled as a CanvasPattern for every dark-section chip. */
-function makeHatchPattern(ctx: CanvasRenderingContext2D): CanvasPattern {
+function makeHatchPattern(ctx: CanvasRenderingContext2D): CanvasPattern | null {
   const tile = makeCanvas(HATCH_TILE, HATCH_TILE);
-  const tctx = tile.getContext("2d")!;
+  const tctx = tile.getContext("2d");
+  if (!tctx) return null;
   tctx.strokeStyle = "rgba(221,216,193,0.55)";
   tctx.lineWidth = 2;
   tctx.beginPath();
   tctx.moveTo(-2, HATCH_TILE + 2);
   tctx.lineTo(HATCH_TILE + 2, -2);
   tctx.stroke();
-  return ctx.createPattern(tile, "repeat")!;
+  return ctx.createPattern(tile, "repeat");
 }
 
 const PULSE_COLORS: Record<PulseKind, string> = {
@@ -124,10 +143,47 @@ const PULSE_COLORS: Record<PulseKind, string> = {
   release: "rgba(228,196,148,0.9)",
 };
 
-export function createLightLayer(canvas: HTMLCanvasElement, options: LightLayerOptions) {
+export function createLightLayer(canvas: HTMLCanvasElement, options: LightLayerOptions): LightLayer {
   const W = options.width ?? DEFAULT_W;
   const H = options.height ?? DEFAULT_H;
   const headlampRadius = options.headlampRadius ?? DEFAULT_HEADLAMP_RADIUS;
+
+  // Context creation can fail (exhausted canvas budget, a headless/test environment, ...). Fail soft
+  // with a no-op layer rather than crash the caller's mount -- checked before any other DOM work.
+  // Each guarded value is rebound into a freshly, non-nullably typed const: TS does not carry a
+  // nullable const's post-guard narrowing into the function declarations closing over it below.
+  const maybeCtx = canvas.getContext("2d");
+  if (!maybeCtx) return noopLayer();
+  const ctx: CanvasRenderingContext2D = maybeCtx;
+
+  const halfW = Math.round(W / 2), halfH = Math.round(H / 2);
+  const base = makeCanvas(halfW, halfH);
+  const maybeBaseCtx = base.getContext("2d");
+  if (!maybeBaseCtx) return noopLayer();
+  const baseCtx: CanvasRenderingContext2D = maybeBaseCtx;
+  baseCtx.scale(halfW / W, halfH / H);
+
+  const maybeLightSprite = makeLightSprite();
+  const maybeHeadlampSprite = makeHeadlampSprite();
+  const maybeGlowSeal = makeGlowSprite(PULSE_COLORS.seal);
+  const maybeGlowAnnounce = makeGlowSprite(PULSE_COLORS.announce);
+  const maybeGlowRelease = makeGlowSprite(PULSE_COLORS.release);
+  const maybeHatchPattern = makeHatchPattern(ctx);
+  if (
+    !maybeLightSprite || !maybeHeadlampSprite || !maybeGlowSeal || !maybeGlowAnnounce || !maybeGlowRelease ||
+    !maybeHatchPattern
+  ) {
+    return noopLayer();
+  }
+  const lightSprite: HTMLCanvasElement = maybeLightSprite;
+  const headlampSprite: HTMLCanvasElement = maybeHeadlampSprite;
+  const hatchPattern: CanvasPattern = maybeHatchPattern;
+  const glowSprites: Record<PulseKind, HTMLCanvasElement> = {
+    seal: maybeGlowSeal,
+    announce: maybeGlowAnnounce,
+    release: maybeGlowRelease,
+  };
+
   const core = new LightCore({
     sectorIds: options.sectorIds,
     darknessAlpha: options.darknessAlpha,
@@ -135,21 +191,6 @@ export function createLightLayer(canvas: HTMLCanvasElement, options: LightLayerO
     flickerHz: options.flickerHz,
     reducedMotion: options.reducedMotion,
   });
-
-  const ctx = canvas.getContext("2d")!;
-  const halfW = Math.round(W / 2), halfH = Math.round(H / 2);
-  const base = makeCanvas(halfW, halfH);
-  const baseCtx = base.getContext("2d")!;
-  baseCtx.scale(halfW / W, halfH / H);
-
-  const lightSprite = makeLightSprite();
-  const headlampSprite = makeHeadlampSprite();
-  const glowSprites: Record<PulseKind, HTMLCanvasElement> = {
-    seal: makeGlowSprite(PULSE_COLORS.seal),
-    announce: makeGlowSprite(PULSE_COLORS.announce),
-    release: makeGlowSprite(PULSE_COLORS.release),
-  };
-  const hatchPattern = makeHatchPattern(ctx);
 
   const resize = new ResizeObserver(() => {
     const { width, height } = canvas.getBoundingClientRect();
