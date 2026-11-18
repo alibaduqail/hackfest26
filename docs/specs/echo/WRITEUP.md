@@ -72,7 +72,7 @@ Tower Down: 12 deep cities, 40 pods, tower dark at minute 20, Lagos tunnel seale
 
 ## How it was built
 
-Two students and a team of coordinated AI agents. The engine is headless and deterministic: the same seed gives the same numbers. It has 67 tests; every pull request got independent review.
+Two students and a team of coordinated AI agents. The engine is headless and deterministic: the same seed gives the same numbers. It has 86 tests; every pull request got independent review.
 
 ## Questions we expect
 
