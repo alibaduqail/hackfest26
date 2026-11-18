@@ -60,7 +60,7 @@ const pod = (id: string, label: string, priority: Pod["priority"], origin: strin
 
 // Beat ticks, tuned against the engine run. PAX-1 departs the tick MED-1 reaches the junction so both announce trunk0 together;
 // the seal lands while MED-1 is still before the fork, so the news reaches it in time to take the bypass.
-const T = { towerDown: 6, med1: 10, pax1: 34, ghost: 37, seal: 41, end: 72 };
+const T = { towerDown: 6, med1: 10, sup3: 12, pax1: 34, ghost: 37, seal: 41, end: 72 };
 
 /** One entry per rule beat, in order. Ticks come from the echo-mode run; descent.test.ts asserts they match the log. */
 export const DESCENT_BEATS: { beat: number; tick: number; rule: string; caption: string }[] = [
@@ -70,6 +70,7 @@ export const DESCENT_BEATS: { beat: number; tick: number; rule: string; caption:
   { beat: 4, tick: 37, rule: "Credential check", caption: "A forged medical pod fails the beacon's signature check and queues as a passenger." },
   { beat: 5, tick: 41, rule: "Seal and reroute", caption: "The flooded shaft is sealed. The news hops beacon to beacon and the nurse takes the bypass." },
   { beat: 6, tick: 62, rule: "Arrival", caption: "The nurse reaches the deep clinic. In tower mode she never leaves the depot." },
+  { beat: 7, tick: 67, rule: "Rule 2 · supply after medical", caption: "Medicine delivered to the deep clinic" },
 ];
 
 export function descent(): Mission {
@@ -78,6 +79,8 @@ export function descent(): Mission {
     // cleared by the tower before it dies: the tower's "claimed" count grows
     pod("SUP-1", "SUP-1 · water", "supply", "depot", "relay", 1, world, { cargo: "water" }),
     pod("SUP-2", "SUP-2 · food", "supply", "depot", "relay", 2, world, { cargo: "food" }),
+    // medicine for the deep clinic: trails MED-1 so the junction sees MED-1, then SUP-3, then PAX-1 (all three priority levels in order)
+    pod("SUP-3", "SUP-3 · medicine", "supply", "depot", "clinic", T.sup3, world, { cargo: "medicine" }),
     pod("MED-1", "MED-1 · Nurse Mara Vale", "medical", "depot", "clinic", T.med1, world, { nurse: true, sig: sign("MED-1"), credentialOk: true }),
     pod("PAX-1", "PAX-1 · Passenger", "passenger", "jun", "clinic", T.pax1, world),
     pod("GHOST-1", "GHOST-1 · Medical courier", "medical", "relay", "clinic", T.ghost, world, { ghost: true, nurse: false, sig: "forged" }),
