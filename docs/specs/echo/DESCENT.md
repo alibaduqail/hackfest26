@@ -24,8 +24,22 @@ Topology: `depot -ramp-> relay -link-> jun -trunk-> fork`, then `fork -main-> cl
 | 4 | 37 | Credential check | A forged medical pod fails the beacon check... | `log` `credential-reject`, GHOST-1 (`pod.ghost`) |
 | 5 | 41 | Seal and reroute | The flooded shaft is sealed... | `log` `seal` on `main0`, then `seal-heard` and `reroute` (MED-1 at t43) |
 | 6 | 62 | Arrival | The nurse reaches the deep clinic... | `log` `arrive`, MED-1 |
+| 7 | 67 | Rule 2 · supply after medical | Medicine delivered to the deep clinic | `log` `arrive`, SUP-3 (`cargo: "medicine"`): the UI's "Out of medicine" becomes "Medicine delivered" |
 
-Full captions are in `DESCENT_BEATS` (`{ beat, tick, rule, caption }`). A test asserts these ticks equal the real run, so they are safe to sync rule chips to. `GHOST-1` repeats `credential-reject` at each later announce; the beat is the first. Run length: 72 ticks.
+Full captions are in `DESCENT_BEATS` (`{ beat, tick, rule, caption }`). A test asserts these ticks equal the real run, so they are safe to sync rule chips to. `GHOST-1` repeats `credential-reject` at each later announce, so the UI should dedupe by `podId`; the beat is the first. Run length: 72 ticks.
+
+## Pods
+
+| Pod | Priority | Cargo | Route | Notes |
+|---|---|---|---|---|
+| SUP-1 | supply | water | depot to relay | Cleared by the tower before it dies; arrives t10 |
+| SUP-2 | supply | food | depot to relay | Same; arrives t15 |
+| SUP-3 | supply | medicine | depot to clinic | Departs t12, trails MED-1 by about 5 ticks. Enters `trunk0` at t40 (MED-1 t35, PAX-1 t45), so the junction shows medical, then supply, then passenger. Hears the seal at t44, reroutes onto the bypass, arrives t67 (after MED-1 at t62) |
+| MED-1 | medical | none (carries Nurse Mara) | depot to clinic | Reroutes at t43, arrives t62 |
+| PAX-1 | passenger | none | junction to clinic | Departs t34; its one `yield` log (to MED-1 at t34) is deduplicated per pod and sector, so the later wait behind SUP-3 is not logged again |
+| GHOST-1 | medical (forged) | none | relay to clinic | Rejected, queued as passenger |
+
+`pod.cargo` (`"water" | "food" | "medicine"`, optional) labels supply pods. In tower mode neither MED-1 nor SUP-3 arrives.
 
 ## How to drive it
 
