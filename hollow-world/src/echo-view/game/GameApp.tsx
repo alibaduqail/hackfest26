@@ -20,7 +20,11 @@ import "./game.css";
 
 const Descent = lazy(() => import("../cutaway/CutawayScreen").then(m => ({ default: m.CutawayScreen })));
 
-type Screen = "descent" | "title" | "missions" | "prologue" | "epilogue" | "briefing" | "prepare" | "run" | "debrief";
+const LiveDescent = lazy(() => import("../cutaway/live/LiveScreen").then(m => ({ default: m.LiveScreen })));
+const isDescent = (screen: string | null): screen is "descent" | "descent-live" =>
+  screen === "descent" || screen === "descent-live";
+
+type Screen = "descent-live" | "descent" | "title" | "missions" | "prologue" | "epilogue" | "briefing" | "prepare" | "run" | "debrief";
 interface State { screen: Screen; cm?: CampaignMission; base?: Mission; placed?: Mission; result?: RunResult; run: number; then?: string } // then: mission to brief after the prologue
 
 const hasBudget = (m?: Mission) => typeof m?.beaconBudget === "number";
@@ -45,7 +49,7 @@ function runToEnd(m: Mission): RunResult {
 function initial(): State {
   const q = new URLSearchParams(location.search);
   const screen = q.get("screen") as Screen | null;
-  if (screen === "descent") return { screen, run: 0 };
+  if (isDescent(screen)) return { screen, run: 0 };
   const cm = byId(q.get("mission")) ?? CAMPAIGN[0];
   if (screen === "missions" || screen === "prologue" || screen === "epilogue") return { screen, run: 0 };
   if (!screen || screen === "title" || !cm.build) return { screen: "title", run: 0 };
@@ -67,7 +71,8 @@ export function GameApp() {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
     e.preventDefault();
     history.pushState({fromEchoTitle: true}, "", e.currentTarget.href);
-    go({screen: "descent"});
+    const screen = new URL(e.currentTarget.href).searchParams.get("screen");
+    if (isDescent(screen)) go({ screen });
   }
   function leaveDescent() {
     if (history.state?.fromEchoTitle) {
@@ -81,9 +86,9 @@ export function GameApp() {
   }
   useEffect(() => {
     function navigate() {
-      const entering = new URLSearchParams(location.search).get("screen") === "descent";
+      const screen = new URLSearchParams(location.search).get("screen");
       // The title can be reached from a campaign deep link without changing that URL.
-      if (entering || st.screen === "descent") setSt(s => ({ ...s, screen: entering ? "descent" : "title" }));
+      if (isDescent(screen) || isDescent(st.screen)) setSt(s => ({ ...s, screen: isDescent(screen) ? screen : "title" }));
     }
     window.addEventListener("popstate", navigate);
     return () => window.removeEventListener("popstate", navigate);
@@ -114,7 +119,7 @@ export function GameApp() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      if (st.screen === "descent") { leaveDescent(); return; }
+      if (isDescent(st.screen)) { leaveDescent(); return; }
       const to = back();
       if (to) go({ screen: to });
     };
@@ -122,15 +127,18 @@ export function GameApp() {
     return () => removeEventListener("keydown", onKey);
   });
 
-  if (st.screen === "descent") return (
-    <Suspense fallback={<p role="status">Loading the cutaway…</p>}>
-      <Descent onExit={e => {
-        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
-        e.preventDefault();
-        leaveDescent();
-      }} />
-    </Suspense>
-  );
+  if (isDescent(st.screen)) {
+    const Screen = st.screen === "descent-live" ? LiveDescent : Descent;
+    return (
+      <Suspense fallback={<p role="status">Loading the cutaway…</p>}>
+        <Screen onExit={e => {
+          if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+          e.preventDefault();
+          leaveDescent();
+        }} />
+      </Suspense>
+    );
+  }
   return <>{withBackdrop(st.screen) && <Backdrop deep={st.screen === "prepare"} />}{screenFor()}<SoundToggle /></>;
 
   function screenFor() {

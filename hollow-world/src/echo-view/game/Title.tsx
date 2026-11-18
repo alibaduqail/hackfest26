@@ -9,6 +9,7 @@ export function Title({ onBegin, onMissions, onDescent }: { onBegin: () => void;
       <div className="g-row">
         <button className="g-btn primary" autoFocus onClick={onBegin}>Begin</button>
         <button className="g-btn" onClick={onMissions}>Missions</button>
+        <a className="g-btn" href="?screen=descent-live" onClick={onDescent}>Play the Descent</a>
         <a className="g-btn" href="?screen=descent" onClick={onDescent}>See how Echo works</a>
       </div>
       <div className="foot">A fallback for the Hollow, when the Directorate's tower fails.</div>

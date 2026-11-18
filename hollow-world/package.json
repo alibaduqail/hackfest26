@@ -11,7 +11,7 @@
     "start": "vite --host 127.0.0.1 --port 4174",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1 --port 4174",
-    "test": "node --import tsx --test src/engine/*.test.ts src/world/*.test.ts src/echo/*.test.ts src/echo-view/*.test.ts src/echo-view/game/*.test.ts src/echo-view/cutaway/*.test.ts",
+    "test": "node --import tsx --test src/engine/*.test.ts src/world/*.test.ts src/echo/*.test.ts src/echo-view/*.test.ts src/echo-view/game/*.test.ts src/echo-view/cutaway/*.test.ts src/echo-view/cutaway/live/*.test.ts",
     "benchmark": "tsx src/engine/benchmark.ts"
   },
   "dependencies": {
