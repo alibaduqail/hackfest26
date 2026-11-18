@@ -4,7 +4,7 @@ _v3.1 · Wed Nov 18, 2026 (system first; replaces the game-first v2.0 from #69) 
 
 ## What changed in v3.1
 
-Card 5 ("News hops, pods reroute") is no longer a diagram card. It now cuts to real gameplay from the playable Descent (`/?screen=descent-live`): a flood-warning beacon going in live and a pod rerouting around the seal, with a one-second glimpse of **Watch the solution**. Same slot, same 8 seconds, same caption; total runtime is unchanged. Everything else in v3.0 below still applies.
+Card 5 ("News hops, pods reroute") is no longer a diagram card. It now cuts to real gameplay from the playable Descent (`/?screen=descent-live`): two flood-warning beacons going in live and a pod rerouting around the seal, with a one-second glimpse of **Watch the solution**. Same slot, same 8 seconds, same caption; total runtime is unchanged. Everything else in v3.0 below still applies.
 
 ## What changed in v3.0
 
@@ -63,7 +63,7 @@ VO: Rule three: only a nurse with a clinic credential can file a medical claim, 
 
 **3e. News hops, pods reroute — live gameplay (1:13 to 1:21).** Take F, real build, not a card.
 VO: News of a sealed or flooded tunnel hops from beacon to beacon, and pods route around it.
-- **Visual:** `/?screen=descent-live`, take F. 0:00 to 0:03 (of the take): click the `main1` then `main0` rail sockets to bolt the two flood-warning beacons; the lamp lights and the beacon pip counts down. 0:03 to 0:06: cut to MED-1 nearing the fork as the seal news reaches it over the new beacons — red tint recedes, the dashed reroute path draws onto the bypass. 0:06 to 0:08: hard cut to a one-second flash of the **Watch the solution** badge over the same shaft, chip reading `3★ solution · link0 → link1 → link2 → main1 → main0`.
+- **Visual:** `/?screen=descent-live`, take F. 0:00 to 0:03 (of the take): click the two `+` sockets on the flooded shaft (`main1`, then `main0`) to bolt the flood-warning beacons; the `N / 5 beacons left` pips count down. 0:03 to 0:06: cut to MED-1 nearing the fork as the seal news reaches it over the new beacons and it takes the bypass (the alert panel reads `Flooded`). 0:06 to 0:08: hard cut to a one-second flash of the **Watch the solution** button, then the `Solution replay` status in the header over the same shaft.
 - **Caption:** `news hops beacon to beacon · pods reroute` (ties to #5), then a 1 s `Watch the solution · 3★ replay`
 - **Captures:** M (gameplay, take F); Ali checks the beat against `docs/specs/echo/DESCENT.md`.
 
@@ -149,7 +149,7 @@ All screen recordings: Chrome, window 1440x900, zoom 100%, no extension bar, dar
 | C2 | `/?screen=missions` | Hold the four mission cards still. For starred cards, finish Tower Down once in that profile first. | 10 s | shot 5 |
 | D | `/` | Title screen, beacons pulsing. Background for the close card. | 15 s | shot 6 |
 | E | news article | Screenshot or recording of the FAA headline. Crop to the headline only: no subhead, URL bar or web address. | still | shot 1 |
-| F | `/?screen=descent-live` | Fresh run. Click `main1` then `main0` to place the flood-warning beacons as MED-1 nears the fork, let the reroute draw, then open **Watch the solution** for one second and cut. Re-take if the reroute line doesn't finish drawing in frame. | 8 s | shot 3e |
+| F | `/?screen=descent-live` | Fresh run. Click the two `+` sockets at the flooded shaft (`main1`, then `main0`) to place the flood-warning beacons as MED-1 nears the fork, let MED-1 take the bypass, then press **Watch the solution** for one second and cut. Re-take if the bypass isn't visible in frame. | 8 s | shot 3e |
 
 Query params (from `GameApp.tsx` and `MissionScreen.tsx`): `?screen=missions|prepare|run|debrief|briefing|title`, `&mission=<tower-down|dead-zones|grounding|ghost-flight>`, `&t=N` (starts the run at tick N, paused), `&run=1` (start running), `&speed=1|10|60` (default 10x), `&story=0` (no in-run story beats; `/echo.html` has none anyway). On `/echo.html`, `?t=N` loads paused at 10x unless `run=1` and `speed=1` are added (verified in `MissionScreen.tsx`). Test every link once on the hosted build before recording.
 
