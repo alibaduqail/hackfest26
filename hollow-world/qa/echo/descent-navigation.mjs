@@ -1,4 +1,5 @@
-// Run against the dev server or the built app. CHROME_BIN may point to a local Chromium executable.
+// Run against the dev server or the built app. Pass a second base URL to compare the default capture canvases.
+// CHROME_BIN may point to a local Chromium executable.
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
@@ -54,16 +55,19 @@ test(
         });
       }
       await call("Page.enable");
-      const loaded = new Promise((resolve) => {
-        function listen(event) {
-          if (JSON.parse(event.data).method !== "Page.loadEventFired") return;
-          socket.removeEventListener("message", listen);
-          resolve();
-        }
-        socket.addEventListener("message", listen);
-      });
-      await call("Page.navigate", { url: base.href });
-      await loaded;
+      async function navigate(url) {
+        const loaded = new Promise((resolve) => {
+          function listen(event) {
+            if (JSON.parse(event.data).method !== "Page.loadEventFired") return;
+            socket.removeEventListener("message", listen);
+            resolve();
+          }
+          socket.addEventListener("message", listen);
+        });
+        await call("Page.navigate", { url: url.href });
+        await loaded;
+      }
+      await navigate(base);
       const result = await call("Runtime.evaluate", {
         awaitPromise: true,
         returnByValue: true,
@@ -72,6 +76,23 @@ test(
       });
       assert.ok(!result.exceptionDetails, result.result.description);
       assert.equal(result.result.value, "returned to title");
+      if (process.argv[3]) {
+        async function capture(origin) {
+          await navigate(new URL("cutaway.html?beat=5", origin));
+          await sleep(700);
+          const frame = await call("Runtime.evaluate", {
+            expression: 'Array.from(document.querySelectorAll(".world canvas"), canvas => canvas.toDataURL())',
+            returnByValue: true,
+          });
+          assert.equal(frame.result.value.length, 2);
+          return frame.result.value;
+        }
+        const actual = await capture(base);
+        const baseline = await capture(process.argv[3]);
+        for (const [i, pixels] of actual.entries()) {
+          assert.ok(pixels === baseline[i], "Capture canvas " + i + " differs");
+        }
+      }
     } finally {
       socket?.close();
       if (browser.pid && browser.exitCode === null && !browser.signalCode) {

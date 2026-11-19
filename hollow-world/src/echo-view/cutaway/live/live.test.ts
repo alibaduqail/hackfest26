@@ -5,7 +5,7 @@ import { DESCENT_LIVE_SOLUTION, descentLiveStars } from "../../../echo/descent";
 import { createLive } from "./useLive";
 
 function finish(run: ReturnType<typeof createLive>) {
-  while (!run.getSnapshot().observation.over) run.step();
+  while (!run.getSnapshot().ended && !run.getSnapshot().observation.over) run.step();
 }
 
 test("accepted same-tick placements replay to the identical final observation", () => {
@@ -25,7 +25,7 @@ test("accepted same-tick placements replay to the identical final observation", 
   const state = run.getSnapshot();
   const replay = createEngine(state.mission, "echo");
   for (const command of state.commands) assert.equal(replay.act(command).ok, true);
-  replay.step(state.mission.endTick);
+  replay.step(state.observation.tick);
   assert.deepEqual(state.observation, replay.observe());
   assert.equal(state.playing, false);
 });
@@ -69,7 +69,7 @@ test("solution queues only due placements, rejects edits, and reaches three star
   assert.equal(descentLiveStars(state.observation.pods), 3);
   const replay = createEngine(state.mission, "echo");
   for (const command of DESCENT_LIVE_SOLUTION) assert.equal(replay.act(command).ok, true);
-  replay.step(state.mission.endTick);
+  replay.step(state.observation.tick);
   assert.deepEqual(state.observation, replay.observe());
 });
 
@@ -85,4 +85,31 @@ test("pause, speed, and slow override control the advertised cadence", () => {
   assert.equal(run.getSnapshot().playing, false);
   assert.equal(run.getSnapshot().slow, false);
   assert.equal(run.getSnapshot().stepMs, 300);
+});
+
+test("the no-beacon attempt ends once both clinic deliveries are trapped", () => {
+  const run = createLive();
+  run.togglePause();
+  finish(run);
+  const result = run.getSnapshot();
+  assert.ok(result.observation.tick < result.mission.endTick);
+  assert.equal(result.playing, false);
+  assert.equal(descentLiveStars(result.observation.pods), 0);
+  assert.equal(result.observation.pods.find((p) => p.nurse)?.status, "holding");
+  assert.ok(
+    result.events.some((event) => event.kind === "blind" && event.podId === "MED-1" && event.sectorId === "link0"),
+  );
+  assert.equal(run.place("main1").ok, false);
+});
+
+test("slow motion is capped and reserves time for the flood telegraph", () => {
+  const run = createLive();
+  let slowTicks = 0;
+  while (!run.getSnapshot().ended && !run.getSnapshot().observation.over) {
+    const state = run.getSnapshot();
+    if (state.slow) slowTicks++;
+    if (state.observation.tick >= 31 && state.observation.tick <= 41) assert.equal(state.slow, true);
+    run.step();
+  }
+  assert.ok(slowTicks > 0 && slowTicks <= 16);
 });
