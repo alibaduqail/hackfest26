@@ -1,52 +1,34 @@
 import { LIMIT } from "../../echo/journey";
-import { retriesOf, trailRows } from "./helpers";
+import { RelayButton } from "../relay/Relay";
+import { retriesOf } from "./helpers";
 import { useEnterKey } from "./keys";
 import type { EndingScreenProps } from "./props";
-import { ResourceBar } from "./ResourceBar";
-import { TrailMap } from "./TrailMap";
+import { SupplyLine } from "./ResourceBar";
+import { TrailRecord } from "./TrailMap";
 
-const STAR_TEXT = (n: number) => "★".repeat(n) + "☆".repeat(3 - n);
+/** One sentence: the tower line keeps only its first, so "Without the beacons, Mara never leaves level 2." stands alone. */
+const firstSentence = (s: string) => s.match(/^.+?[.?!](?=\s|$)/)?.[0] ?? s;
 
-/** The ending: Saved or Too late, the score, the closing lines (the last is the tower comparison), the trail log, Begin again. */
+/** The ending: the verdict, the score, one line (the tower comparison), the supplies, and the whole descent drawn as one trail line with Mara at its end. Begin again (Enter). */
 export function EndingScreen({ ending, res, limit = LIMIT, log, choiceNames, onAgain }: EndingScreenProps) {
   useEnterKey(onAgain);
   const saved = ending.kind === "saved";
-  const rows = trailRows(log, choiceNames);
+  const attempts = log.filter((l) => l.kind === "leg").length;
   const retries = retriesOf(log);
-  const closing = ending.lines.length > 1 ? ending.lines[ending.lines.length - 1] : undefined;
-  const lines = closing ? ending.lines.slice(0, -1) : ending.lines;
+  const closing = ending.lines.length > 1 ? firstSentence(ending.lines[ending.lines.length - 1]) : undefined;
   return (
-    <div className="g-screen j-camp-screen">
-      <div className="j-page">
-        <div className="j-camp-grid">
-          <section className={`j-card j-verdict ${saved ? "saved" : "late"}`} aria-labelledby="j-end-title">
-            <div className="j-stamp">{saved ? "Saved" : "Too late"}</div>
-            <h2 id="j-end-title">{ending.title}</h2>
-            <div className="j-score"><b>{ending.score}</b><span>points</span></div>
-            {lines.map((l, i) => <p key={i} className="j-body">{l}</p>)}
-            {closing && <p className="j-closing">{closing}</p>}
-            <ResourceBar res={res} limit={limit} />
-            <div className="g-row j-actions">
-              <button className="g-btn primary" autoFocus onClick={onAgain}>Begin again</button>
-              <span className="j-hint">Enter to begin again</span>
-            </div>
-          </section>
-          <aside className="j-side"><TrailMap legIndex={3} log={log} /></aside>
-        </div>
-        <section className="j-card j-logcard" aria-labelledby="j-log-title">
-            <div className="g-kicker">{rows.filter((r) => r.kind === "leg").length} attempts, {retries} {retries === 1 ? "retry" : "retries"}</div>
-            <h2 id="j-log-title">Trail log</h2>
-            <ol className="j-log">
-              {rows.map((r, i) => (
-                <li key={i} className={`${r.kind}${r.failed ? " failed" : ""}`}>
-                  <span className="j-log-title">{r.title}</span>
-                  {r.stars !== undefined && <span className="g-stars" aria-label={`${r.stars} of 3 stars`}>{STAR_TEXT(r.stars)}</span>}
-                  <span className="j-log-detail">{r.detail}</span>
-                </li>
-              ))}
-            </ol>
-        </section>
-      </div>
+    <div className={`g-screen j-end2 ${saved ? "saved" : "late"}`}>
+      <div className="j-title-bg j-camp-bg" aria-hidden />
+      <section className="j-el" aria-labelledby="j-end-title">
+        <p className="j-verdict2">{saved ? "Saved" : "Too late"}<span>{attempts} attempts, {retries} {retries === 1 ? "retry" : "retries"}</span></p>
+        <h2 id="j-end-title">{ending.title}</h2>
+        <p className="j-score2"><b>{ending.score}</b><span>points</span></p>
+        {closing && <p className="j-line">{closing}</p>}
+        <SupplyLine res={res} limit={limit} />
+        <div className="j-again"><RelayButton size="lg" label="Begin again" tone="primary" nav autoFocus onSelect={onAgain} /></div>
+        <p className="j-key">Enter to begin again</p>
+      </section>
+      <div className="j-er"><TrailRecord log={log} choiceNames={choiceNames} /></div>
     </div>
   );
 }
