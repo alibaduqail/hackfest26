@@ -3,17 +3,8 @@
 .j-page *, .j-page *::before, .j-page *::after { box-sizing: border-box; }
 
 /* title */
-.j-title h1 { font-size: clamp(88px, 15vw, 176px); }
-.j-descent { display: flex; align-items: center; gap: 22px; width: min(560px, 80vw); color: var(--amberText); font-size: clamp(18px, 2.6vw, 28px); letter-spacing: .34em; text-indent: .34em; font-weight: 600; }
-.j-descent::before, .j-descent::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--amberDim)); }
-.j-descent::after { transform: scaleX(-1); }
-.j-premise { max-width: 31em; margin: 6px 0 0; font-size: 18px; line-height: 1.6; color: var(--text); }
-.j-title .g-row { margin-top: 14px; }
-.j-begin { padding: 13px 34px; font-size: 18px; }
-.j-links { display: flex; gap: 6px 26px; margin-top: 8px; }
-.j-link { background: none; border: 0; padding: 6px 2px; font: inherit; font-size: 14px; color: var(--text2); cursor: pointer; text-decoration: underline; text-decoration-color: var(--line2); text-underline-offset: 4px; }
-.j-link:hover { color: var(--amberText); text-decoration-color: var(--amber); }
-.j-link:focus-visible, .j-choice:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; border-radius: 4px; }
+/* the title itself is Relay + .g-title from game.css; only the choice focus ring lives here */
+.j-choice:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; border-radius: 4px; }
 
 /* supply bar */
 .j-bar { display: grid; grid-template-columns: 1fr 1.7fr 1fr; background: rgba(21,36,44,.94); border: 1px solid var(--line2); border-radius: 8px; box-shadow: 0 5px 22px #050d1260; }
