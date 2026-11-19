@@ -17,7 +17,7 @@ export interface Effect { beacons?: number; clock?: number; doses?: number; next
 export interface Choice { id: string; label: string; detail: string; effect: Effect; reveal?: string }
 export interface CampEvent { id: string; title: string; body: string; choices: Choice[] }
 export type Phase = "title" | "camp" | "leg" | "ending";
-export type LogEntry = { kind: "leg"; legId: LegId; attempt: number; result: LegResult } | { kind: "choice"; eventId: string; choiceId: string };
+export type LogEntry = { kind: "leg"; legId: LegId; attempt: number; result: LegResult; skipped?: boolean } | { kind: "choice"; eventId: string; choiceId: string };
 export interface JourneyState { seed: number; phase: Phase; legIndex: number; attempt: number; res: Resources; pending: Partial<LegMods>; log: LogEntry[] }
 
 export const LIMIT = TUNING.limit;
@@ -57,21 +57,26 @@ export function choose(s: JourneyState, choiceId: string): JourneyState {
 export function currentLeg(s: JourneyState): { legId: LegId; mission: Mission; mods: LegMods; story: { title: string; body: string } } {
   if (s.legIndex < 0 || s.legIndex >= LEGS.length) throw new Error(`currentLeg: no leg to play (phase "${s.phase}", legIndex ${s.legIndex}); check phase === "leg" first`);
   const leg = LEGS[s.legIndex];
-  const base = DESCENT_LEVELS[s.legIndex].build({ seed: s.seed, attempt: s.attempt, revealLead: s.pending.revealLead }); // the attempt seeds level 1's flood; revealLead 0 (trust the tower) gives no advance reveal
+  const base = DESCENT_LEVELS[s.legIndex].build({ seed: s.seed, attempt: 0, revealLead: s.pending.revealLead }); // the flood is fixed per journey and leg (seed only): retries face the same flood, so the star deadlines never shift; revealLead 0 (trust the tower) gives no advance reveal
   const mods: LegMods = { budget: Math.min(base.beaconBudget ?? 0, s.res.beacons), ...(s.pending.revealLead === undefined ? {} : { revealLead: s.pending.revealLead }) };
   return { legId: leg.id, mission: { ...base, beaconBudget: mods.budget }, mods, story: leg.story };
 }
 
 /** Record a finished leg. Win: the clock gains Mara's arrival; late or missing medicine costs a dose; on to the next camp or the ending.
  * Fail (0 stars or Mara never arrives): clock += ticks played + 15, the placed beacons are lost, -1 dose, same leg again from a retry camp. */
-export function completeLeg(s: JourneyState, r: LegResult): JourneyState {
+export function completeLeg(s: JourneyState, r: LegResult, o: { advance?: boolean } = {}): JourneyState {
   if (s.phase !== "leg") return s;
   const leg = LEGS[s.legIndex];
   const num = [r.ticks, r.beaconsPlaced, ...(r.maraAt === null ? [] : [r.maraAt]), ...(r.medicineAt === null ? [] : [r.medicineAt])];
   if (r.legId !== leg.id || !num.every(Number.isFinite)) return s; // a stale or malformed result must never move the clock (or make it NaN)
-  const log: LogEntry[] = [...s.log, { kind: "leg", legId: leg.id, attempt: s.attempt, result: r }];
+  const skipped = !!o.advance && r.stars === 0; // "Continue anyway": move on without a star
+  const log: LogEntry[] = [...s.log, { kind: "leg", legId: leg.id, attempt: s.attempt, result: r, ...(skipped ? { skipped } : {}) }];
   const beacons = at0(s.res.beacons - r.beaconsPlaced);
-  if (r.stars === 0 || r.maraAt === null) {
+  if ((r.stars === 0 || r.maraAt === null) && !(skipped && r.maraAt !== null)) {
+    if (skipped) { // Mara never arrived: the failure's cost, but the journey moves on (the leg stays uncompleted)
+      const next = s.legIndex + 1;
+      return { ...s, res: { beacons, clock: s.res.clock + r.ticks + TUNING.failPenalty, doses: at0(s.res.doses - 1) }, legIndex: next, attempt: 0, pending: {}, phase: next >= LEGS.length ? "ending" : "camp", log };
+    }
     const res = { beacons, clock: s.res.clock + r.ticks + TUNING.failPenalty, doses: at0(s.res.doses - 1) };
     return { ...s, res, phase: "camp", attempt: s.attempt + 1, log };
   }
@@ -104,12 +109,12 @@ function towerLine(): string {
 
 /** The ending and a trail log: every leg (stars, minutes, retries), every choice, and the system compared with the tower. */
 export function ending(s: JourneyState): { kind: "saved" | "late"; score: number; title: string; lines: string[] } {
-  const wins = LEGS.map((l) => s.log.find((e) => e.kind === "leg" && e.legId === l.id && e.result.stars > 0 && e.result.maraAt !== null)).map((e) => (e && e.kind === "leg" ? e.result : null));
+  const wins = LEGS.map((l) => s.log.find((e) => e.kind === "leg" && e.legId === l.id && e.result.maraAt !== null && (e.result.stars > 0 || e.skipped))).map((e) => (e && e.kind === "leg" ? e.result : null));
   const saved = s.res.clock <= LIMIT && s.res.doses >= 1 && wins.every(Boolean);
   const score = at0(wins.reduce((n, r) => n + (r?.stars ?? 0) * 100, 0) + (LIMIT - s.res.clock) + s.res.doses * 20);
   const lines = LEGS.map((l, i) => {
     const r = wins[i];
-    const retries = s.log.filter((e) => e.kind === "leg" && e.legId === l.id && (e.result.stars === 0 || e.result.maraAt === null)).length;
+    const retries = s.log.filter((e) => e.kind === "leg" && e.legId === l.id && !e.skipped && (e.result.stars === 0 || e.result.maraAt === null)).length;
     return r ? `${l.name}: ${stars(r.stars)} · Mara at minute ${r.maraAt} · ${retries} retr${retries === 1 ? "y" : "ies"}` : `${l.name}: not completed`;
   });
   const events = [outfitting(), towerLies(s.seed), forgedClaim(s.seed)];

@@ -190,7 +190,7 @@ export const DESCENT_LIVE_CANDIDATES: LiveCandidate[] = [
     // is route speed, and only the full set of five reaches a star (the two upper stars share one run): Mara t77, medicine t82.
     id: "main0", sectorId: "main0", at: 38,
     goals: [
-      { stars: 1, maraBy: 79, text: "Speed her down: Nurse Mara reaches the deep clinic by minute 79." },
+      { stars: 1, maraBy: 88, text: "Speed her down: Nurse Mara reaches the deep clinic by minute 88." },
       { stars: 2, maraBy: 77, medicineBy: 84, text: "Mara by minute 77 and the medicine by minute 84." },
       { stars: 3, maraBy: 77, medicineBy: 82, text: "Mara by minute 77 and the medicine by minute 82." },
     ],

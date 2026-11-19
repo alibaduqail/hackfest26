@@ -53,13 +53,13 @@ test("leg 3 telegraphs 8 ticks ahead on every seeded candidate", () => {
   }
 });
 
-test("the journey seed picks leg 1's flood, and a retry draws a different one", () => {
+test("the journey seed picks leg 1's flood, and a retry faces the same one (star deadlines never shift)", () => {
   const picks = new Set(SEEDS.map((seed) => floodCandidate(0, { seed, attempt: 0 })));
   assert.ok(picks.size > 1, "different seeds draw different floods");
   for (const seed of SEEDS) {
     const failed = completeLeg(choose(startJourney(seed), "leave-now"), { legId: "descent1", stars: 0, maraAt: null, medicineAt: null, beaconsPlaced: 0, ticks: 70 });
     const first = currentLeg(choose(startJourney(seed), "leave-now")).mission;
     const again = currentLeg(choose(failed, "retry")).mission;
-    assert.notEqual(again.sealSectorId, first.sealSectorId, `seed ${seed}: the retry's flood differs`);
+    assert.equal(again.sealSectorId, first.sealSectorId, `seed ${seed}: the retry's flood is the same`);
   }
 });

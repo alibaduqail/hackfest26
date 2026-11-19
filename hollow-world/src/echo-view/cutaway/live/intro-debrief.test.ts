@@ -33,7 +33,7 @@ test("debrief, no beacons: 0 stars, readable cause, tower / none / you all never
   assert.match(html, /Tower<\/th><th[^>]*>No beacons<\/th><th[^>]*>You/);
   assert.equal((html.match(/<td class="[^"]*never"/g) ?? []).length, 6); // 3 columns x (Mara, medicine)
   assert.match(html, /Tower says: \d+ pod runs authorized; actual: \d+ ran\. Mara never arrives\./);
-  assert.match(html, /Next star:<\/strong> Beacon the shafts on Mara/);
+  assert.match(html, /Next star:<\/strong> Light main shaft section 2, relay track section 1/);
   assert.doesNotMatch(html, /main[01]\b/); // sector ids are shown by name
 });
 
@@ -42,7 +42,7 @@ test("debrief, warn only: 1 star, margin and hint", () => {
   assert.match(html, /1 of 3 stars/);
   assert.match(html, /minute 92/);
   assert.match(html, /Next star \(★★\): Mara Vale by 86 \(arrived 92, 6 late\)/);
-  assert.match(html, /Beacon the relay track early to cut blind waits/);
+  assert.match(html, /Next star:<\/strong> Light relay track section 1/);
   assert.match(html, /Next level/);
   assert.match(html, /Watch the solution/);
 });
@@ -56,4 +56,12 @@ test("debrief, the solution: 3 stars, best possible, you beat the tower and no-b
   assert.match(html, /minute 88/);
   assert.doesNotMatch(html, /Next star:/);
   assert.doesNotMatch(html, /Next level|Watch the solution/); // optional buttons stay hidden without their callbacks
+});
+
+test("debrief headline agrees with the result: a 0-star run that reached the clinic is not 'Deadline missed'; Continue anyway only when asked", () => {
+  const html = renderToStaticMarkup(h(LiveDebrief, { mission: descentLive(1), commands: place(["link0", "link1"]), stars: 0, onRetry: noop, onContinue: noop })); // the main0 flood: Mara reaches the clinic, just not fast enough
+  assert.doesNotMatch(html, /Deadline missed/);
+  assert.match(html, /Not fast enough/);
+  assert.match(html, /Continue anyway/);
+  assert.doesNotMatch(debrief([], 0), /Continue anyway/);
 });

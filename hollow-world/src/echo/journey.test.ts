@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { playRun } from "./baseline";
-import { DESCENT_LEVELS } from "./descent-levels";
+import { DESCENT_LEVELS, goalsForMission } from "./descent-levels";
 import { campEvent, choose, completeLeg, currentLeg, ending, lastReveal, LIMIT, startJourney, type JourneyState, type LegResult } from "./journey";
 import { LEGS, TUNING } from "./journey-events";
 import type { Command } from "./types";
@@ -14,14 +14,14 @@ const idx = (s: JourneyState) => s.legIndex;
 /** Play the current leg on the real engine with up to `budget` commands, and report it the way the screen will. */
 function play(s: JourneyState, cmds: Command[]): LegResult {
   const { legId, mission } = currentLeg(s);
-  const goals = DESCENT_LEVELS[idx(s)].goalsFor({ seed: s.seed, attempt: s.attempt });
+  const goals = DESCENT_LEVELS[idx(s)].goalsFor({ seed: s.seed, attempt: 0 });
   const placed = cmds.slice(0, mission.beaconBudget ?? 0);
   const o = playRun(mission, "echo", placed);
   const hold = o.log.find((l) => l.kind === "hold" && l.podId === "MED-1")?.tick;
   const stars = goals.reduce<0 | 1 | 2 | 3>((n, g) => (o.mara !== null && o.mara <= g.maraBy && (g.medicineBy === undefined || (o.medicine !== null && o.medicine <= g.medicineBy)) ? g.stars : n), 0);
   return { legId, stars, maraAt: o.mara, medicineAt: o.medicine, beaconsPlaced: placed.length, ticks: o.mara ?? hold ?? mission.endTick };
 }
-const solution = (s: JourneyState) => DESCENT_LEVELS[idx(s)].solutionFor({ seed: s.seed, attempt: s.attempt });
+const solution = (s: JourneyState) => DESCENT_LEVELS[idx(s)].solutionFor({ seed: s.seed, attempt: 0 });
 const warn = (s: JourneyState) => place(LEGS[idx(s)].minWin);
 
 /** A scripted journey: choice per camp (by event order) + a command policy per attempt. */
@@ -167,4 +167,34 @@ test("completeLeg ignores a stale or malformed result (wrong leg, NaN ticks)", (
   assert.equal(completeLeg(s, { ...ok, maraAt: Infinity }), s);
   assert.equal(completeLeg({ ...s, phase: "camp" }, ok).phase, "camp"); // not in a leg: unchanged
   assert.ok(Number.isFinite(completeLeg(s, ok).res.clock));
+});
+
+test("1 star is reachable by beating the no-beacons baseline, on every flood of every leg", () => {
+  for (const L of DESCENT_LEVELS) L.candidates.forEach((c, ci) => {
+    const a = [...Array(80).keys()].find((n) => L.candidateIndex({ attempt: n }) === ci)!;
+    const none = playRun(L.build({ attempt: a }), "echo");
+    assert.equal(none.stars, 0, `${L.id}/${c.id}: doing nothing never earns a star`);
+    if (none.mara !== null) assert.ok(c.goals[0].maraBy < none.mara, `${L.id}/${c.id}: the 1-star bar (${c.goals[0].maraBy}) is below the baseline arrival (${none.mara})`);
+  });
+});
+
+test("a retry faces the same flood and the same star deadlines", () => {
+  const s0 = choose(startJourney(SEED), "leave-now");
+  const failed = completeLeg(s0, { legId: "descent1", stars: 0, maraAt: null, medicineAt: null, beaconsPlaced: 2, ticks: 70 });
+  const a = currentLeg(s0).mission, b = currentLeg(choose(failed, "retry")).mission;
+  assert.equal(a.sealSectorId, b.sealSectorId);
+  assert.deepEqual(goalsForMission(a), goalsForMission(b));
+});
+
+test("Continue anyway: a 0-star leg where Mara arrived moves on at her arrival time; one where she never arrived pays the failure cost and moves on", () => {
+  const s0 = choose(startJourney(SEED), "leave-now");
+  const arrived = completeLeg(s0, { legId: "descent1", stars: 0, maraAt: 88, medicineAt: 120, beaconsPlaced: 2, ticks: 90 }, { advance: true });
+  assert.equal(arrived.legIndex, 1); assert.equal(arrived.attempt, 0); assert.equal(arrived.phase, "camp");
+  assert.equal(arrived.res.clock, s0.res.clock + 88);
+  assert.equal(completeLeg(s0, { legId: "descent1", stars: 0, maraAt: 88, medicineAt: 120, beaconsPlaced: 2, ticks: 90 }).legIndex, 0, "without advance a 0-star leg still retries");
+  const lost = completeLeg(s0, { legId: "descent1", stars: 0, maraAt: null, medicineAt: null, beaconsPlaced: 2, ticks: 70 }, { advance: true });
+  assert.equal(lost.legIndex, 1);
+  assert.equal(lost.res.clock, s0.res.clock + 70 + TUNING.failPenalty);
+  assert.equal(lost.res.doses, s0.res.doses - 1);
+  assert.equal(ending(arrived).lines[0], "Descent I: ☆☆☆ · Mara at minute 88 · 0 retries");
 });

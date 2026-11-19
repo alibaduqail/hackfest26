@@ -1,6 +1,6 @@
 // runBaseline: the same mission played three ways, silently and deterministically: the tower, Echo with no beacons, and the player's own commands.
 // Pure engine code, no DOM. The debrief shows the three side by side so the value of the system is visible without narration.
-import { DESCENT_LEVELS } from "./descent-levels";
+import { goalsForMission } from "./descent-levels";
 import { createEngine } from "./engine";
 import type { Command, LogEvent, Mission, Mode } from "./types";
 
@@ -31,7 +31,7 @@ export function playRun(mission: Mission, mode: Mode, commands: Command[] = []):
     log.push(...e.observe().log.filter((l) => l.tick === t)); // everything logged during tick t
   }
   const o = e.observe();
-  const goals = DESCENT_LEVELS.find((l) => l.id === mission.id)?.goals; // the live Descent levels carry their own star table
+  const goals = goalsForMission(mission); // the live Descent levels carry their own star table, one per flood candidate
   const by = (id: string, t: number) => (o.pods.find((p) => p.id === id)?.arriveTick ?? Infinity) <= t;
   const arrive = (pred: (p: (typeof o.pods)[number]) => boolean) => o.pods.find(pred)?.arriveTick ?? null;
   return {

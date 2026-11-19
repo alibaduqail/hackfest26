@@ -1,5 +1,5 @@
 // Pure helpers for the Journey screens (render-free so they can be tested without a DOM).
-import { forgedClaim, LEGS, outfitting, retry, towerLies } from "../../echo/journey-events";
+import { forgedClaim, LEGS, outfitting, retry, towerLies, TUNING } from "../../echo/journey-events";
 import type { Effect, LegId, LogEntry, Resources, Stars } from "./props";
 
 export const LEG_IDS: LegId[] = ["descent1", "descent2", "descent3"];
@@ -25,6 +25,14 @@ export function formatEffect(e: Effect): Cost[] {
   return out;
 }
 
+/** The retry card's cost line: what the failed run just took (the same numbers the debrief gave: ticks played + the 15 minute penalty, a dose, the beacons placed). */
+export function retryCosts(log: LogEntry[]): Cost[] {
+  const last = [...log].reverse().find((l) => l.kind === "leg");
+  if (!last || last.kind !== "leg") return formatEffect({});
+  const { ticks, beaconsPlaced } = last.result;
+  return formatEffect({ clock: ticks + TUNING.failPenalty, doses: -1, ...(beaconsPlaced ? { beacons: -beaconsPlaced } : {}) });
+}
+
 /** What the supplies will read after a choice (for the preview while the reveal is on screen). */
 export function applyEffect(r: Resources, e: Effect): Resources {
   return { beacons: Math.max(0, r.beacons + (e.beacons ?? 0)), clock: Math.max(0, r.clock + (e.clock ?? 0)), doses: Math.max(0, r.doses + (e.doses ?? 0)) };
@@ -35,7 +43,7 @@ export const clockPct = (clock: number, limit: number) => Math.max(0, Math.min(1
 /** The best (latest winning) star count per leg, null for a leg not won yet. */
 export function starsFromLog(log: LogEntry[]): (Stars | null)[] {
   return LEG_IDS.map((id) => {
-    const wins = log.filter((l) => l.kind === "leg" && l.legId === id && l.result.stars > 0);
+    const wins = log.filter((l) => l.kind === "leg" && l.legId === id && (l.result.stars > 0 || (l.skipped && l.result.maraAt !== null)));
     const last = wins[wins.length - 1];
     return last && last.kind === "leg" ? last.result.stars : null;
   });

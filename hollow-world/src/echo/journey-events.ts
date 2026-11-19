@@ -75,6 +75,6 @@ export function retry(legName: string): { title: string; body: string; choices: 
   return {
     title: `${legName} failed`,
     body: "The medicine spoiled, the beacons you placed are gone, and the clock kept running. Regroup and try the leg again.",
-    choices: [{ id: "retry", label: "Retry the leg", detail: "no extra cost", effect: {} }],
+    choices: [{ id: "retry", label: "Retry the leg", detail: "the failed run's minutes, dose and beacons", effect: {} }],
   };
 }

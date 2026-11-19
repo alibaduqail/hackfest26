@@ -13,6 +13,7 @@ export interface LiveDebriefProps {
   onRetry?: () => void; // hidden when omitted (journey mode after a win)
   onNext?: () => void; // next level; the button is hidden when omitted
   onWatchSolution?: () => void;
+  onContinue?: () => void; // journey mode after a leg without a star: move on anyway ("Continue anyway")
   retryLabel?: string; // journey mode: "Retry leg" (and the R key is then LiveScreen's)
   nextLabel?: string; // journey mode: "Continue the journey"
   endReason?: string; // why the run ended (observation.endReason), shown under the result
@@ -22,23 +23,36 @@ export interface LiveDebriefProps {
 const when = (t: number | null) => (t === null ? "never" : `minute ${t}`);
 const isMargin = (l: string) => /^(Next star|Best possible)/.test(l);
 
-function nextStep(stars: number, o: RunOutcome): string | null {
-  if (stars >= 3) return null;
-  if (stars === 0) return o.mara === null ? "Beacon the shafts on Mara's route so the warning can reach her the moment the flood is called." : "Light Mara's route so she is not waiting blind.";
-  return "Beacon the relay track early to cut blind waits.";
+/** The dark sections on Mara's route, named in plain words: where she waited blind, else (she never got through) the unlit sections of her planned path, the flooded one first. */
+function darkSections(mission: Mission, commands: Command[], o: RunOutcome): string[] {
+  const placed = new Set(commands.flatMap((c) => (c.type === "placeBeacon" ? [c.sectorId] : [])));
+  const dark = (id: string) => mission.world.sectors.find((s) => s.id === id)?.beacon === false && !placed.has(id);
+  const mara = mission.pods.find((p) => p.nurse);
+  const blind = [...new Set(o.log.filter((l) => l.kind === "blind" && l.podId === mara?.id && l.sectorId && dark(l.sectorId)).map((l) => l.sectorId!))];
+  const planned = (mara?.path ?? []).filter(dark);
+  const flood = o.mara === null && mission.sealSectorId && planned.includes(mission.sealSectorId) ? [mission.sealSectorId] : []; // the flooded shaft only matters when the news never reached her
+  return [...new Set([...flood, ...(blind.length ? blind : planned)])].slice(0, 3);
 }
 
-export function LiveDebrief({ mission, commands, stars, onRetry, onNext, onWatchSolution, retryLabel = "Retry", nextLabel = "Next level", endReason, note }: LiveDebriefProps) {
+function nextStep(stars: number, mission: Mission, commands: Command[], o: RunOutcome): string | null {
+  if (stars >= 3) return null;
+  const names = darkSections(mission, commands, o).map((id) => displayLocations(id));
+  if (names.length) return `Light ${names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0]}.`;
+  return stars === 0 ? "Light Mara's route." : "Beat the next deadline.";
+}
+
+export function LiveDebrief({ mission, commands, stars, onRetry, onNext, onWatchSolution, onContinue, retryLabel = "Retry", nextLabel = "Next level", endReason, note }: LiveDebriefProps) {
   const base = useMemo(() => runBaseline(mission, commands), [mission, commands]);
   const lines = useMemo(() => explainRun(base.you.log, mission).map((l) => displayLocations(l).replace(/^./, (c) => c.toUpperCase())), [base, mission]);
   const why = lines.filter((l) => !isMargin(l));
   const margin = lines.find(isMargin);
-  const hint = nextStep(stars, base.you);
+  const hint = nextStep(stars, mission, commands, base.you);
+  const headline = stars ? "Clinic supplied" : base.you.mara !== null ? "Not fast enough" : "Deadline missed"; // never "missed" for a run that reached the clinic
   const cols: [string, RunOutcome, string][] = [["Tower", base.tower, "tower"], ["No beacons", base.none, "none"], ["You", base.you, "you"]];
   return (
     <section className="live-debrief live-debrief2" aria-label="Run result">
       <div className="eyebrow">RUN COMPLETE</div>
-      <h2>{stars ? "Clinic supplied" : "Deadline missed"}</h2>
+      <h2>{headline}</h2>
       {endReason && <p className="live-end-reason">{endReason}</p>}
       <p className="live-stars" aria-label={stars + " of 3 stars"}>{"★".repeat(stars)}{"☆".repeat(3 - stars)}</p>
       {margin && <p className="live-margin">{margin}</p>}
@@ -63,6 +77,7 @@ export function LiveDebrief({ mission, commands, stars, onRetry, onNext, onWatch
       <div className="live-button-row">
         {onRetry && <button className="live-primary" onClick={onRetry} autoFocus={!onNext}>{retryLabel} <kbd>R</kbd></button>}
         {onNext && <button className="live-primary" onClick={onNext} autoFocus>{nextLabel}</button>}
+        {onContinue && <button onClick={onContinue}>Continue anyway</button>}
         {onWatchSolution && <button onClick={onWatchSolution}>Watch the solution</button>}
       </div>
     </section>

@@ -56,7 +56,7 @@ export interface LiveScreenProps {
   journeyMode?: boolean;
   attempt?: number; // journey mode: the leg's failed tries so far, and the journey's seed: together they picked the flood candidate when the mission was built
   seed?: number;
-  onLegEnd?: (result: LegResult) => void;
+  onLegEnd?: (result: LegResult, opts?: { continueAnyway?: boolean }) => void;
 }
 
 export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = false, attempt: journeyAttempt = 0, seed: journeySeed, onLegEnd }: LiveScreenProps) {
@@ -242,10 +242,10 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
     live.start();
   }
   /** Journey mode: hand the finished leg to the journey (a win moves on; a loss applies its cost and goes to the retry camp). Once only. */
-  function endLeg() {
+  function endLeg(continueAnyway = false) {
     if (finished.current || !onLegEnd || !legId) return;
     finished.current = true;
-    onLegEnd({ legId, stars, maraAt: mara.arriveTick, medicineAt: medicine.arriveTick, beaconsPlaced: live.commands.length, ticks: obs.tick });
+    onLegEnd({ legId, stars, maraAt: mara.arriveTick, medicineAt: medicine.arriveTick, beaconsPlaced: live.commands.length, ticks: obs.tick }, continueAnyway ? { continueAnyway } : undefined);
   }
   function restart(watch: boolean) {
     setIntroDone(true);
@@ -419,8 +419,8 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
             ? (
               journeyMode
                 ? won
-                  ? <LiveDebrief mission={mission} commands={live.commands} stars={stars} endReason={obs.endReason} onNext={endLeg} nextLabel="Continue the journey" />
-                  : <LiveDebrief mission={mission} commands={live.commands} stars={stars} endReason={obs.endReason} onRetry={endLeg} retryLabel="Retry leg"
+                  ? <LiveDebrief mission={mission} commands={live.commands} stars={stars} endReason={obs.endReason} onNext={() => endLeg()} nextLabel="Continue the journey" />
+                  : <LiveDebrief mission={mission} commands={live.commands} stars={stars} endReason={obs.endReason} onRetry={() => endLeg()} retryLabel="Retry leg" onContinue={() => endLeg(true)}
                       note={`Retrying costs ${obs.tick + 15} minutes on the clock, 1 dose${live.commands.length ? `, and the ${live.commands.length} beacon${live.commands.length === 1 ? "" : "s"} you placed` : ""}.`} />
                 : <LiveDebrief mission={mission} commands={live.commands} stars={stars} endReason={obs.endReason} onRetry={() => restart(false)} onWatchSolution={() => restart(true)} />
             )

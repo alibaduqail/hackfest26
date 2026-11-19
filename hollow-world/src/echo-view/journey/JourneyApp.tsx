@@ -85,8 +85,8 @@ function Leg({ s, play, toTitle }: { s: JourneyState; play: (s: JourneyState) =>
     <Suspense fallback={<p role="status" className="g-muted">Loading the Descent…</p>}>
       <LiveScreen
         key={`${s.legIndex}-${s.attempt}-${s.log.length}`}
-        mission={cur.mission} legId={cur.legId} attempt={s.attempt} seed={s.seed} journeyMode
-        onLegEnd={(r: LegResult) => play(completeLeg(s, r))}
+        mission={cur.mission} legId={cur.legId} attempt={0} seed={s.seed} journeyMode // attempt 0: every retry of a leg faces the same flood (see currentLeg)
+        onLegEnd={(r: LegResult, o?: { continueAnyway?: boolean }) => play(completeLeg(s, r, { advance: o?.continueAnyway }))}
         onExit={(e: MouseEvent<HTMLAnchorElement>) => { e.preventDefault(); toTitle(); }}
       />
     </Suspense>
