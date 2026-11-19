@@ -12,7 +12,7 @@ import type { Mission } from "./types";
 export type LegId = "descent1" | "descent2" | "descent3";
 export interface Resources { beacons: number; clock: number; doses: number }
 export interface LegMods { budget: number; revealLead?: number } // revealLead: ticks of advance flood reveal (#101); 0 = none. Carried here, ignored by the engine until #101 lands.
-export interface LegResult { legId: LegId; stars: 0 | 1 | 2 | 3; maraAt: number | null; medicineAt: number | null; beaconsPlaced: number; ticks: number }
+export interface LegResult { legId: LegId; stars: 0 | 1 | 2 | 3; maraAt: number | null; medicineAt: number | null; beaconsPlaced: number; ticks: number; replay?: boolean } // replay: a "Watch the solution" playback; it never scores, never moves the clock
 export interface Effect { beacons?: number; clock?: number; doses?: number; nextRevealLead?: number }
 export interface Choice { id: string; label: string; detail: string; effect: Effect; reveal?: string }
 export interface CampEvent { id: string; title: string; body: string; choices: Choice[] }
@@ -68,7 +68,7 @@ export function completeLeg(s: JourneyState, r: LegResult, o: { advance?: boolea
   if (s.phase !== "leg") return s;
   const leg = LEGS[s.legIndex];
   const num = [r.ticks, r.beaconsPlaced, ...(r.maraAt === null ? [] : [r.maraAt]), ...(r.medicineAt === null ? [] : [r.medicineAt])];
-  if (r.legId !== leg.id || !num.every(Number.isFinite)) return s; // a stale or malformed result must never move the clock (or make it NaN)
+  if (r.replay || r.legId !== leg.id || !num.every(Number.isFinite)) return s; // a replay, a stale or a malformed result must never move the clock (or make it NaN)
   const skipped = !!o.advance && r.stars === 0; // "Continue anyway": move on without a star
   const log: LogEntry[] = [...s.log, { kind: "leg", legId: leg.id, attempt: s.attempt, result: r, ...(skipped ? { skipped } : {}) }];
   const beacons = at0(s.res.beacons - r.beaconsPlaced);

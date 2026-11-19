@@ -1,7 +1,8 @@
-// runBaseline: the same mission played three ways, silently and deterministically: the tower, Echo with no beacons, and the player's own commands.
+// runBaseline: the same mission played four ways, silently and deterministically: the tower, the tower with a backup, Echo with no beacons, and the player's own commands.
 // Pure engine code, no DOM. The debrief shows the three side by side so the value of the system is visible without narration.
 import { goalsForMission } from "./descent-levels";
 import { createEngine } from "./engine";
+import { STANDBY_AFTER } from "./tower";
 import type { Command, LogEvent, Mission, Mode } from "./types";
 
 export interface RunOutcome {
@@ -11,14 +12,17 @@ export interface RunOutcome {
   stars: 0 | 1 | 2 | 3 | null; // the level's star table (DESCENT_LEVELS); null on missions without one
   claimed: number; // what the Directorate banner says
   actual: number; // pods that really moved after the tower went down
+  atSeal: boolean; // the nurse ended the run waiting at a sealed sector (cleared, but nobody told her)
   log: LogEvent[]; // the complete log (observe().log keeps only the last 60 events)
 }
 
 export interface Baseline {
   tower: RunOutcome;
+  standby: RunOutcome; // a tower WITH a backup: it comes back after STANDBY_AFTER minutes but is still central, so it cannot carry flood news
   none: RunOutcome;
   you: RunOutcome;
   towerSays: string; // "Tower says: 84 pod runs authorized; actual: 5 ran. Mara never arrives."
+  standbySays: string; // "Backup tower: back at minute 26, but it cannot carry the flood news. Mara was cleared into the sealed shaft and never arrives."
 }
 
 /** Play `mission` to its end. Each command fires at the start of its atTick, exactly as a live click does; refused commands are ignored. */
@@ -41,6 +45,7 @@ export function playRun(mission: Mission, mode: Mode, commands: Command[] = []):
     stars: goals ? goals.reduce<0 | 1 | 2 | 3>((n, g) => (by("MED-1", g.maraBy) && (g.medicineBy === undefined || by("SUP-3", g.medicineBy)) ? g.stars : n), 0) : null,
     claimed: o.score.towerClaimed,
     actual: o.score.realFlights,
+    atSeal: o.pods.some((p) => !!p.nurse && (p.status === "waiting" || p.status === "holding") && !!o.sectors.find((x) => x.id === p.path[p.at + 1])?.sealed),
     log,
   };
 }
@@ -48,10 +53,13 @@ export function playRun(mission: Mission, mode: Mode, commands: Command[] = []):
 /** Tower, no beacons, and the player's placements for one mission. `placements` is the command log of the live run. */
 export function runBaseline(mission: Mission, placements: Command[]): Baseline {
   const tower = playRun(mission, "tower");
+  const standby = playRun(mission, "standby");
   const none = playRun(mission, "echo");
   const you = playRun(mission, "echo", placements);
   const nurse = mission.pods.find((p) => p.nurse);
   const who = (nurse?.label.split("· ")[1] ?? "The nurse").replace(/^Nurse /, "").split(" ")[0];
   const fate = tower.mara === null ? `${who} never arrives` : `${who} arrives at minute ${tower.mara}`;
-  return { tower, none, you, towerSays: `Tower says: ${tower.claimed} pod runs authorized; actual: ${tower.actual} ran. ${fate}.` };
+  const back = `Backup tower: back at minute ${mission.towerDownAt + STANDBY_AFTER}, but it is still central and cannot carry the flood news.`;
+  const standbyFate = standby.mara !== null ? `${who} arrives at minute ${standby.mara}` : standby.atSeal ? `${who} was cleared into the sealed shaft and never arrives` : `${who} never arrives`;
+  return { tower, standby, none, you, towerSays: `Tower says: ${tower.claimed} pod runs authorized; actual: ${tower.actual} ran. ${fate}.`, standbySays: `${back} ${standbyFate}.` };
 }
