@@ -87,7 +87,7 @@ export function towerDown(): Mission {
     endTick: 360,
     towerDownAt: 20,
     towerRatePerHour: 18, // 6 grants before minute 20
-    towerInflation: 14, // 6 x 14 = "84 flights authorized"
+    towerInflation: 14, // 6 x 14 = "84 pod runs authorized"
     sealAt: 30,
     sealSectorId: SEAL_SECTOR,
     pods,

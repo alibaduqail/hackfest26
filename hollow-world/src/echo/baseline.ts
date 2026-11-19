@@ -18,7 +18,7 @@ export interface Baseline {
   tower: RunOutcome;
   none: RunOutcome;
   you: RunOutcome;
-  towerSays: string; // "Tower says: 84 flights authorized; actual: 5 flew. Mara never arrives."
+  towerSays: string; // "Tower says: 84 pod runs authorized; actual: 5 ran. Mara never arrives."
 }
 
 /** Play `mission` to its end. Each command fires at the start of its atTick, exactly as a live click does; refused commands are ignored. */
@@ -53,5 +53,5 @@ export function runBaseline(mission: Mission, placements: Command[]): Baseline {
   const nurse = mission.pods.find((p) => p.nurse);
   const who = (nurse?.label.split("· ")[1] ?? "The nurse").replace(/^Nurse /, "").split(" ")[0];
   const fate = tower.mara === null ? `${who} never arrives` : `${who} arrives at minute ${tower.mara}`;
-  return { tower, none, you, towerSays: `Tower says: ${tower.claimed} flights authorized; actual: ${tower.actual} flew. ${fate}.` };
+  return { tower, none, you, towerSays: `Tower says: ${tower.claimed} pod runs authorized; actual: ${tower.actual} ran. ${fate}.` };
 }
