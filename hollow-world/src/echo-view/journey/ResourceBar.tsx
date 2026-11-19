@@ -40,3 +40,18 @@ export function ResourceBar({ res, limit, preview }: { res: Resources; limit: nu
     </div>
   );
 }
+
+/** The camp's supplies as one quiet line: "3 beacons · 40 / 390 min · 1 dose". `preview` shows the picked choice's change next to each figure. */
+export function SupplyLine({ res, limit, preview }: { res: Resources; limit: number; preview?: Resources }) {
+  const now = preview ?? res;
+  const over = now.clock > limit;
+  const delta = (d: number, goodWhenUp: boolean, unit = "") =>
+    d !== 0 && <span className={`j-sd ${(d > 0) === goodWhenUp ? "good" : "bad"}`}>{`${sign(d)}${unit}`}</span>;
+  return (
+    <p className="j-supply" aria-label="Supplies">
+      <span><b>{now.beacons}</b>{now.beacons === 1 ? " beacon" : " beacons"}{delta(now.beacons - res.beacons, true)}</span>
+      <span><b className={over ? "over" : undefined}>{now.clock}</b>{` / ${limit} min`}{delta(now.clock - res.clock, false)}</span>
+      <span><b>{now.doses}</b>{now.doses === 1 ? " dose" : " doses"}{delta(now.doses - res.doses, true)}</span>
+    </p>
+  );
+}

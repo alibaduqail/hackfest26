@@ -7,7 +7,6 @@
 /* title backdrop: the 2D pixel-art Descent cutaway (bundled by Vite) under the mockup's radial shade; replaces game.css's .g-title dimmer on this screen */
 .j-title-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(ellipse 55% 45% at 50% 46%, rgba(13,18,22,.55), rgba(13,18,22,.82) 70%, rgba(13,18,22,.94)), url("../cutaway/art/descent.webp") center / cover no-repeat, #0d1216; image-rendering: pixelated; }
 .j-title::before { display: none; }
-.j-choice:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; border-radius: 4px; }
 
 /* supply bar */
 .j-bar { display: grid; grid-template-columns: 1fr 1.7fr 1fr; background: rgba(21,36,44,.94); border: 1px solid var(--line2); border-radius: 8px; box-shadow: 0 5px 22px #050d1260; }
@@ -29,31 +28,13 @@
 .j-delta.good { color: var(--good); border-color: var(--good); background: #7ec8b31a; }
 .j-delta.bad { color: var(--redText); border-color: var(--redLine); background: var(--redBg); }
 
-/* layout: card + trail map */
+/* layout: card + trail map (the ending; the camp has its own layout below) */
 .j-camp-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; }
 .j-side { position: sticky; top: 24px; }
 .j-card { background: rgba(21,36,44,.94); border: 1px solid var(--line2); border-radius: 8px; padding: 26px 30px 24px; box-shadow: 0 5px 22px #050d1260; }
 .j-card h2 { margin: 6px 0 12px; font-size: 30px; line-height: 1.2; font-weight: 600; color: var(--head); letter-spacing: .01em; }
 .j-body { margin: 0 0 12px; font-size: 17px; line-height: 1.65; color: var(--text); max-width: 40em; }
 
-/* choices */
-.j-choices { list-style: none; margin: 20px 0 0; padding: 0; display: grid; gap: 10px; }
-.j-choice { width: 100%; display: grid; grid-template-columns: 38px 1fr; gap: 16px; align-items: start; text-align: left; font: inherit; color: var(--text); background: var(--btn); border: 1px solid var(--line2); border-radius: 6px; padding: 14px 18px 14px 14px; cursor: pointer; transition: border-color .12s, background .12s, opacity .2s; }
-.j-choice:hover:not(.passed) { border-color: var(--amber); background: var(--btn2); }
-.j-choice kbd { display: grid; place-items: center; width: 34px; height: 34px; margin-top: 1px; font: 700 16px var(--mono); color: var(--amberText); background: var(--stage); border: 1px solid var(--amberDim); border-bottom-width: 3px; border-radius: 6px; }
-.j-choice-main { display: flex; flex-direction: column; gap: 4px; }
-.j-choice b { font-size: 17px; font-weight: 600; color: var(--head); }
-.j-detail { color: var(--text2); font-size: 15px; line-height: 1.45; }
-.j-costs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
-.j-cost { font-size: 13px; font-weight: 600; padding: 1px 10px; border-radius: 99px; border: 1px solid var(--line2); color: var(--muted); font-variant-numeric: tabular-nums; }
-.j-cost.good { color: var(--good); border-color: #7ec8b388; }
-.j-cost.bad { color: var(--redText); border-color: var(--redLine); background: var(--redBg); }
-.j-choice.picked { border-color: var(--amber); background: var(--amberBg); }
-.j-choice.picked kbd { background: var(--amber); color: var(--ink); }
-.j-choice.passed { opacity: .45; cursor: default; }
-
-.j-reveal { min-height: 46px; margin: 14px 0 4px; }
-.j-reveal p { margin: 0; padding: 10px 16px; border-left: 3px solid var(--amber); background: var(--amberBg); color: var(--amberText); font-size: 16px; line-height: 1.5; animation: j-pop .3s ease-out; }
 .j-actions { margin-top: 12px; }
 .j-actions .g-btn { padding: 11px 28px; font-size: 16px; }
 .j-hint { color: var(--muted); font-size: 13px; }
@@ -118,4 +99,72 @@
 
 @keyframes j-pop { 0% { transform: scale(.94); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 @keyframes j-lamp { 50% { box-shadow: 0 0 22px var(--amberHi); } }
-@media (prefers-reduced-motion: reduce) { .j-delta, .j-reveal p, .j-trail .here .j-dot { animation: none; } .j-fill { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .j-delta, .j-trail .here .j-dot { animation: none; } .j-fill { transition: none; } }
+
+/* camp: no cards. The situation sits on the left over the Descent art; on the right the trail line forks at Mara into the choices
+   and rejoins at Continue down. Teal = the hop line, amber = Mara and the light, the same language as the title's Relay nodes. */
+.j-camp2 { display: grid; grid-template-columns: minmax(420px, 36%) 1fr; height: 100%; overflow: hidden; }
+.j-camp-bg { background: linear-gradient(90deg, rgba(11,16,20,.95) 0, rgba(11,16,20,.9) 30%, rgba(11,16,20,.7) 58%, rgba(11,16,20,.76) 100%), url("../cutaway/art/descent.webp") center / cover no-repeat, #0d1216; }
+.j-cl { position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: center; padding: 64px 32px 64px 96px; animation: j-rise .5s cubic-bezier(.23, 1, .32, 1) both; }
+.j-where { margin: 0 0 16px; font: 500 14px/1.4 var(--label, var(--mono)); color: var(--amberText); }
+.j-cl h2 { margin: 0; font: 800 56px/1.04 var(--display); font-variation-settings: "opsz" 144; letter-spacing: -.01em; color: var(--head); text-wrap: balance; }
+.j-line { margin: 20px 0 0; max-width: 30em; font-size: 18px; line-height: 1.5; color: var(--text2); text-wrap: pretty; }
+.j-out { min-height: 56px; margin: 24px 0 0; max-width: 28em; font-size: 18px; line-height: 1.5; color: var(--amberText); }
+.j-out:not(:empty) { animation: j-rise .4s cubic-bezier(.23, 1, .32, 1) both; }
+.j-supply { display: flex; flex-wrap: wrap; gap: 4px 0; margin: 24px 0 0; font: 400 14px/1.5 var(--label, var(--mono)); color: var(--text2); font-variant-numeric: tabular-nums; }
+.j-supply > span + span::before { content: "·"; margin: 0 12px; color: var(--dim); }
+.j-supply b { font-weight: 600; color: var(--head); }
+.j-supply b.over { color: var(--redText); }
+.j-sd { margin-left: 8px; }
+.j-sd.good { color: var(--good); }
+.j-sd.bad { color: var(--redText); }
+.j-key { margin: 8px 0 0; font: 400 13px/1.5 var(--label, var(--mono)); color: var(--muted); }
+
+.j-stage { position: relative; z-index: 1; min-width: 0; animation: j-fade .6s .1s ease-out both; }
+.j-rail, .j-fork { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+.j-rail-lines line { stroke-width: 2; }
+.j-rail-lines line.done { stroke: var(--good); opacity: .7; }
+.j-rail-lines line.ahead { stroke: var(--muted); stroke-dasharray: 3 6; opacity: .55; }
+.j-rail-lines circle.done { fill: var(--good); }
+.j-rail-lines circle.ahead { fill: #0a1013; stroke: var(--muted); stroke-width: 1.5; }
+.j-rail-lv { position: absolute; transform: translateY(-50%); white-space: nowrap; font: 400 13px/1.2 var(--label, var(--mono)); color: var(--muted); text-shadow: 0 1px 8px rgba(6,11,14,.9); }
+.j-rail-lv.done { color: var(--text2); }
+.j-rail-lv em { font-style: normal; color: var(--muted); margin-left: 8px; }
+.j-rail-lv .g-stars { font-size: 14px; }
+.j-rail-lv.here { font-size: 14px; color: var(--text2); }
+.j-rail-lv.here b { font-weight: 600; color: var(--amberText); margin-right: 4px; }
+
+.j-branch path { fill: none; stroke: var(--good); stroke-width: 2; stroke-dasharray: 3 5; opacity: .5; transition: opacity .2s cubic-bezier(.23, 1, .32, 1); }
+.j-branch.lit path { stroke-dasharray: none; opacity: .95; }
+.j-branch.off path { opacity: .14; }
+.j-mara { position: absolute; z-index: 2; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; background: var(--amber); border: 2px solid var(--amberHi); }
+.j-packet { position: absolute; left: 0; top: 0; z-index: 3; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%; background: #fff4d6; box-shadow: 0 0 0 2px rgba(228,196,148,.5), 0 0 14px 4px var(--amber); pointer-events: none; opacity: 0; offset-rotate: 0deg; transition: opacity .25s; }
+
+.j-fk { position: absolute; z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 12px 8px 12px; margin: 0; transform: translate(-50%, -20px); border: 0; border-radius: 14px; background: transparent; color: var(--text); font: inherit; text-align: center; cursor: pointer; transition: background-color .18s cubic-bezier(.23, 1, .32, 1), opacity .3s; }
+.j-fk-dot { flex: none; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--good); background: #0a1013; transition: transform .2s cubic-bezier(.23, 1, .32, 1), background-color .15s, border-color .15s; }
+.j-fk-label { font: 600 16px/1.25 var(--label, var(--mono)); letter-spacing: .02em; color: var(--head); text-shadow: 0 1px 10px rgba(6,11,14,.9); transition: color .15s; }
+.j-fk-n { margin-right: 8px; font-weight: 500; color: var(--muted); }
+.j-fk-cost { font: 400 13px/1.5 var(--label, var(--mono)); text-shadow: 0 1px 8px rgba(6,11,14,.9); }
+.j-fk-cost .good { color: var(--good); }
+.j-fk-cost .bad { color: var(--redText); }
+.j-fk-cost .neutral, .j-fk-cost .sep { color: var(--muted); }
+@media (hover: hover) {
+  .j-fk:not(.passed):not(.picked):hover { background: rgba(126, 200, 179, .06); }
+  .j-fk:not(.passed):not(.picked):hover .j-fk-dot { transform: scale(1.3); border-color: var(--amberHi); background: rgba(126, 200, 179, .35); }
+  .j-fk:not(.passed):not(.picked):hover .j-fk-label { color: var(--amberText); }
+}
+.j-fk:focus-visible { outline: 1.5px solid rgba(228, 196, 148, .8); outline-offset: -4px; background: rgba(126, 200, 179, .06); }
+.j-fk:focus-visible .j-fk-dot { transform: scale(1.3); }
+.j-fk:active:not(.passed) .j-fk-dot { transform: scale(.8); transition-duration: .08s; }
+.j-fk.picked { cursor: default; }
+.j-fk.picked .j-fk-dot { background: var(--amber); border-color: var(--amberHi); }
+.j-fk.picked .j-fk-label { color: var(--amberText); }
+.j-fk.passed { opacity: .32; cursor: default; }
+
+.j-go { position: absolute; z-index: 4; width: 0; height: 0; }
+.j-go .rl-bar { position: absolute; left: 0; top: 0; transform: translate(calc(-1 * var(--rl-padx) - var(--rl-dot) / 2), -50%); }
+.j-go .rl-node { flex-direction: row-reverse; }
+
+@keyframes j-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes j-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .j-cl, .j-out:not(:empty), .j-stage { animation: none; } .j-fk, .j-fk-dot, .j-branch path { transition: none; } }
