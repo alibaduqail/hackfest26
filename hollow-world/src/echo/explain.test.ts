@@ -39,7 +39,7 @@ test("warn-only: re-routes, arrives at 92 and the margin to the next star is exa
 });
 
 test("late warning: beacons went in after Mara passed the fork", () => {
-  const l = explain(place(["main1", "main0"], 70));
+  const l = explain(place(["main1", "main0"], 68)); // live at t70, after Mara has passed the fork
   assert.match(l[1], /went in too late/);
 });
 
@@ -74,7 +74,7 @@ test("deterministic: same placements, same baseline", () => {
 test("the full log keeps events the 60-event observe().log has dropped", () => {
   const out = playRun(descentLive(), "echo", DESCENT_LIVE_SOLUTION);
   assert.ok(out.log.length > 60);
-  assert.ok(out.log.some((l) => l.kind === "beacon-placed" && l.tick === 16));
+  assert.ok(out.log.some((l) => l.kind === "beacon-placed" && l.tick === 18)); // command at t16, live two ticks later;
 });
 
 test("never says Mara cleared the shaft when she did not arrive and was not held at a flood", () => {

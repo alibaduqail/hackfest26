@@ -6,6 +6,8 @@
 // of her. Lighting the junction removes that asymmetric head start so her priority actually keeps her moving; the flood
 // warning is still required to arrive at all. descent(), descentLive() and descentLive2() are untouched.
 import { sign } from "./credential";
+import { BEACON_BUILD_TICKS, levelOpts } from "./descent";
+import type { LevelOpts } from "./descent";
 import type { City, Command, Mission, Pod, Sector, World } from "./types";
 import { findPath } from "./world";
 
@@ -69,7 +71,8 @@ const LIVE_START_3 = ["ramp0", "ramp1", "ramp2", "spur0", "spur1", "spur2", "pax
 /** The Descent III mission: a forged medical pod is already clogging the single-lane junction (trunk0) when the run
  * begins; a second forged pod and two passengers add more traffic behind it, right as the shaft floods downstream.
  * Only LIVE_START_3 has a beacon. */
-export function descentLive3(): Mission {
+export function descentLive3(a: number | LevelOpts = 0): Mission {
+  const { revealLead } = levelOpts(a); // one flood location only: the attempt number does not move this flood
   const world: World = structuredClone({ cities, sectors });
   for (const s of world.sectors) s.beacon = LIVE_START_3.includes(s.id);
   const ghost1: Pod = { ...pod("GHOST-1", "GHOST-1 · Medical courier", "medical", "ghostSrc", "clinic3", 0, world, { ghost: true, nurse: false, sig: "forged" }), status: "moving" };
@@ -87,6 +90,7 @@ export function descentLive3(): Mission {
     id: "descent-live-3", title: "The Descent (live) III: Forged Rush", seed: 20261120, world, endTick: T3.end,
     towerDownAt: T3.towerDown, towerRatePerHour: 30, towerInflation: 14,
     sealAt: T3.seal, sealSectorId: "main1", beaconBudget: 6, pods,
+    floodReveal: { lead: revealLead, risk: ["flood risk: main shaft"] }, beaconBuildTicks: BEACON_BUILD_TICKS, earlyEnd: true,
   };
 }
 
@@ -116,7 +120,7 @@ export const DESCENT_LIVE_SOLUTION_3: Command[] = [
   { type: "placeBeacon", sectorId: "trunk0", atTick: 5 },
   { type: "placeBeacon", sectorId: "trunk1", atTick: 18 },
   { type: "placeBeacon", sectorId: "trunk2", atTick: 22 },
-  { type: "placeBeacon", sectorId: "main1", atTick: 26 },
-  { type: "placeBeacon", sectorId: "main0", atTick: 28 },
-  { type: "placeBeacon", sectorId: "byp0", atTick: 32 },
+  { type: "placeBeacon", sectorId: "main1", atTick: 40 }, // the flood telegraph appears at t40 (8 ticks before the seal)
+  { type: "placeBeacon", sectorId: "main0", atTick: 41 },
+  { type: "placeBeacon", sectorId: "byp0", atTick: 42 },
 ];
