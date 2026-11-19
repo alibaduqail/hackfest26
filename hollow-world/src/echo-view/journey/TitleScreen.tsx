@@ -28,7 +28,7 @@ export function TitleScreen({ onBegin, onContinue, onTowerDown, onStrata, onFree
       ]
     : [{ key: "begin", label: "Begin", tone: "primary", nav: true, autoFocus: true, onSelect: onBegin }];
   const more: RelayItem[] = [];
-  if (onTowerDown) more.push({ key: "tower", label: "Tower Down split", tone: "quiet", nav: true, onSelect: onTowerDown });
+  if (onTowerDown) more.push({ key: "tower", label: "Tower Down", tone: "quiet", nav: true, onSelect: onTowerDown });
   if (onStrata) more.push({ key: "strata", label: "Strata city", tone: "quiet", nav: true, onSelect: onStrata });
   if (onFreePlay) more.push({ key: "free", label: "Free play", tone: "quiet", nav: true, onSelect: onFreePlay });
   return (
