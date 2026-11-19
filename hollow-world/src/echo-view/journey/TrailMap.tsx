@@ -1,5 +1,5 @@
 import { Fragment } from "react";
-import { LEG_NAMES, LEG_IDS, trailModel } from "./helpers";
+import { LEG_NAMES, LEG_IDS, starsFromLog, trailModel, trailRows } from "./helpers";
 import { TentIcon } from "./icons";
 import type { TrailMapProps } from "./props";
 
@@ -76,5 +76,33 @@ export function TrailRail({ legIndex, log, x, maraY, contY, height }: TrailRailP
         <span key={b.level} className="j-rail-lv" style={{ left: x + 18, top: contY + 64 + i * downStep }}>{b.name}</span>
       ))}
     </div>
+  );
+}
+
+export interface TrailRecordProps { log: TrailMapProps["log"]; choiceNames?: Record<string, string> }
+
+/** The ending's trail: the whole descent as one line, Surface ramp down to the Deep clinic. Every leg attempt (stars, minutes) and camp choice sits on it in the order it happened; Mara's dot ends it, or marks where she stopped. */
+export function TrailRecord({ log, choiceNames }: TrailRecordProps) {
+  const rows = trailRows(log, choiceNames);
+  const won = starsFromLog(log).findIndex((s) => s === null);
+  const reached = won === -1 ? LEG_IDS.length : won;
+  const { nodes, hereLevel } = trailModel(reached, log);
+  const stopped = nodes.find((n) => n.level === hereLevel)?.name ?? "Surface ramp";
+  const items = log.map((l, i) => ({ l, r: rows[i] })).filter(({ l }) => !(l.kind === "choice" && l.choiceId === "retry"));
+  const full = reached === LEG_IDS.length;
+  return (
+    <ol className="j-rec" aria-label="Trail log">
+      <li className="start"><i aria-hidden /><span>Surface ramp</span></li>
+      {items.map(({ l, r }, i) => (
+        <li key={i} className={`${r.kind}${r.failed ? " failed" : ""}`} style={{ "--i": i + 1 } as React.CSSProperties}>
+          <i aria-hidden />
+          {r.kind === "leg" && l.kind === "leg"
+            ? <span><b>{r.title}</b><span className="g-stars" aria-label={`${r.stars} of 3 stars`}>{STAR_TEXT(r.stars ?? 0)}</span><em>{l.result.ticks} min{r.failed ? " · failed" : ""}</em></span>
+            : <span><em>{r.title}</em>{r.detail}</span>}
+        </li>
+      ))}
+      <li className="mara" style={{ "--i": items.length + 1 } as React.CSSProperties}><i aria-hidden /><span><b>Mara</b>{full ? "Deep clinic" : `stopped at ${stopped}`}</span></li>
+      {!full && <li className="ahead"><i aria-hidden /><span>Deep clinic</span></li>}
+    </ol>
   );
 }
