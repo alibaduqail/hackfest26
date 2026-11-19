@@ -217,3 +217,90 @@ html, body, #root { margin: 0; height: 100%; background: var(--bg); color: var(-
 
 /* text that sits directly on the Strata backdrop uses text2, not muted: AA (4.5:1) even under the brightest lamps */
 .g-debrief-top .g-muted, .g-screen .echo-end-note { color: var(--text2); }
+
+/* free-play screens (missions, briefing, debrief), the camp's language: no cards. The situation on the left over a dark shade of the Strata
+   scene, one relay line on the right whose nodes are the missions or the objectives. Teal = done, amber = the next one, dashed = out of reach. */
+.g-fp { display: grid; grid-template-columns: minmax(420px, 36%) 1fr; min-height: 100%; }
+.g-fp::before { content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none; background: linear-gradient(90deg, rgba(11,16,20,.93) 0, rgba(11,16,20,.84) 30%, rgba(11,16,20,.5) 60%, rgba(11,16,20,.58) 100%); }
+.fp-left, .fp-right { position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: center; }
+.fp-left { align-items: flex-start; padding: 64px 32px 64px 96px; animation: fp-rise .5s cubic-bezier(.23, 1, .32, 1) both; }
+.fp-right { padding: 64px 96px 64px 8%; animation: fp-rise .5s cubic-bezier(.23, 1, .32, 1) .08s both; }
+.fp-kicker { margin: 0 0 16px; font: 500 14px/1.4 var(--label, var(--mono)); color: var(--amberText); }
+.fp-left h2 { margin: 0; font: 800 56px/1.04 var(--display); font-variation-settings: "opsz" 144; letter-spacing: -.01em; color: var(--head); text-wrap: balance; }
+.fp-line { margin: 20px 0 0; max-width: 24em; font-size: 18px; line-height: 1.5; color: var(--text2); text-wrap: pretty; }
+.fp-figs { margin: 20px 0 0; font: 400 14px/1.5 var(--label, var(--mono)); color: var(--text2); font-variant-numeric: tabular-nums; }
+.fp-figs b { font-weight: 600; color: var(--head); }
+.fp-left .fp-bar { margin: 48px 0 0 -19px; }
+
+/* the shared node: a beacon dot on the line */
+.fp-node { position: relative; z-index: 1; flex: none; justify-self: center; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--good); background: #0a1013; transition: background-color .15s, border-color .15s, box-shadow .15s; }
+
+/* mission ladder */
+.fp-ladder { list-style: none; margin: 0; padding: 0; width: 100%; max-width: 520px; }
+.fp-ladder li { position: relative; }
+.fp-ladder li:not(:last-child)::before { content: ""; position: absolute; left: 11px; top: 50%; height: 100%; border-left: 2px solid var(--good); }
+.fp-ladder li.ahead::before { border-left: 2px dashed var(--line2); }
+.fp-rung { display: grid; grid-template-columns: 24px 40px 1fr auto; align-items: center; column-gap: 12px; row-gap: 4px; width: 100%; margin: 0; padding: 20px 0; border: 0; background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.fp-rung:disabled { cursor: default; }
+.fp-rung .fp-num { font: 500 14px/1.4 var(--label, var(--mono)); color: var(--muted); font-variant-numeric: tabular-nums; }
+.fp-rung .fp-name { font: 600 24px/1.2 var(--display); font-variation-settings: "opsz" 48; color: var(--head); transition: color .15s; }
+.fp-rung .g-stars { font-size: 16px; letter-spacing: .08em; }
+.fp-rung .g-stars .off { color: var(--dim); }
+.fp-rung .fp-note { font: 400 13px/1.4 var(--label, var(--mono)); color: var(--muted); }
+.fp-rung .fp-hook { grid-column: 3 / -1; font-size: 15px; line-height: 1.5; color: var(--text2); }
+.fp-rung.new .fp-node { background: var(--amber); border-color: var(--amberHi); box-shadow: 0 0 8px #d2a76a88; }
+.fp-rung.new .fp-num { color: var(--amberText); }
+.fp-rung.done .fp-node { background: var(--good); }
+.fp-rung.locked .fp-node { border-style: dashed; border-color: var(--muted); background: #0a1013; }
+.fp-rung.locked .fp-name { color: var(--dim); }
+.fp-rung:not(:disabled):hover .fp-name, .fp-rung:not(:disabled):focus .fp-name { color: var(--amberText); }
+.fp-rung:not(:disabled):hover .fp-node, .fp-rung:not(:disabled):focus .fp-node { transform: scale(1.2); }
+:root[data-kbd] .fp-rung:focus-visible { outline: 2px solid var(--amberHi); outline-offset: 4px; border-radius: 6px; }
+.fp-rung:focus { outline: none; }
+:root[data-kbd] .fp-rung:focus-visible { outline: 2px solid var(--amberHi); }
+
+/* objectives: three nodes on a short line */
+.fp-objs { list-style: none; margin: 0; padding: 0; width: 100%; max-width: 600px; }
+.fp-objs li { position: relative; display: grid; grid-template-columns: 24px auto 1fr; align-items: center; column-gap: 12px; padding: 12px 0; font: 400 15px/1.4 var(--label, var(--mono)); color: var(--muted); }
+.fp-objs li:not(:last-child)::before { content: ""; position: absolute; left: 11px; top: 50%; height: 100%; border-left: 2px dashed var(--line2); }
+.fp-objs li.met:not(:last-child)::before { border-left: 2px solid var(--good); }
+.fp-objs li:not(.met) .fp-node { border-style: dashed; border-color: var(--muted); }
+.fp-objs li.met { color: var(--head); }
+.fp-objs li.met .fp-node { background: var(--good); }
+.fp-objs .g-stars { font-size: 14px; letter-spacing: .08em; }
+.fp-objs .g-stars .off { color: var(--dim); }
+.fp-objs li > span:last-child { grid-column: auto; }
+.fp-objs li:not(:has(.g-stars)) { grid-template-columns: 24px 1fr; }
+
+/* debrief: the stars are the moment, the figures are quiet mono lines */
+.g-fp-debrief .fp-left .g-stars { display: block; margin: 0 0 20px; font-size: 72px; line-height: 1; letter-spacing: .06em; }
+.g-fp-debrief .fp-left .g-stars > span { display: inline-block; }
+.g-fp-debrief .fp-left .g-stars .off { color: var(--dim); }
+.g-fp-debrief .fp-left .g-stars .lit { animation: g-star .3s ease-out; }
+.fp-ledger { width: 100%; max-width: 520px; margin: 40px 0 0 36px; width: calc(100% - 36px); border-collapse: collapse; font: 400 14px/1.4 var(--label, var(--mono)); font-variant-numeric: tabular-nums; }
+.fp-ledger th, .fp-ledger td { padding: 8px 0; text-align: left; font-weight: 400; }
+.fp-ledger thead th { padding-bottom: 12px; color: var(--muted); }
+.fp-ledger tbody th { color: var(--text2); padding-right: 24px; }
+.fp-ledger td { color: var(--text2); padding-right: 24px; }
+.fp-ledger td.echo { color: var(--good); font-weight: 600; padding-right: 0; }
+
+@keyframes fp-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .fp-left, .fp-right, .g-fp-debrief .fp-left .g-stars .lit { animation: none; } .fp-node { transition: none; } }
+@media (max-width: 800px) {
+  .g-fp { grid-template-columns: 1fr; }
+  .fp-left { padding: 40px 16px 0; }
+  .fp-left h2 { font-size: 40px; }
+  .g-fp-debrief .fp-left .g-stars { font-size: 56px; }
+  .fp-right { justify-content: flex-start; padding: 24px 16px 48px; }
+  .fp-left .fp-bar { margin-top: 32px; }
+  .fp-rung { padding: 16px 0; }
+  .fp-ledger { margin-left: 36px; }
+}
+
+/* Briefing lore: quiet typed body text under the hook. */
+.fp-lore { max-width: 30em; margin: 24px 0 0; cursor: default; font-size: 15px; line-height: 1.6; color: var(--text2); text-wrap: pretty; }
+.fp-lore p { margin: 0 0 12px; }
+.fp-lore .rest { visibility: hidden; }
+.fp-lore .caret { display: inline-block; width: .5em; height: 1em; vertical-align: text-bottom; background: var(--good); opacity: .7; animation: g-blink 1s steps(1) infinite; }
+.fp-left .fp-lore + .fp-bar { margin-top: 28px; }
+@media (prefers-reduced-motion: reduce) { .fp-lore .caret { animation: none; } }
