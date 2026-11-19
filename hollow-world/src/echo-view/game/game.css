@@ -296,3 +296,11 @@ html, body, #root { margin: 0; height: 100%; background: var(--bg); color: var(-
   .fp-rung { padding: 16px 0; }
   .fp-ledger { margin-left: 36px; }
 }
+
+/* Briefing lore: quiet typed body text under the hook. */
+.fp-lore { max-width: 30em; margin: 24px 0 0; cursor: default; font-size: 15px; line-height: 1.6; color: var(--text2); text-wrap: pretty; }
+.fp-lore p { margin: 0 0 12px; }
+.fp-lore .rest { visibility: hidden; }
+.fp-lore .caret { display: inline-block; width: .5em; height: 1em; vertical-align: text-bottom; background: var(--good); opacity: .7; animation: g-blink 1s steps(1) infinite; }
+.fp-left .fp-lore + .fp-bar { margin-top: 28px; }
+@media (prefers-reduced-motion: reduce) { .fp-lore .caret { animation: none; } }

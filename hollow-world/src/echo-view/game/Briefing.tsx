@@ -51,14 +51,24 @@ export function Objectives({ cm, met, stars = false }: { cm: CampaignMission; me
 }
 
 export function Briefing({ cm, best, hasBudget, onNext, onBack }: { cm: CampaignMission; best: number; hasBudget: boolean; onNext: () => void; onBack: () => void }) {
+  const tw = useTypewriter(cm.briefing);
   return (
     <div className="g-screen g-fp">
       <section className="fp-left" aria-labelledby="fp-title">
         <p className="fp-kicker">Mission {cm.number}</p>
         <h2 id="fp-title">{cm.name}</h2>
         <p className="fp-line">{cm.hook}</p>
+        <div className="fp-lore" onClick={tw.skip} aria-live="off">
+          {tw.paras.map((full, i) => {
+            const shown = tw.visible[i] ?? "";
+            return (
+              <p key={i}>{shown}{!tw.done && i === tw.visible.length - 1 && <span className="caret" />}<span className="rest" aria-hidden>{full.slice(shown.length)}</span></p>
+            );
+          })}
+        </div>
         <RelayBar className="fp-bar" size="lg" label="Briefing" items={[
           { key: "back", label: "Back", nav: true, onSelect: onBack },
+          ...(tw.done ? [] : [{ key: "skip", label: "Skip", tone: "quiet" as const, onSelect: tw.skip }]),
           { key: "next", label: hasBudget ? "Place beacons" : "Begin", tone: "primary", nav: true, autoFocus: true, onSelect: onNext },
         ]} />
       </section>
