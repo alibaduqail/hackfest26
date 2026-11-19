@@ -2,6 +2,7 @@
 // Also exports the typewriter and the Interlude page used by the prologue and epilogue.
 import { useEffect, useState } from "react";
 import type { CampaignMission } from "./campaign";
+import { RelayBar } from "../relay/Relay";
 import { Stars } from "./MissionSelect";
 
 const CHARS_PER_FRAME = 2;
@@ -41,10 +42,10 @@ export function Briefing({ cm, best, hasBudget, onNext, onBack }: { cm: Campaign
       <div className="g-page g-brief">
         <div className="g-head">
           <div>
-            <div className="g-kicker">Mission {cm.number} · briefing</div>
+            <div className="g-kicker">Mission {cm.number}</div>
             <h2>{cm.name}</h2>
           </div>
-          {!tw.done && <button className="g-skip" onClick={tw.skip}>skip ▸</button>}
+          {!tw.done && <RelayBar size="sm" label="Skip" items={[{ key: "skip", label: "Skip", tone: "quiet", onSelect: tw.skip }]} />}
         </div>
         <Typed tw={tw} />
         <div className="g-broadcast" style={{ opacity: tw.done ? 1 : 0 }} aria-hidden={!tw.done}>
@@ -57,9 +58,11 @@ export function Briefing({ cm, best, hasBudget, onNext, onBack }: { cm: Campaign
             <li key={i} className={best > i ? "met" : ""}><Stars n={i + 1} /><span>{o.label}</span></li>
           ))}
         </ul>
-        <div className="g-row g-actions">
-          <button className="g-btn" onClick={onBack}>Back</button>
-          <button className="g-btn lg primary" autoFocus onClick={onNext}>{hasBudget ? "Place beacons" : "Begin"}</button>
+        <div className="g-actions">
+          <RelayBar label="Briefing" items={[
+            { key: "back", label: "Back", nav: true, onSelect: onBack },
+            { key: "next", label: hasBudget ? "Place beacons" : "Begin", tone: "primary", nav: true, autoFocus: true, onSelect: onNext },
+          ]} />
         </div>
       </div>
     </div>
@@ -79,8 +82,8 @@ export function Interlude({ kicker, title, paras, onDone }: { kicker: string; ti
           </div>
         </div>
         <Typed tw={tw} />
-        <div className="g-row g-actions end">
-          <button className="g-btn lg primary" autoFocus onClick={onDone}>{tw.done ? "Continue" : "Skip"}</button>
+        <div className="g-actions end">
+          <RelayBar label={title} items={[{ key: "go", label: tw.done ? "Continue" : "Skip", tone: "primary", nav: tw.done, autoFocus: true, onSelect: onDone }]} />
         </div>
       </div>
     </div>

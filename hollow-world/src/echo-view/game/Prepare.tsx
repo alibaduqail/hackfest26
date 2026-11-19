@@ -5,6 +5,7 @@ import type { Mission, Sector } from "../../echo/types";
 import { hasBeacon, sealsOf } from "../../echo/engine";
 import { findPath } from "../../echo/world";
 import { drawMap, sectorAt, type Pop } from "../map";
+import { RelayBar } from "../relay/Relay";
 import { play } from "./audio";
 import { staticObs, type CampaignMission } from "./campaign";
 
@@ -103,7 +104,7 @@ export function Prepare({ cm, mission, onBegin, onBack }: { cm: CampaignMission;
     <div className="g-screen g-prep">
       <div className="g-prep-bar">
         <div>
-          <div className="g-kicker">Mission {cm.number} · prepare</div>
+          <div className="g-kicker">Mission {cm.number}</div>
           <h2>{cm.name}</h2>
         </div>
         <div className="g-meter" aria-live="polite">
@@ -113,13 +114,11 @@ export function Prepare({ cm, mission, onBegin, onBack }: { cm: CampaignMission;
         </div>
         <span className="g-legend"><span><i />beacon</span><span><s />dead zone</span></span>
         <span className="g-note" role="status">{note}</span>
-        <div className="g-row">
-          <button className="g-btn" onClick={onBack}>Back</button>
-          <button className="g-btn" disabled={placed === 0} onClick={() => { play("remove"); setSectors(sectors.map((s) => ({ ...s, beacon: false }))); }}>Clear all</button>
-          <button className="g-btn primary" autoFocus disabled={placed > budget} onClick={() => onBegin({ ...mission, world: { ...mission.world, sectors } })}>
-            Begin
-          </button>
-        </div>
+        <RelayBar label="Prepare" items={[
+          { key: "back", label: "Back", nav: true, onSelect: onBack },
+          { key: "clear", label: "Clear all", tone: "danger", hold: true, disabled: placed === 0, onSelect: () => { play("remove"); setSectors(sectors.map((s) => ({ ...s, beacon: false }))); } },
+          { key: "begin", label: "Begin", tone: "primary", nav: true, autoFocus: true, disabled: placed > budget, onSelect: () => onBegin({ ...mission, world: { ...mission.world, sectors } }) },
+        ]} />
       </div>
       <div className="g-prep-map">
         <MapCanvas
@@ -146,13 +145,13 @@ export function Prepare({ cm, mission, onBegin, onBack }: { cm: CampaignMission;
         )}
         <div className="g-prep-tip">
           {hovered
-            ? `${names.get(hovered.from)} → ${names.get(hovered.to)} · section ${hovered.index + 1} · ${hovered.beacon !== false ? "beacon (click to remove)" : "dead zone (click to place)"}`
+            ? `${names.get(hovered.from)} to ${names.get(hovered.to)}, section ${hovered.index + 1}. ${hovered.beacon !== false ? "Beacon placed, click to remove." : "Dead zone, click to place."}`
             : cm.prepTip ?? "Click a tunnel to bolt in a beacon. Each direction is its own tunnel. News only hops between beacons."}
         </div>
         </div>
         <div className="g-sr" role="status">{focused && kf ? label(sectors.find((s) => s.id === kf)!) : ""}</div>
       </div>
-      <div id="g-prep-keys" className="g-prep-keys">Arrows to choose a tunnel · Enter to place</div>
+      <div id="g-prep-keys" className="g-prep-keys">Arrows choose a tunnel. Enter places a beacon.</div>
     </div>
   );
 }
