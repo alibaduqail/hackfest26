@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { playRun } from "./baseline";
 import { DESCENT_LEVELS } from "./descent-levels";
 import { campEvent, choose, completeLeg, currentLeg, ending, lastReveal, LIMIT, startJourney, type JourneyState, type LegResult } from "./journey";
-import { LEGS } from "./journey-events";
+import { LEGS, TUNING } from "./journey-events";
 import type { Command } from "./types";
 
 const place = (ids: string[], atTick = 0): Command[] => ids.map((sectorId) => ({ type: "placeBeacon", sectorId, atTick }));
@@ -42,10 +42,10 @@ test("the engine agrees with the minimum winning sets: the warning chain is wort
   }
 });
 
-test("a decent journey (outfit beacons, the known solutions, verify, check the credential) is Saved at 272 minutes", () => {
+test("a decent journey (outfit beacons, the known solutions, verify, check the credential) is Saved at 302 minutes", () => {
   const s = run(["extra-beacons", "verify-beacons", "check-credential"], solution);
   const e = ending(s);
-  assert.equal(s.res.clock, 83 + 111 + 78);
+  assert.equal(s.res.clock, TUNING.start.clock + 83 + 111 + 78);
   assert.equal(s.res.beacons, 0); // 15 + 4 - (5 + 1 + 7 + 6): exactly enough, so every beacon matters
   assert.equal(e.kind, "saved");
   assert.equal(e.title, "The clinic is supplied");
@@ -142,4 +142,27 @@ test("both endings are reachable, including running out of doses", () => {
   noDoses.res = { ...noDoses.res, doses: 0 };
   assert.equal(ending(noDoses).kind, "late");
   assert.equal(ending(noDoses).title, "The medicine ran out");
+});
+
+test("Leave now really saves 15 minutes (the clock starts above zero, so the saving is not clamped away)", () => {
+  const s = choose(startJourney(), "leave-now");
+  assert.equal(s.res.clock, TUNING.start.clock - 15);
+  assert.ok(s.res.clock > 0 && s.res.clock < startJourney().res.clock);
+  assert.equal(choose(startJourney(), "extra-beacons").res.clock, TUNING.start.clock);
+});
+
+test("currentLeg throws a clear error outside a leg instead of a TypeError", () => {
+  const over = run(["extra-beacons", "verify-beacons", "check-credential"], solution);
+  assert.equal(over.phase, "ending");
+  assert.throws(() => currentLeg(over), /no leg to play.*phase "ending"/);
+});
+
+test("completeLeg ignores a stale or malformed result (wrong leg, NaN ticks)", () => {
+  const s = choose(startJourney(), "leave-now");
+  const ok = play(s, solution(s));
+  assert.equal(completeLeg(s, { ...ok, legId: "descent2" }), s);
+  assert.equal(completeLeg(s, { ...ok, ticks: NaN }), s);
+  assert.equal(completeLeg(s, { ...ok, maraAt: Infinity }), s);
+  assert.equal(completeLeg({ ...s, phase: "camp" }, ok).phase, "camp"); // not in a leg: unchanged
+  assert.ok(Number.isFinite(completeLeg(s, ok).res.clock));
 });

@@ -2,10 +2,11 @@
 // Effect sign convention: positive clock = minutes lost, negative clock = minutes saved. Beacons and doses are added as written.
 import type { Choice, LegId } from "./journey";
 
-/** Tuning, verified by journey.test.ts against the real engine. Sum of the three 3-star arrivals is 272 minutes, so LIMIT leaves one failed leg of slack. */
+/** Tuning, verified by journey.test.ts against the real engine. The patient has already waited 30 minutes when you set out (start.clock), which also lets "Leave now" (-15 min) actually save time.
+ * The three 3-star arrivals sum to 272 minutes, so 30 + 272 + one failed leg (~86) is just under LIMIT. */
 export const TUNING = {
-  start: { beacons: 15, clock: 0, doses: 6 },
-  limit: 360, // minutes on the patient's timer
+  start: { beacons: 15, clock: 30, doses: 6 },
+  limit: 390, // minutes on the patient's timer
   failPenalty: 15, // extra minutes on a failed leg, on top of the ticks played
   scavenge: { beacons: 2, clock: 25 },
   seed: 20261119,
