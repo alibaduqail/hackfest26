@@ -16,7 +16,6 @@ export function MissionSelect({ progress, onPick, onBack, onStory }: {
   return (
     <div className="g-screen g-fp">
       <section className="fp-left" aria-labelledby="fp-title">
-        <p className="fp-kicker">Campaign</p>
         <h2 id="fp-title">Missions</h2>
         <p className="fp-figs"><b>{earned}</b> / {ids.length * 3} stars</p>
         <RelayBar className="fp-bar" label="Campaign" items={[
