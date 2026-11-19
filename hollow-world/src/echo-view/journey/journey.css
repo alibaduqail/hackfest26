@@ -108,8 +108,6 @@
 .j-cl { position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: center; padding: 64px 32px 64px 96px; animation: j-rise .5s cubic-bezier(.23, 1, .32, 1) both; }
 .j-where { margin: 0 0 16px; font: 500 14px/1.4 var(--label, var(--mono)); color: var(--amberText); }
 .j-cl h2 { margin: 0; font: 800 56px/1.04 var(--display); font-variation-settings: "opsz" 144; letter-spacing: -.01em; color: var(--head); text-wrap: balance; }
-.j-out { min-height: 56px; margin: 24px 0 0; max-width: 28em; font-size: 18px; line-height: 1.5; color: var(--amberText); }
-.j-out:not(:empty) { animation: j-rise .4s cubic-bezier(.23, 1, .32, 1) both; }
 .j-supply { display: flex; flex-wrap: wrap; gap: 4px 0; margin: 24px 0 0; font: 400 14px/1.5 var(--label, var(--mono)); color: var(--text2); font-variant-numeric: tabular-nums; }
 .j-supply > span + span::before { content: "·"; margin: 0 12px; color: var(--dim); }
 .j-supply b { font-weight: 600; color: var(--head); }
@@ -166,7 +164,7 @@
 
 @keyframes j-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes j-fade { from { opacity: 0; } to { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .j-cl, .j-out:not(:empty), .j-stage { animation: none; } .j-fk, .j-fk-dot, .j-branch path { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .j-cl, .j-stage { animation: none; } .j-fk, .j-fk-dot, .j-branch path { transition: none; } }
 
 /* ending (unslop redesign): verdict and score on the left, the whole descent as one trail line on the right; no cards */
 .j-end2 { display: grid; grid-template-columns: minmax(420px, 36%) 1fr; height: 100%; overflow: hidden; }

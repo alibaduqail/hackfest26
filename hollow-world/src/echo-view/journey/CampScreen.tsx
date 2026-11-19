@@ -9,13 +9,6 @@ import { TrailRail } from "./TrailMap";
 
 const EASE = "cubic-bezier(.23, 1, .32, 1)";
 const reduced = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
-/** One line of situation: a long body or reveal keeps only its first sentence. A quote is never cut open: the cut moves to its closing mark. */
-function oneLine(s: string, max = 90) {
-  if (s.length <= max) return s;
-  let cut = s.match(/^.+?[.?!]["”]?(?=\s|$)/)?.[0] ?? s;
-  if ((cut.match(/"/g) ?? []).length % 2 === 1) { const close = s.indexOf('"', cut.length); if (close > 0) cut = s.slice(0, close + 1); }
-  return cut;
-}
 
 interface Geo { sx: number; maraY: number; choiceY: number; mergeY: number; contY: number; xs: number[]; width: number; branch: string[]; merge: string[]; run: string[] }
 
@@ -41,7 +34,7 @@ const pathLength = (d: string) => {
   return p.getTotalLength() || 1;
 };
 
-/** Camp: the situation on the left; on the right the trail line forks at Mara into the choices and rejoins at Continue down. Pick (click, 1-3, arrows), read the one-line outcome, Continue (Enter). */
+/** Camp: the situation on the left; on the right the trail line forks at Mara into the choices and rejoins at Continue down. Pick (click, 1-3, arrows), Continue (Enter). */
 export function CampScreen({ event, res, limit = LIMIT, legIndex, attempt, log, onPick, onContinue }: CampScreenProps) {
   const [picked, setPicked] = useState<string | null>(null);
   const [hover, setHover] = useState<number | null>(null);
@@ -134,7 +127,6 @@ export function CampScreen({ event, res, limit = LIMIT, legIndex, attempt, log, 
       <section className="j-cl" aria-labelledby="j-event-title">
         <p className="j-where">{camp ? `${camp} · ${where}` : where}</p>
         <h2 id="j-event-title">{title}</h2>
-        <p className="j-out" role="status" aria-live="polite">{choice?.reveal ? oneLine(choice.reveal) : ""}</p>
         <SupplyLine res={res} limit={limit} preview={choice ? applyEffect(res, choice.effect) : undefined} />
         <p className="j-key">{picked ? "Enter to continue down" : n === 1 ? "Press 1 to choose" : `Press 1–${n} to choose`}</p>
       </section>
