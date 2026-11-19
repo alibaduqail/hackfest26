@@ -103,7 +103,7 @@ export function Prepare({ cm, mission, onBegin, onBack }: { cm: CampaignMission;
     <div className="g-screen g-prep">
       <div className="g-prep-bar">
         <div>
-          <div className="g-kicker">Mission {cm.number} · prepare</div>
+          <div className="g-kicker">Mission {cm.number}</div>
           <h2>{cm.name}</h2>
         </div>
         <div className="g-meter" aria-live="polite">
@@ -146,13 +146,13 @@ export function Prepare({ cm, mission, onBegin, onBack }: { cm: CampaignMission;
         )}
         <div className="g-prep-tip">
           {hovered
-            ? `${names.get(hovered.from)} → ${names.get(hovered.to)} · section ${hovered.index + 1} · ${hovered.beacon !== false ? "beacon (click to remove)" : "dead zone (click to place)"}`
+            ? `${names.get(hovered.from)} to ${names.get(hovered.to)}, section ${hovered.index + 1}. ${hovered.beacon !== false ? "Beacon in place, click to remove." : "Dead zone, click to place a beacon."}`
             : cm.prepTip ?? "Click a tunnel to bolt in a beacon. Each direction is its own tunnel. News only hops between beacons."}
         </div>
         </div>
         <div className="g-sr" role="status">{focused && kf ? label(sectors.find((s) => s.id === kf)!) : ""}</div>
       </div>
-      <div id="g-prep-keys" className="g-prep-keys">Arrows to choose a tunnel · Enter to place</div>
+      <div id="g-prep-keys" className="g-prep-keys">Arrow keys choose a tunnel. Enter places or removes a beacon.</div>
     </div>
   );
 }

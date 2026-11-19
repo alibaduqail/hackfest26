@@ -11,6 +11,7 @@ const STRATA_URL = "/strata.html"; // the Strata city sim, home of Sector 07
 import { EchoBanner, EchoLog, Scoreboard, TowerBanner } from "./panels";
 import { Legend } from "./Legend";
 import { EndCard } from "./EndCard";
+import "./hollow.css";
 import "./echo.css";
 
 const SPEEDS = [1, 10, 60] as const;
@@ -18,27 +19,24 @@ const DISPATCH_POD = "MED-1"; // Nurse Mara Vale
 const DISPATCH_MIN_TICK = 31; // the reroute beat needs the pod to depart at or after the seal news (t30+)
 
 const css = `
-html,body,#root{margin:0;height:100%;background:var(--bg);color:var(--text);font:13px/1.45 var(--sans)}
+html,body,#root{margin:0;height:100%;background:var(--bg);color:var(--text);font:14px/1.45 var(--sans)}
 .echo-screen{position:relative;display:flex;flex-direction:column;height:100%}
 .echo-main{flex:1;display:grid;grid-template-columns:1fr 1fr 360px;gap:2px;background:var(--line);min-height:0}
 .echo-side{background:var(--bg);padding:12px;min-height:0;overflow:hidden}
 .echo-side .echo-panels{height:100%}
-.echo-bar{background:var(--panel);display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:8px 14px;border-top:1px solid var(--line)}
-.echo-bar button{background:var(--btn);color:var(--text);border:1px solid var(--line2);border-radius:5px;padding:6px 14px;font:inherit;cursor:pointer}.echo-bar button:hover:not(:disabled){border-color:var(--amber)}
-.echo-bar button[aria-pressed=true]{background:var(--amber);border-color:var(--amberHi);color:var(--ink);font-weight:600}
-.echo-bar button:disabled{opacity:.4;cursor:default}
-.echo-bar .echo-dispatch{border-color:var(--red);color:var(--redText)}
-.echo-bar .grow{flex:1}
-.echo-bar a{color:var(--amber);text-decoration:none}.echo-bar a:hover{text-decoration:underline}
-.echo-ticker{display:flex;gap:8px;align-items:center;margin-bottom:8px;padding:5px 10px;background:var(--redBg);border:1px solid var(--redLine);border-radius:4px;color:var(--red);font-size:12px;letter-spacing:.06em;animation:echo-tick .5s ease-out}
-.echo-ticker b{flex:none;background:var(--red);color:var(--redBg);padding:0 6px;font-size:10px;letter-spacing:.25em}
+.echo-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 14px}
+.echo-bar .grow{flex:1;color:var(--text2)}
+.echo-bar a{color:var(--text);font:500 18px var(--sign);letter-spacing:.02em;text-decoration:underline;text-decoration-color:var(--plateEdge);text-decoration-thickness:2px;text-underline-offset:6px}.echo-bar a:hover{color:#fff;text-decoration-color:var(--lamp)}
+.echo-bar .echo-time-readout{margin-left:12px;font:600 22px var(--sign);color:var(--lamp);font-variant-numeric:tabular-nums}
+.echo-ticker{display:flex;gap:8px;align-items:center;margin-bottom:8px;padding:5px 10px;background:var(--redBg);border:1px solid var(--redLine);border-radius:0;color:var(--redText);font-size:15px;animation:echo-tick .5s ease-out}
+.echo-ticker b{flex:none;background:var(--red);color:var(--redBg);padding:1px 8px 2px;font:700 15px var(--sign);letter-spacing:.06em}
 @keyframes echo-tick{from{opacity:0;transform:translateY(4px)}}
-.echo-hint{position:absolute;left:14px;bottom:104px;z-index:3;max-width:calc(100% - 28px);display:flex;flex-direction:column;gap:2px;text-align:left;background:var(--amberBg);color:var(--amberText);border:1px solid var(--amber);border-radius:6px;padding:10px 14px;font:inherit;font-size:16px;line-height:1.35;cursor:pointer;animation:echo-hint .35s ease-out;text-wrap:balance;hyphens:none}
-.echo-hint small{color:var(--amberDim);font-size:11px;letter-spacing:.08em}
+.echo-hint{position:absolute;left:14px;bottom:104px;z-index:3;max-width:calc(100% - 28px);display:flex;flex-direction:column;gap:2px;text-align:left;--cut:10px;--face-a:#2a2418;--face-b:#241f14;--rim:var(--lamp);color:var(--amberText);padding:10px 16px 10px 14px;font:inherit;font-size:17px;line-height:1.35;cursor:pointer;animation:echo-hint .35s ease-out;text-wrap:balance;hyphens:none}
+.echo-hint small{color:var(--amberDim);font-size:13px}
 @keyframes echo-hint{from{opacity:0;transform:translateY(6px)}}
 .echo-flash{position:absolute;inset:0;z-index:4;pointer-events:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(90,8,6,.38);box-shadow:inset 0 0 160px rgba(255,59,59,.55);animation:echo-flash 2s forwards}
-.echo-flash b{font-size:clamp(36px,7vw,84px);letter-spacing:.2em;color:var(--red);text-shadow:0 0 24px rgba(255,59,59,.6)}
-.echo-flash span{color:var(--redText);letter-spacing:.12em}
+.echo-flash b{font:800 clamp(56px,10vw,130px)/1 var(--sign);letter-spacing:.06em;color:var(--red);text-shadow:0 0 24px rgba(255,59,59,.6)}
+.echo-flash span{color:var(--redText);font:500 clamp(20px,2vw,28px) var(--sign);letter-spacing:.03em}
 @keyframes echo-flash{0%{opacity:0}8%{opacity:1}70%{opacity:1}100%{opacity:0;visibility:hidden}}
 @media (prefers-reduced-motion:reduce){.echo-flash{animation-duration:2.5s}.echo-ticker,.echo-hint{animation:none}}
 @media (max-width:1100px){.echo-main{grid-template-columns:1fr 1fr;grid-template-rows:minmax(0,3fr) minmax(0,2fr)}.echo-side{grid-column:1 / -1}}
@@ -303,7 +301,7 @@ export function MissionScreen({ mission: missionProp, allowDispatch = true, spee
       <div className="echo-main">
         <MapPane obsRef={towerRef} fxRef={fxRef} variant="tower" kicker="Centralized" title="Tower" sub="One tower clears every flight. Lose it and the network is blind." down={!tower.towerUp}>
           <div className="echo-overlay">
-            {story && (() => { const [beat, line] = tickerLine(story, tower, world.current.mission); return <div className="echo-ticker" key={beat} role="status"><b>BROADCAST</b>{line}</div>; })()}
+            {story && (() => { const [beat, line] = tickerLine(story, tower, world.current.mission); return <div className="echo-ticker" key={beat} role="status"><b>Broadcast</b>{line}</div>; })()}
             <TowerBanner obs={tower} />
           </div>
         </MapPane>
@@ -320,7 +318,7 @@ export function MissionScreen({ mission: missionProp, allowDispatch = true, spee
       </div>
       <Legend />
       <div className="echo-bar">
-        <button onClick={() => (echo.over ? reset() : setRunning((r) => !r))}>{echo.over ? "Replay" : running ? "Pause" : "Run"}</button>
+        <button className="primary" onClick={() => (echo.over ? reset() : setRunning((r) => !r))}>{echo.over ? "Replay" : running ? "Pause" : "Run"}</button>
         {speeds.map((s) => (
           <button key={s} aria-pressed={speed === s} onClick={() => setSpeed(s)}>{s}×</button>
         ))}
@@ -331,12 +329,12 @@ export function MissionScreen({ mission: missionProp, allowDispatch = true, spee
           </button>
         )}
         <span className="grow">{note}</span>
-        <a className="echo-strata" href={STRATA_URL}>Sector 07 city sim →</a>
-        <span>t+{echo.tick} / {echo.endTick}</span>
+        <a className="echo-strata" href={STRATA_URL}>Sector 07 city sim</a>
+        <span className="echo-time-readout">t+{echo.tick} / {echo.endTick}</span>
         {onExit && <button onClick={onExit}>Abort mission</button>}
       </div>
       {story && fxRef.current.flashAt > 0 && performance.now() - fxRef.current.flashAt < FLASH_MS && (
-        <div className="echo-flash" key={fxRef.current.flashAt} aria-hidden><b>TOWER OFFLINE</b><span>the Directorate's tower has gone dark</span></div>
+        <div className="echo-flash" key={fxRef.current.flashAt} aria-hidden><b>Tower offline</b><span>the Directorate's tower has gone dark</span></div>
       )}
       {echo.over && !onEnd && <EndCard tower={tower} echo={echo} normal={world.current.normal} onReplay={reset} />}
     </div>

@@ -16,7 +16,6 @@ export function MissionSelect({ progress, onPick, onBack, onStory }: {
       <div className="g-page g-select">
         <div className="g-head">
           <div>
-            <div className="g-kicker">Echo · campaign</div>
             <h2>Missions</h2>
           </div>
           <div className="g-row">
@@ -30,7 +29,7 @@ export function MissionSelect({ progress, onPick, onBack, onStory }: {
             const open = isUnlocked(ids, i, progress);
             const ready = !!cm.build;
             const stars = progress[cm.id] ?? 0;
-            const state = !ready ? "Coming soon" : !open ? `Locked · earn a star in mission ${i}` : stars ? "Replay" : "New";
+            const state = !ready ? "Coming soon" : !open ? `Needs a star in mission ${i}` : stars ? "Replay" : "New";
             const tone = !ready || !open ? "locked" : stars ? "done" : "new";
             return (
               <button key={cm.id} className={`g-card ${tone}`} disabled={!open || !ready} autoFocus={i === 0} onClick={() => onPick(cm.id)}>

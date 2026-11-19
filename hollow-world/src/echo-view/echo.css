@@ -1,11 +1,12 @@
+@import "./hollow.css";
 .echo-panels { display: flex; flex-direction: column; gap: 14px; height: 100%; min-height: 0; color: var(--text); font: 16px/1.4 var(--sans); }
-.echo-card { background: var(--panel); border: 1px solid var(--line2); border-radius: 8px; padding: 14px 18px; box-shadow: 0 5px 22px #050d1260; }
-.echo-title { margin: 0 0 10px; font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.echo-card { --cut: 12px; --face-a: #182a31; --face-b: #142228; padding: 14px 20px 14px 18px; }
+.echo-title { margin: 0 0 8px; font: 600 21px/1.1 var(--sign); letter-spacing: .02em; color: var(--text2); }
 
-.echo-tower-online { font-size: 28px; font-weight: 700; color: var(--muted); }
-.echo-tower-down { border-color: var(--redLine); }
-.echo-claimed { font-size: 34px; font-weight: 800; color: var(--muted); text-decoration: line-through; text-decoration-color: var(--red); text-decoration-thickness: 3px; }
-.echo-real { margin-top: 6px; font-size: 34px; font-weight: 800; color: var(--red); }
+.echo-tower-online { font: 700 30px/1.1 var(--sign); color: var(--muted); }
+.echo-tower-down { --rim: var(--redLine); --face-a: #2a1816; --face-b: #231413; }
+.echo-claimed { font: 700 38px/1.05 var(--sign);  color: var(--muted); text-decoration: line-through; text-decoration-color: var(--red); text-decoration-thickness: 3px; }
+.echo-real { margin-top: 6px; font: 700 38px/1.05 var(--sign); color: var(--red); }
 
 .echo-logcard { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .echo-log { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; min-height: 0; font-size: 15px; }
@@ -16,12 +17,12 @@
 .log-seal { border-left-color: var(--red); color: var(--redText); font-weight: 600; }
 .log-seal-heard { border-left-color: var(--red); color: var(--redText); }
 .log-credential-reject { border-left-color: var(--ghost); color: var(--ghostText); }
-.log-tower-down { border-left-color: var(--red); background: var(--redBg); color: var(--red); font-weight: 700; }
+.log-tower-down { border-left-color: var(--red); background: var(--redBg); color: var(--redText); font-weight: 700; }
 
 .echo-score { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 18px; }
 .echo-score .echo-title { grid-column: 1 / -1; margin: 0; }
-.echo-stat b { display: block; font-size: 40px; line-height: 1.1; color: var(--head); font-variant-numeric: tabular-nums; }
-.echo-stat span { font-size: 14px; color: var(--muted); }
+.echo-stat b { display: block; font: 700 46px/1 var(--sign); color: var(--head); font-variant-numeric: tabular-nums; }
+.echo-stat span { font-size: 15px; color: var(--text2); }
 .echo-medical b { color: var(--red); }
 
 /* ---- Tower Down split screen (#113). Spacing scale 4/8/12/16/24; one accent per side: red for the tower, amber for Echo. ---- */
@@ -32,41 +33,42 @@
 .echo-map { position: relative; flex: 1; min-height: 0; }
 .echo-map canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 
-.echo-cap { position: relative; z-index: 2; flex: none; display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 12px; align-items: baseline; padding: 12px 16px; background: var(--panel); border-bottom: 1px solid var(--line2); border-top: 3px solid var(--line2); pointer-events: none; }
+.echo-cap { position: relative; z-index: 2; flex: none; display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 12px; align-items: center; padding: 12px 16px 12px; border-top: 3px solid var(--plateEdge); pointer-events: none; }
 .echo-pane-tower .echo-cap { border-top-color: var(--redLine); }
 .echo-pane-echo .echo-cap { border-top-color: var(--amber); }
-.echo-cap b { font-size: 22px; line-height: 1.1; letter-spacing: .02em; color: var(--head); display: inline; }
-.echo-cap > span:last-child { grid-column: 1 / -1; margin-top: 4px; font-size: 14px; color: var(--text2); }
-.echo-kicker { grid-column: 1; grid-row: 1; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; padding: 2px 8px; border-radius: 3px; border: 1px solid var(--line2); color: var(--muted); }
-.echo-pane-tower .echo-kicker { color: var(--redText); border-color: var(--redLine); background: var(--redBg); }
-.echo-pane-echo .echo-kicker { color: var(--amberText); border-color: var(--amberDim); background: var(--amberBg); }
+.echo-cap b { font: 800 34px/1 var(--sign); letter-spacing: .02em; color: var(--head); display: inline; }
+.echo-cap > span:last-child { grid-column: 1 / -1; margin-top: 4px; font-size: 15px; color: var(--text2); }
+.echo-kicker { grid-column: 1; grid-row: 1; font: 600 17px/1 var(--sign); letter-spacing: .02em; padding: 4px 12px 5px; color: var(--ink); background: var(--muted); clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
+.echo-pane-tower .echo-kicker { color: #1c0b09; background: var(--red); }
+.echo-pane-echo .echo-kicker { color: #1a1207; background: var(--lamp); }
 .echo-cap b { grid-column: 2; grid-row: 1; }
 
 .echo-overlay { position: absolute; left: 16px; bottom: 16px; z-index: 2; max-width: calc(100% - 32px); }
-.echo-overlay .echo-card { padding: 8px 12px; background: #15242cf2; }
+.echo-overlay .echo-card { --cut: 10px; --face-a: #101b20f2; --face-b: #101b20f2; padding: 8px 16px 8px 12px; }
+.echo-overlay .echo-tower-down { --face-a: #241210f2; --face-b: #241210f2; }
 .echo-overlay .echo-title { margin: 0 0 4px; }
 .echo-overlay .echo-tower-lie { display: flex; flex-wrap: wrap; gap: 0 16px; align-items: baseline; }
-.echo-overlay .echo-claimed, .echo-overlay .echo-real { font-size: 20px; margin: 0; }
-.echo-overlay .echo-tower-online { font-size: 18px; }
-.echo-overlay .echo-sub { font-size: 13px; color: var(--text2); flex-basis: 100%; }
+.echo-overlay .echo-claimed, .echo-overlay .echo-real { font-size: 28px; margin: 0; }
+.echo-overlay .echo-tower-online { font-size: 24px; }
+.echo-overlay .echo-sub { font-size: 15px; color: var(--text2); flex-basis: 100%; }
 .echo-real.echo-good { color: var(--amberText); }
-.echo-echo { border-color: var(--amberDim); }
-.echo-dot { display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: var(--good); vertical-align: 1px; }
+.echo-echo { --rim: var(--lampDeep); }
+.echo-dot { display: inline-block; width: 9px; height: 9px; margin-right: 8px; background: var(--good); vertical-align: 1px; }
 .echo-tower-down .echo-dot { background: var(--red); box-shadow: 0 0 8px var(--red); }
 .echo-echo .echo-dot { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
 
-.echo-legend { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; padding: 8px 16px; background: var(--panel); border-top: 1px solid var(--line2); font-size: 13px; color: var(--text2); }
-.echo-lg-head { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.echo-legend { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; padding: 8px 16px; font-size: 14px; color: var(--text2); }
+.echo-lg-head { font: 600 18px/1 var(--sign); letter-spacing: .02em; color: var(--text); }
 .echo-lg-group { display: flex; align-items: center; gap: 4px 12px; padding-left: 16px; border-left: 1px solid var(--line); }
-.echo-lg-name { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); }
+.echo-lg-name { font: 500 17px/1 var(--sign); letter-spacing: .02em; color: var(--muted); }
 .echo-lg-item { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .echo-lg-item svg { flex: none; }
-.echo-lg-s07 { color: var(--amber); font-weight: 600; font-size: 12px; }
+.echo-lg-s07 { color: var(--amber); font: 600 16px var(--sign); }
 @media (max-width: 760px) { .echo-legend { display: none; } }
 
 .echo-logtitle { display: flex; justify-content: space-between; align-items: baseline; }
-.echo-logtitle label { font: 12px var(--sans); letter-spacing: 0; text-transform: none; color: var(--text2); cursor: pointer; }
-.echo-empty { margin: 0; color: var(--dim); font-size: 14px; }
+.echo-logtitle label { font: 15px var(--sans); color: var(--text2); cursor: pointer; display: inline-flex; align-items: center; }
+.echo-empty { margin: 0; color: var(--muted); font-size: 15px; }
 .echo-line { align-items: baseline; padding: 4px 8px; line-height: 1.35; }
 .echo-stat b { font-size: 34px; white-space: nowrap; }
 .echo-stat span { display: block; line-height: 1.3; }

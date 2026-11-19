@@ -29,15 +29,25 @@ export const THEME = {
   blueText: "#a6d2ea",
   ghost: "#b565d6",
   ghostText: "#d49be8",
+  // Hollow control layer (additive, hollow.css): painted steel plates, a sodium lamp, bare rock.
+  rock: "#0a1115", // deepest: disabled plates, inset wells
+  plate: "#243840", // plate face, low edge
+  plateHi: "#31464e", // plate face, lit edge
+  plateEdge: "#506a72", // plate rim
+  lamp: "#f2b65a", // lit indicator: hover edge, latched switch, focus glow
+  lampDeep: "#c99654", // primary plate, shaded end
 } as const;
 
 export const FONT_SANS = `"Aptos", "Segoe UI", ui-sans-serif, system-ui, sans-serif`;
+/** Signage face: DIN-like wayfinding condensed, what a lift-shaft sign would use. Falls back to the system's narrow sans offline. */
+export const FONT_SIGN = `"Barlow Condensed", "Arial Narrow", "Roboto Condensed", "Helvetica Neue", ui-sans-serif, system-ui, sans-serif`;
+export const FONT_BODY = `"Barlow", "Aptos", "Segoe UI", ui-sans-serif, system-ui, sans-serif`;
 export const FONT_MONO = `ui-monospace, SFMono-Regular, Menlo, monospace`;
 
 /** Puts the tokens on :root as CSS variables. Call once, before the first render. */
 export function installTheme() {
   const vars = Object.entries(THEME).map(([k, v]) => `--${k}:${v}`).join(";");
   const el = document.createElement("style");
-  el.textContent = `:root{${vars};--sans:${FONT_SANS};--mono:${FONT_MONO};color-scheme:dark}`;
+  el.textContent = `:root{${vars};--sans:${FONT_SANS};--mono:${FONT_MONO};--sign:${FONT_SIGN};--body:${FONT_BODY};color-scheme:dark}`;
   document.head.prepend(el);
 }

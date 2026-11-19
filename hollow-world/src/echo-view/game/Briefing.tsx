@@ -41,14 +41,14 @@ export function Briefing({ cm, best, hasBudget, onNext, onBack }: { cm: Campaign
       <div className="g-page g-brief">
         <div className="g-head">
           <div>
-            <div className="g-kicker">Mission {cm.number} · briefing</div>
+            <div className="g-kicker">Mission {cm.number}</div>
             <h2>{cm.name}</h2>
           </div>
-          {!tw.done && <button className="g-skip" onClick={tw.skip}>skip ▸</button>}
+          {!tw.done && <button className="g-skip" onClick={tw.skip}>Skip</button>}
         </div>
         <Typed tw={tw} />
         <div className="g-broadcast" style={{ opacity: tw.done ? 1 : 0 }} aria-hidden={!tw.done}>
-          <b>BROADCAST</b>
+          <b>Broadcast</b>
           <div>THE DIRECTORATE: {cm.broadcast}</div>
         </div>
         <div className="g-kicker g-objs-head">Objectives</div>

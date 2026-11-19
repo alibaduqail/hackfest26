@@ -1,0 +1,92 @@
+/* The Hollow control layer: painted-steel plates, lamps, rails. Plan: qa/echo/HOLLOW-THEME.md.
+   Adopt on any screen with the .hw-* classes (.hw-btn, .hw-btn.primary, .hw-btn.danger, [aria-pressed=true] latch,
+   .hw-plate, .hw-bar, .hw-switch). The game and split screens also map their existing classes here (.g-btn, .echo-bar button, ...).
+   Tokens come from theme.ts (rock, plate, plateHi, plateEdge, lamp, lampDeep, --sign, --body). */
+
+/* signage type, scoped so the journey screens keep their own face */
+.g-screen, .echo-screen, .hw { --sans: var(--body); }
+
+/* ---- plate construction: rim (background) + face (::before) + cut corners (clip-path) ---- */
+.hw-plate, .hw-btn, .g-btn, .echo-bar button, .g-card, .g-brief, .echo-card, .g-meter, .g-prep-info, .g-screen .echo-end-grid, .echo-hint {
+  --cut: 8px; --bw: 1.5px;
+  --rim: var(--plateEdge);
+  --face-a: var(--plate); --face-b: var(--plate);
+  position: relative; isolation: isolate; border: 0; border-radius: 0;
+  background: var(--rim);
+  clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+}
+.hw-plate::before, .hw-btn::before, .g-btn::before, .echo-bar button::before, .g-card::before, .g-brief::before, .echo-card::before, .g-meter::before, .g-prep-info::before, .g-screen .echo-end-grid::before, .echo-hint::before {
+  content: ""; position: absolute; inset: var(--bw); z-index: -1; pointer-events: none;
+  background: linear-gradient(var(--face-a), var(--face-b));
+  clip-path: polygon(calc(var(--cut) - .6px) 0, 100% 0, 100% calc(100% - var(--cut) + .6px), calc(100% - var(--cut) + .6px) 100%, 0 100%, 0 calc(var(--cut) - .6px));
+}
+
+/* ---- buttons ---- */
+.hw-btn, .g-btn, .echo-bar button {
+  --cut: 7px;
+  --face-a: var(--plateHi); --face-b: var(--plate);
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; padding: 0 22px 2px;
+  color: var(--head); font: 600 18px/1 var(--sign); letter-spacing: .02em; text-decoration: none; white-space: nowrap; cursor: pointer;
+  transition: background-color .12s, color .12s, transform .08s;
+}
+.hw-btn::before, .g-btn::before, .echo-bar button::before { transition: background .12s; box-shadow: inset 0 1px 0 #ffffff22; }
+.hw-btn.lg, .g-btn.lg { --cut: 9px; min-height: 50px; padding: 0 34px 2px; font-size: 22px; }
+.echo-bar button { min-height: 36px; padding: 0 18px 2px; font-size: 17px; }
+
+.hw-btn:hover:not(:disabled), .g-btn:hover:not(:disabled), .echo-bar button:hover:not(:disabled) { --rim: var(--lamp); --face-a: #3b535c; color: #fff; }
+.hw-btn:active:not(:disabled), .g-btn:active:not(:disabled), .echo-bar button:active:not(:disabled) { transform: translateY(1px); --face-a: var(--plate); --face-b: #1c2d34; }
+.hw-btn:active:not(:disabled)::before, .g-btn:active:not(:disabled)::before, .echo-bar button:active:not(:disabled)::before { box-shadow: inset 0 3px 6px #0009; }
+
+/* primary: sodium enamel, the one lit plate on a screen */
+.hw-btn.primary, .g-btn.primary, .echo-bar button.primary { --rim: #f6dba6; --face-a: var(--lamp); --face-b: var(--lampDeep); color: #1a1207; font-weight: 700; }
+.hw-btn.primary::before, .g-btn.primary::before, .echo-bar button.primary::before { box-shadow: inset 0 1px 0 #fff6; }
+.hw-btn.primary:hover:not(:disabled), .g-btn.primary:hover:not(:disabled), .echo-bar button.primary:hover:not(:disabled) { --rim: #fff1cf; --face-a: #ffca78; --face-b: #d9a55c; color: #120c04; }
+.hw-btn.primary:active:not(:disabled), .g-btn.primary:active:not(:disabled), .echo-bar button.primary:active:not(:disabled) { --face-a: var(--lampDeep); --face-b: #b98847; }
+
+/* danger: oxide red */
+.hw-btn.danger, .echo-bar .echo-dispatch { --rim: var(--redLine); --face-a: #4a2220; --face-b: var(--redBg); color: var(--redText); }
+.hw-btn.danger:hover:not(:disabled), .echo-bar .echo-dispatch:hover:not(:disabled) { --rim: var(--red); --face-a: #8c3329; --face-b: #5b2420; color: #fff; }
+
+/* latched switch: recessed dark face, a lamp strip lit along the top inside edge */
+.echo-bar button[aria-pressed=true], .hw-btn[aria-pressed=true], .g-sound[aria-pressed=true] { --rim: var(--lampDeep); --face-a: #121e24; --face-b: #1a2a31; color: var(--lamp); }
+.echo-bar button[aria-pressed=true]::before, .hw-btn[aria-pressed=true]::before { box-shadow: inset 0 3px 5px #000a; }
+.echo-bar button[aria-pressed=true]::after, .hw-btn[aria-pressed=true]::after, .g-sound[aria-pressed=true]::after {
+  content: ""; position: absolute; left: 10px; right: 10px; top: 3px; height: 2px; border-radius: 1px; background: var(--lamp); box-shadow: 0 0 6px 1px #f2b65a99;
+}
+.echo-bar button[aria-pressed=true]:hover:not(:disabled), .hw-btn[aria-pressed=true]:hover:not(:disabled) { --rim: var(--lamp); --face-a: #16252c; color: #ffd596; }
+
+/* disabled: out of service, bare rock under a faint hatch */
+.hw-btn:disabled, .g-btn:disabled, .echo-bar button:disabled, .g-card:disabled { cursor: not-allowed; --rim: #2a3a40; --face-a: var(--rock); --face-b: var(--rock); color: #7d9390; }
+.hw-btn:disabled::before, .g-btn:disabled::before, .echo-bar button:disabled::before, .g-card:disabled::before {
+  background: repeating-linear-gradient(135deg, #0000 0 5px, #ffffff0a 5px 6px), var(--rock); box-shadow: none;
+}
+
+/* focus: rim goes cream and 3px thick inside the plate (an outline would be cropped by the cut corners) */
+.hw-btn:focus-visible, .g-btn:focus-visible, .echo-bar button:focus-visible, .g-card:focus-visible, .g-sound:focus-visible, .echo-hint:focus-visible { outline: none; --rim: #fff4d6; --bw: 3px; }
+.g-skip:focus-visible, .g-link:focus-visible, .echo-bar a:focus-visible, .echo-switch:focus-visible { outline: 2px solid #fff4d6; outline-offset: 3px; }
+
+/* ---- bars: one steel rail ---- */
+.hw-bar, .g-prep-bar, .echo-bar, .echo-legend, .echo-cap, .g-prep-keys {
+  background: linear-gradient(#1a2b32, #131f25); border: 0; box-shadow: inset 0 1px 0 #ffffff14, inset 0 -2px 0 #070d10;
+}
+.echo-legend, .g-prep-keys { background: #111c21; box-shadow: inset 0 1px 0 #ffffff0d; }
+
+/* ---- sound switch: a small latch plate with a lamp ---- */
+.g-sound { --cut: 6px; width: 46px; height: 38px; border-radius: 0; color: var(--text2); background: var(--rim); --face-a: var(--plateHi); --face-b: var(--plate); position: fixed; isolation: isolate; clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut)); }
+.g-sound::before { content: ""; position: absolute; inset: var(--bw, 1.5px); z-index: -1; background: linear-gradient(var(--face-a), var(--face-b)); clip-path: polygon(calc(var(--cut) - .6px) 0, 100% 0, 100% calc(100% - var(--cut) + .6px), calc(100% - var(--cut) + .6px) 100%, 0 100%, 0 calc(var(--cut) - .6px)); }
+.g-sound { --rim: var(--plateEdge); --bw: 1.5px; }
+.g-sound:hover { --rim: var(--lamp); }
+.g-sound[aria-pressed=true] { --face-a: #121e24; --face-b: #1a2a31; color: var(--lamp); border: 0; }
+.g-sound:focus-visible { --rim: #fff4d6; --bw: 3px; }
+
+/* ---- latch switch (checkbox) ---- */
+.echo-switch { appearance: none; -webkit-appearance: none; flex: none; position: relative; width: 34px; height: 18px; margin: 0 8px -4px 0; background: var(--rock); border: 1px solid var(--plateEdge); border-radius: 0; cursor: pointer; vertical-align: middle; clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px); }
+.echo-switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; background: #8da2a0; transition: left .12s, background .12s; }
+.echo-switch:checked { border-color: var(--lampDeep); }
+.echo-switch:checked::after { left: 17px; background: var(--lamp); box-shadow: 0 0 6px #f2b65a; }
+
+/* ---- hazard stripe: used once, on the title ---- */
+.hw-hazard { height: 8px; background: repeating-linear-gradient(-45deg, var(--lamp) 0 8px, #17120a 8px 16px); opacity: .9; }
+
+@media (prefers-reduced-motion: reduce) { .hw-btn, .g-btn, .echo-bar button, .echo-switch::after { transition: none; } .hw-btn:active, .g-btn:active, .echo-bar button:active { transform: none; } }
+@media (forced-colors: active) { .hw-btn, .g-btn, .echo-bar button { border: 1px solid ButtonText; clip-path: none; } }

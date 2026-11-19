@@ -8,7 +8,7 @@ export function TowerBanner({ obs }: { obs: Observation }) {
   const s = obs.score;
   return (
     <section className={`echo-card echo-tower ${obs.towerUp ? "echo-tower-up" : "echo-tower-down"}`}>
-      <h3 className="echo-title"><i className="echo-dot" />Directorate tower · {obs.towerUp ? "online" : "offline"}</h3>
+      <h3 className="echo-title"><i className="echo-dot" />Directorate tower, {obs.towerUp ? "online" : "offline"}</h3>
       {obs.towerUp ? (
         <div className="echo-tower-online">clearing every flight</div>
       ) : (
@@ -26,7 +26,7 @@ export function EchoBanner({ obs }: { obs: Observation }) {
   const beacons = obs.sectors.filter((x) => x.beacon !== false).length;
   return (
     <section className="echo-card echo-echo">
-      <h3 className="echo-title"><i className="echo-dot" />Echo network · {obs.towerUp ? "idle" : "carrying the load"}</h3>
+      <h3 className="echo-title"><i className="echo-dot" />Echo network, {obs.towerUp ? "idle" : "carrying the load"}</h3>
       <div className="echo-tower-lie">
         <div className="echo-real echo-good">{obs.score.realFlights} flights moving</div>
         <div className="echo-sub">{beacons} beacons relaying, no tower needed</div>
@@ -52,7 +52,7 @@ export function EchoLog({ obs, log }: { obs: Observation; log?: LogEvent[] }) {
       <h3 className="echo-title echo-logtitle">
         Echo log
         <label>
-          <input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} /> all events
+          <input type="checkbox" className="echo-switch" checked={all} onChange={(e) => setAll(e.target.checked)} /> all events
         </label>
       </h3>
       {events.length === 0 && <p className="echo-empty">Nothing yet. Press Run and key moments appear here: tower loss, seals, yields, reroutes.</p>}
@@ -84,7 +84,7 @@ export function Scoreboard({ obs, normal }: { obs: Observation; normal?: Observa
       </div>
       <div className="echo-stat">
         <b>{s.passengerDelayMin} min</b>
-        <span>passenger delay · {ratio !== null ? `${ratio.toFixed(1)}x` : "—"} a normal day</span>
+        <span>passenger delay, {ratio !== null ? `${ratio.toFixed(1)}x` : "—"} a normal day</span>
       </div>
       <div className="echo-stat">
         <b>{Math.round(s.capacityPct)}%</b>

@@ -32,14 +32,14 @@ export function Debrief({ cm, result, onRetry, onNext, nextLabel = "Next mission
   return (
     <div className="g-screen">
       <EndCard
-        tower={tower} echo={echo} normal={normal} title={cm.name.toUpperCase()}
+        tower={tower} echo={echo} normal={normal} title={cm.name}
         top={
           <div className="g-debrief-top">
             <StarReveal n={stars} />
             {cm.verdicts?.[stars] && <div className="verdict">{cm.verdicts[stars]}</div>}
             <div className={cm.verdicts?.[stars] ? "g-muted" : "verdict"}>{verdict(echo, normal)}</div>
             <div className="g-debrief-objs">
-              {cm.objectives.map((o, i) => <span key={i} className={met[i] ? "met" : ""}>{met[i] ? "✓" : "·"} {o.label}</span>)}
+              {cm.objectives.map((o, i) => <span key={i} className={met[i] ? "met" : ""}>{met[i] ? "Met: " : ""}{o.label}</span>)}
             </div>
           </div>
         }

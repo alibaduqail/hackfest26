@@ -5,19 +5,18 @@ import type { Observation } from "../echo/types";
 
 const css = `
 .echo-end{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:24px;background:var(--bg);color:var(--text);font:15px var(--sans)}
-.echo-end h2{margin:0;font-size:22px;letter-spacing:.06em;font-weight:600}
-.echo-end-grid{background:var(--panel);border:1px solid var(--line2);border-radius:8px;box-shadow:0 5px 22px #050d1260;padding:22px 34px;display:grid;grid-template-columns:minmax(0,auto) repeat(2,minmax(0,300px));gap:14px 40px;align-items:baseline}
-.echo-end-grid .h{color:var(--muted);font-size:13px;letter-spacing:.08em;text-transform:uppercase}
+.echo-end h2{margin:0;font:700 34px/1 var(--sign);letter-spacing:.02em}
+.echo-end-grid{--cut:18px;--face-a:#182a31;--face-b:#142228;padding:22px 34px;display:grid;grid-template-columns:minmax(0,auto) repeat(2,minmax(0,300px));gap:14px 40px;align-items:baseline}
+.echo-end-grid .h{color:var(--text2);font:600 22px/1 var(--sign);letter-spacing:.02em}
 .echo-end-grid .l{color:var(--text2)}
-.echo-end-grid .v{font-size:44px;line-height:1.1;font-weight:600}
-.echo-end-grid .v.sm{font-size:24px;white-space:nowrap}
+.echo-end-grid .v{font:700 50px/1.05 var(--sign)}
+.echo-end-grid .v.sm{font-size:30px;white-space:nowrap}
 .echo-end-grid .bad{color:var(--red)}
 .echo-end-grid .good{color:var(--good)}
-.echo-end-note{max-width:760px;text-align:center;color:var(--muted);line-height:1.5}
-.echo-end button{background:var(--btn);color:var(--text);border:1px solid var(--line2);border-radius:4px;padding:6px 16px;font:inherit;cursor:pointer}
+.echo-end-note{max-width:760px;text-align:center;color:var(--text2);line-height:1.5}
 `;
 
-export function EndCard({ tower, echo, normal, onReplay, title = "TOWER DOWN", top, children }: {
+export function EndCard({ tower, echo, normal, onReplay, title = "Tower Down", top, children }: {
   tower: Observation; echo: Observation; normal: Observation; onReplay?: () => void;
   title?: string; top?: ReactNode; children?: ReactNode; // the game's debrief adds stars (top) and its buttons (children)
 }) {
@@ -33,7 +32,7 @@ export function EndCard({ tower, echo, normal, onReplay, title = "TOWER DOWN", t
   return (
     <div className="echo-end">
       <style>{css}</style>
-      <h2>{title} · t+{echo.endTick}</h2>
+      <h2>{title}, t+{echo.endTick}</h2>
       {top}
       <div className="echo-end-grid">
         <div />
@@ -48,7 +47,7 @@ export function EndCard({ tower, echo, normal, onReplay, title = "TOWER DOWN", t
       <div className="echo-end-note">
         Echo costs time: passengers wait {n.passengerDelayMin > 0 ? `${(e.passengerDelayMin / n.passengerDelayMin).toFixed(1)}× as long as` : "longer than"} on a normal day and the network runs at {e.capacityPct}% of normal. Echo is a fallback protocol, not a replacement for the tower. Nurse credentials are a simulated signature.
       </div>
-      {onReplay && <button onClick={onReplay}>Replay</button>}
+      {onReplay && <button className="hw-btn lg primary" onClick={onReplay}>Replay</button>}
       {children}
     </div>
   );
