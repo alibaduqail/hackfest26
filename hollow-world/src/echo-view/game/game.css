@@ -25,10 +25,17 @@ html, body, #root { margin: 0; height: 100%; background: var(--bg); color: var(-
 .g-link:hover { color: var(--amberText); border-bottom-color: var(--amberDim); }
 
 
+/* the Strata scene behind the story screens: dimmed and softened so panels and text stay readable */
+.g-backdrop { position: fixed; inset: 0; z-index: 0; overflow: hidden; background: var(--stage); pointer-events: none; }
+.g-backdrop canvas { width: 100%; height: 100%; display: block; filter: blur(1.5px) brightness(.58) saturate(.9); transform: scale(1.03); }
+.g-backdrop.deep canvas { filter: blur(2.5px) brightness(.46) saturate(.8); }
+.g-backdrop::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 45%, rgba(13,22,28,.1) 0, rgba(13,22,28,.6) 100%); }
+
 /* title */
-.g-title { background: var(--stage); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; text-align: center; padding: 24px 16px; }
+.g-title::before { content: ""; position: absolute; inset: 0; z-index: 1; background: radial-gradient(ellipse 50% 46% at center, rgba(10,16,19,.95) 0, rgba(10,16,19,.82) 55%, rgba(10,16,19,.3) 100%); pointer-events: none; }
+.g-title { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; text-align: center; padding: 24px 16px; }
 .g-title > :not(canvas) { position: relative; z-index: 2; }
-.g-title h1 { letter-spacing: .07em; margin: 8px -.07em 0 0; }
+.g-title h1 { font-size: clamp(72px, 12vw, 180px); line-height: .95; letter-spacing: .07em; margin: 8px -.07em 0 0; }
 .g-title .g-title-main { margin-top: clamp(32px, 6vh, 56px); justify-content: center; }
 .g-title .g-title-more { margin-top: 12px; justify-content: center; }
 
