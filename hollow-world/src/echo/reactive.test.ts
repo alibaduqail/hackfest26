@@ -161,6 +161,7 @@ test("each candidate: its stored run is 3 stars within budget and reacts to the 
     assert.equal(descentLiveStars(o.pods, attemptOf(i)), 3);
     assert.ok(c.solution.length <= m.beaconBudget!);
     assert.ok(c.solution.some((x) => (x as { atTick: number }).atTick >= c.at - DEFAULT_REVEAL_LEAD), `${c.id}: a placement at or after the telegraph (t${c.at - DEFAULT_REVEAL_LEAD})`);
+    assert.ok(c.solution.filter((x) => (x as { atTick: number }).atTick >= c.at - DEFAULT_REVEAL_LEAD).length >= (c.id === "main0" ? 2 : 1), `${c.id}: reacts after the telegraph`);
   });
 });
 

@@ -173,8 +173,8 @@ export const DESCENT_LIVE_CANDIDATES: LiveCandidate[] = [
       { type: "placeBeacon", sectorId: "link0", atTick: 16 },
       { type: "placeBeacon", sectorId: "link1", atTick: 20 },
       { type: "placeBeacon", sectorId: "link2", atTick: 24 },
-      { type: "placeBeacon", sectorId: "trunk0", atTick: 28 },
-      { type: "placeBeacon", sectorId: "trunk1", atTick: 33 }, // the telegraph appears at t30
+      { type: "placeBeacon", sectorId: "trunk0", atTick: 30 }, // the telegraph appears at t30
+      { type: "placeBeacon", sectorId: "trunk1", atTick: 33 },
     ],
   },
 ];
