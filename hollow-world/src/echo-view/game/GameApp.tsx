@@ -14,7 +14,7 @@ import { Debrief, type RunResult } from "./Debrief";
 import { MissionSelect } from "./MissionSelect";
 import { Prepare } from "./Prepare";
 import { hasSeen, isUnlocked, loadProgress, markSeen, saveStars, type Progress } from "./progress";
-import { SoundToggle } from "./SoundToggle";
+import { SettingsGear } from "./SettingsGear";
 import { Title } from "./Title";
 import { JourneyApp } from "../journey/JourneyApp";
 import "./game.css";
@@ -150,7 +150,7 @@ export function GameApp() {
       />
     );
   }
-  return <>{withBackdrop(st.screen) && <Backdrop deep={st.screen === "prepare"} />}{screenFor()}<SoundToggle /></>;
+  return <>{withBackdrop(st.screen) && <Backdrop deep={st.screen === "prepare"} />}{screenFor()}<SettingsGear /></>;
 
   function screenFor() {
   const { cm } = st;

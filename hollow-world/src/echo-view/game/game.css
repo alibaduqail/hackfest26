@@ -143,7 +143,19 @@ html, body, #root { margin: 0; height: 100%; background: var(--bg); color: var(-
 @media (max-width: 640px) { .g-page { padding: 24px 16px; } .g-objs li { grid-template-columns: 56px 1fr; } }
 
 /* sound toggle */
-.g-sound { position: fixed; right: 10px; bottom: 6px; z-index: 30; }
+/* settings gear: fixed top-right on every game screen; the panel hangs under it */
+.g-gear { position: fixed; top: 10px; right: 12px; z-index: 30; font-family: var(--label, var(--mono)); }
+.g-gear-btn { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 1px solid transparent; border-radius: 50%; background: rgba(13, 18, 22, .55); color: var(--text2); cursor: pointer; transition: color .15s, border-color .15s, background-color .15s; }
+.g-gear-btn:hover, .g-gear-btn[aria-expanded="true"] { color: var(--amberText); border-color: var(--line2); }
+.g-gear-btn:focus-visible, .g-gear-switch:focus-visible { outline: 2px solid var(--amberHi); outline-offset: 2px; }
+.g-gear-panel { position: absolute; top: 44px; right: 0; display: flex; align-items: center; justify-content: space-between; gap: 22px; min-width: 190px; padding: 10px 14px; background: rgba(13, 18, 22, .94); border: 1px solid var(--line2); border-radius: 8px; box-shadow: 0 8px 28px rgba(6, 11, 14, .6); }
+.g-gear-label { font-size: 13px; letter-spacing: .08em; color: var(--head); }
+.g-gear-switch { display: inline-flex; align-items: center; gap: 9px; padding: 4px 2px; border: 0; background: none; color: var(--text2); font: 500 13px var(--label, var(--mono)); letter-spacing: .06em; cursor: pointer; }
+.g-gear-switch i { position: relative; width: 30px; height: 16px; border-radius: 8px; border: 1.5px solid var(--good); background: #0a1013; transition: background-color .15s, border-color .15s; }
+.g-gear-switch i::after { content: ""; position: absolute; top: 2px; left: 2px; width: 9px; height: 9px; border-radius: 50%; background: var(--text2); transition: transform .18s cubic-bezier(.23, 1, .32, 1), background-color .15s; }
+.g-gear-switch[aria-checked="true"] { color: var(--amberText); }
+.g-gear-switch[aria-checked="true"] i { border-color: var(--amberHi); }
+.g-gear-switch[aria-checked="true"] i::after { transform: translateX(14px); background: var(--amber); }
 .g-run .echo-bar { padding-right: 190px; }
 
 /* prepare feedback: the budget counter bounces on a change and shakes when it is empty */

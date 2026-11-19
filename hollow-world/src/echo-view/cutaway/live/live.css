@@ -79,7 +79,7 @@
 .descent-live .live-blind, .descent-live .live-next-star { font-size: 13px; line-height: 1.4; color: var(--text2); margin: 8px 0; }
 .descent-live .live-blind ul { padding-inline-start: 16px; }
 .descent-live { position: relative; }
-.descent-live > .g-sound { position: absolute; right: clamp(12px,1.65vw,30px); bottom: 10px; }
+.descent-live > header { padding-right: 46px; } /* the fixed settings gear sits top-right; keep the beacons/clock HUD clear of it */
 @keyframes warn-socket { to { outline-offset: 5px; } }
 @keyframes beacon-pop { from { transform: translate(-50%,-50%) scale(1.3); } }
 @keyframes pip-spent { 50% { transform: translateY(-3px); background: var(--amber); } }

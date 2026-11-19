@@ -1,5 +1,5 @@
 // Live Descent sound effects: Web Audio synthesis only, no asset files.
-// Reuses game/audio.ts's mute flag (isMuted) so the one SoundToggle controls both modules, and copies its
+// Reuses game/audio.ts's mute flag (isMuted) so the one settings Sound switch controls both modules, and copies its
 // tone()/unlock() pattern: a lazily-created AudioContext, resumed only on a user gesture (autoplay policy).
 // Every gain ramp-down targets GAIN_FLOOR, never 0 (exponentialRampToValueAtTime rejects a literal 0 target).
 import { isMuted } from "../../game/audio";

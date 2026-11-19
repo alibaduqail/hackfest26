@@ -3,7 +3,7 @@ import { RelayBar, type RelayItem } from "../relay/Relay";
 import { useEnterKey } from "./keys";
 import type { TitleProps } from "./props";
 
-/** The front door: the name, Relay nodes, and the live Strata scene behind (the dimmed Backdrop is mounted by the parent). Nothing else. */
+/** The front door: the name and Relay nodes over the 2D Descent still (.j-title-bg, mounted by the parent). Nothing else. */
 export function TitleScreen({ onBegin, onContinue, onTowerDown, onStrata, onFreePlay }: TitleProps) {
   useEnterKey(onContinue ?? onBegin);
   // If focus has fallen to the page (a click on the backdrop, a late autofocus), an arrow key would do nothing and the next Enter would hit the

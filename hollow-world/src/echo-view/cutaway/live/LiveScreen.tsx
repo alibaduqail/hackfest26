@@ -5,7 +5,7 @@ import type { LegId, LegResult } from "../../../echo/journey";
 import type { LogEvent, Mission, Observation, Pod } from "../../../echo/types";
 import { play } from "../../game/audio";
 import { THEME } from "../../theme";
-import { SoundToggle } from "../../game/SoundToggle";
+import { SettingsGear } from "../../game/SettingsGear";
 import { applyLayout } from "../layouts";
 import { along, displayLocations, type Frame, podPose, tracks } from "../run";
 import { createScene, lamp } from "../scene";
@@ -266,7 +266,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
 
   return (
     <div className="descent descent-live">
-      <SoundToggle />
+      <SettingsGear />
       <header>
         <div>
           <a className="brand" href="?screen=title" onClick={onExit} aria-label="Back to the Echo title">← Back</a>
