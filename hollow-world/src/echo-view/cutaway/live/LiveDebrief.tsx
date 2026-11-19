@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { runBaseline, type RunOutcome } from "../../../echo/baseline";
 import { explainRun } from "../../../echo/explain";
 import type { Command, Mission } from "../../../echo/types";
-import { plainText } from "./names";
+import { placeName, plainText } from "./names";
 
 export interface LiveDebriefProps {
   mission: Mission;
@@ -36,7 +36,7 @@ function darkSections(mission: Mission, commands: Command[], o: RunOutcome): str
 
 function nextStep(stars: number, mission: Mission, commands: Command[], o: RunOutcome): string | null {
   if (stars >= 3) return null;
-  const names = darkSections(mission, commands, o).map((id) => displayLocations(id));
+  const names = darkSections(mission, commands, o).map((id) => placeName(id));
   if (names.length) return `Light ${names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0]}.`;
   return stars === 0 ? "Light Mara's route." : "Beat the next deadline.";
 }

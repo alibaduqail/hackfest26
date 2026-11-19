@@ -33,7 +33,7 @@ test("debrief, no beacons: 0 stars, readable cause, tower / none / you all never
   assert.match(html, /Tower<\/th><th[^>]*>No beacons<\/th><th[^>]*>You/);
   assert.equal((html.match(/<td class="[^"]*never"/g) ?? []).length, 6); // 3 columns x (Mara, medicine)
   assert.match(html, /Tower says: \d+ pod runs authorized; actual: \d+ ran\. Mara never arrives\./);
-  assert.match(html, /Next star:<\/strong> Light main shaft section 2, relay track section 1/);
+  assert.match(html, /Next star:<\/strong> Light the middle main shaft, the upper relay track/);
   assert.doesNotMatch(html, /main[01]\b/); // sector ids are shown by name
 });
 
@@ -42,7 +42,7 @@ test("debrief, warn only: 1 star, margin and hint", () => {
   assert.match(html, /1 of 3 stars/);
   assert.match(html, /minute 92/);
   assert.match(html, /Next star \(★★\): Mara Vale by 86 \(arrived 92, 6 late\)/);
-  assert.match(html, /Next star:<\/strong> Light relay track section 1/);
+  assert.match(html, /Next star:<\/strong> Light the upper relay track/);
   assert.match(html, /Next level/);
   assert.match(html, /Watch the solution/);
 });
