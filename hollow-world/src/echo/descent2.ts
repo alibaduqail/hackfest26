@@ -6,7 +6,7 @@
 //
 // Flood B is a mid-run surprise, not a plan made at t0: nothing in an Observation before T2.sealB (the "seal" log event
 // itself, and the only point `sectors[].sealed` flips for mainB1) distinguishes this mission from one with a single
-// flood — see descent-levels.test.ts and live2.test.ts's "flood B is not telegraphed early" test. The 3-star solution
+// flood — see live2.test.ts's "flood B is not telegraphed early" test. The 3-star solution
 // below places flood B's relay (mainB0, mainB1) reactively, right as that log event fires, and still reaches the same
 // ceiling as placing it earlier: there is no mechanical reward for pre-committing to flood B before seeing it happen.
 import { sign } from "./credential";

@@ -22,7 +22,7 @@ export const DESCENT_LEVELS: DescentLevel[] = [
   },
   {
     id: "descent-live-2", title: descentLive2().title,
-    lesson: "Two floods, one budget. Each needs its own warning, and the earlier flood traps the pod before it ever reaches the second: warn flood A before flood B costs nothing, warn B first and you never get the chance.",
+    lesson: "Two floods, one budget. Warn the first flood early and keep budget in reserve, because a second seal will fire mid-run with no notice: react the moment it appears.",
     build: descentLive2, goals: DESCENT_LIVE_GOALS_2, solution: DESCENT_LIVE_SOLUTION_2,
   },
   {
