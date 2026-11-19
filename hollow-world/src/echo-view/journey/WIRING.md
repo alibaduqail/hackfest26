@@ -19,7 +19,7 @@ Mount the existing `<Backdrop />` behind them (as GameApp does for the Title). T
 <CampScreen
   key={s.log.length}   // Scavenge stays in camp: a new log entry is a new card (it also resets itself on these)
   event={campEvent(s)}                 // CampEvent
-  res={s.res}  legIndex={s.legIndex}  attempt={s.attempt}  log={s.log}   // limit defaults to LIMIT (360)
+  res={s.res}  legIndex={s.legIndex}  attempt={s.attempt}  log={s.log}   // limit defaults to LIMIT from journey.ts, never hardcode it
   onPick={(id) => sfx()}               // optional: a choice was locked in; state is NOT advanced yet
   onContinue={(id) => setS(choose(s, id))}  // "Continue down" / Enter: apply the choice, go to the leg
 />
