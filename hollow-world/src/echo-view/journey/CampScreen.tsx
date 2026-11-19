@@ -35,10 +35,10 @@ export function CampScreen({ event, res, limit = LIMIT, legIndex, attempt, log, 
       <div className="j-page">
         <ResourceBar res={res} limit={limit} preview={choice ? applyEffect(res, choice.effect) : undefined} />
         <div className="j-camp-grid">
-          <section className="j-card" aria-labelledby="j-event-title">
-            <div className="g-kicker">{where}</div>
-            <h2 id="j-event-title">{event.title}</h2>
-            <p className="j-body">{event.body}</p>
+          <section className="d-panel j-card" aria-labelledby="j-event-title">
+            <div className="d-kicker">{where}</div>
+            <h2 id="j-event-title" className="d-h">{event.title}</h2>
+            <p className="d-body j-body">{event.body}</p>
             <ol className="j-choices">
               {event.choices.map((c, i) => {
                 const state = picked === null ? "" : c.id === picked ? " picked" : " passed";
@@ -61,8 +61,8 @@ export function CampScreen({ event, res, limit = LIMIT, legIndex, attempt, log, 
             <div className="j-reveal" role="status" aria-live="polite">
               {choice?.reveal && <p>{choice.reveal}</p>}
             </div>
-            <div className="g-row j-actions">
-              <button ref={next} className="g-btn primary" disabled={!picked} onClick={() => picked && onContinue(picked)}>Continue down</button>
+            <div className="d-btn-row j-actions">
+              <button ref={next} className="d-btn" disabled={!picked} onClick={() => picked && onContinue(picked)}>Continue down <kbd>Enter</kbd></button>
               <span className="j-hint">{picked ? "Enter to continue" : (event.choices.length === 1 ? "Press 1 to choose" : `Press 1–${event.choices.length} to choose`)}</span>
             </div>
           </section>

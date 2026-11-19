@@ -19,23 +19,23 @@ export function EndingScreen({ ending, res, limit = LIMIT, log, choiceNames, onA
     <div className="g-screen j-camp-screen">
       <div className="j-page">
         <div className="j-camp-grid">
-          <section className={`j-card j-verdict ${saved ? "saved" : "late"}`} aria-labelledby="j-end-title">
-            <div className="j-stamp">{saved ? "Saved" : "Too late"}</div>
-            <h2 id="j-end-title">{ending.title}</h2>
+          <section className={`d-panel j-card j-verdict ${saved ? "saved" : "late"}`} aria-labelledby="j-end-title">
+            <div className="d-kicker j-stamp">{saved ? "Saved" : "Too late"}</div>
+            <h2 id="j-end-title" className="d-h">{ending.title}</h2>
             <div className="j-score"><b>{ending.score}</b><span>points</span></div>
-            {lines.map((l, i) => <p key={i} className="j-body">{l}</p>)}
+            {lines.map((l, i) => <p key={i} className="d-body j-body">{l}</p>)}
             {closing && <p className="j-closing">{closing}</p>}
             <ResourceBar res={res} limit={limit} />
-            <div className="g-row j-actions">
-              <button className="g-btn primary" autoFocus onClick={onAgain}>Begin again</button>
+            <div className="d-btn-row j-actions">
+              <button className="d-btn" autoFocus onClick={onAgain}>Begin again <kbd>Enter</kbd></button>
               <span className="j-hint">Enter to begin again</span>
             </div>
           </section>
           <aside className="j-side"><TrailMap legIndex={3} log={log} /></aside>
         </div>
-        <section className="j-card j-logcard" aria-labelledby="j-log-title">
-            <div className="g-kicker">{rows.filter((r) => r.kind === "leg").length} attempts, {retries} {retries === 1 ? "retry" : "retries"}</div>
-            <h2 id="j-log-title">Trail log</h2>
+        <section className="d-panel j-card j-logcard" aria-labelledby="j-log-title">
+            <div className="d-kicker">{rows.filter((r) => r.kind === "leg").length} attempts, {retries} {retries === 1 ? "retry" : "retries"}</div>
+            <h2 id="j-log-title" className="d-h">Trail log</h2>
             <ol className="j-log">
               {rows.map((r, i) => (
                 <li key={i} className={`${r.kind}${r.failed ? " failed" : ""}`}>
