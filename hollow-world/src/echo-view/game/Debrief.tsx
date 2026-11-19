@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { Observation } from "../../echo/types";
 import { RelayBar } from "../relay/Relay";
 import { play } from "./audio";
-import { verdict, type CampaignMission } from "./campaign";
+import type { CampaignMission } from "./campaign";
 import { Objectives } from "./Briefing";
 
 const STAR_GAP_MS = 250;
@@ -34,7 +34,6 @@ export function Debrief({ cm, result, onRetry, onNext, nextLabel = "Next mission
   const stars = met.filter(Boolean).length;
   const t = tower.score, e = echo.score, n = normal.score;
   const x = (s: number) => (n.passengerDelayMin > 0 ? `${(s / n.passengerDelayMin).toFixed(1)}×` : "—");
-  const line = cm.verdicts?.[stars] ?? verdict(echo, normal).split(/(?<=\.) /)[0];
   const rows: [string, string, string][] = [
     ["Mara arrives", arrival(tower), arrival(echo)],
     ["Nurses arrived", `${t.nursesArrived}/${t.nursesTotal}`, `${e.nursesArrived}/${e.nursesTotal}`],
@@ -44,10 +43,9 @@ export function Debrief({ cm, result, onRetry, onNext, nextLabel = "Next mission
   ];
   return (
     <div className="g-screen g-fp g-fp-debrief">
-      <section className="fp-left" aria-labelledby="fp-title">
+      <section className="fp-left" aria-label={cm.name}>
         <p className="fp-kicker">{cm.name} · t+{echo.endTick}</p>
         <StarReveal n={stars} />
-        <h2 id="fp-title">{line}</h2>
         <RelayBar className="fp-bar" size="lg" label="After the mission" items={[
           { key: "missions", label: "Missions", nav: true, onSelect: onMissions },
           { key: "retry", label: "Retry", tone: onNext ? "secondary" : "primary", nav: true, autoFocus: !onNext, onSelect: onRetry },
@@ -57,10 +55,9 @@ export function Debrief({ cm, result, onRetry, onNext, nextLabel = "Next mission
       <div className="fp-right">
         <Objectives cm={cm} met={met} />
         <table className="fp-ledger">
-          <thead><tr><th scope="col"><span className="g-sr">Figure</span></th><th scope="col">Directorate alone</th><th scope="col">Echo</th></tr></thead>
+          <thead><tr><th scope="col"><span className="g-sr">Figure</span></th><th scope="col">Directorate</th><th scope="col">Echo</th></tr></thead>
           <tbody>{rows.map(([k, a, b]) => <tr key={k}><th scope="row">{k}</th><td>{a}</td><td className="echo">{b}</td></tr>)}</tbody>
         </table>
-        <p className="fp-foot">Echo is a fallback, not a replacement for the tower. Credentials are simulated.</p>
       </div>
     </div>
   );
