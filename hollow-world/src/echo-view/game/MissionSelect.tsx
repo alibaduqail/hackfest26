@@ -12,38 +12,42 @@ export function MissionSelect({ progress, onPick, onBack, onStory }: {
   progress: Progress; onPick: (id: string) => void; onBack: () => void; onStory: (which: "prologue" | "epilogue") => void;
 }) {
   const ids = CAMPAIGN.map((m) => m.id);
+  const earned = ids.reduce((n, id) => n + (progress[id] ?? 0), 0);
   return (
-    <div className="g-screen">
-      <div className="g-page g-select">
-        <div className="g-head">
-          <div>
-            <div className="g-kicker">Campaign</div>
-            <h2>Missions</h2>
-          </div>
-          <RelayBar label="Campaign" items={[
-            { key: "prologue", label: "Prologue", nav: true, onSelect: () => onStory("prologue") },
-            ...(hasSeen(progress, "epilogue") ? [{ key: "epilogue", label: "Epilogue", nav: true, onSelect: () => onStory("epilogue") }] : []),
-            { key: "back", label: "Back", nav: true, onSelect: onBack },
-          ]} />
-        </div>
-        <div className="g-cards">
+    <div className="g-screen g-fp">
+      <section className="fp-left" aria-labelledby="fp-title">
+        <p className="fp-kicker">Campaign</p>
+        <h2 id="fp-title">Missions</h2>
+        <p className="fp-figs"><b>{earned}</b> / {ids.length * 3} stars</p>
+        <RelayBar className="fp-bar" label="Campaign" items={[
+          { key: "prologue", label: "Prologue", nav: true, onSelect: () => onStory("prologue") },
+          ...(hasSeen(progress, "epilogue") ? [{ key: "epilogue", label: "Epilogue", nav: true, onSelect: () => onStory("epilogue") }] : []),
+          { key: "back", label: "Back", nav: true, onSelect: onBack },
+        ]} />
+      </section>
+      <div className="fp-right">
+        <ol className="fp-ladder">
           {CAMPAIGN.map((cm, i) => {
             const open = isUnlocked(ids, i, progress);
             const ready = !!cm.build;
             const stars = progress[cm.id] ?? 0;
-            const state = !ready ? "Coming soon" : !open ? `Locked, earn a star in mission ${i}` : stars ? "Replay" : "New";
             const tone = !ready || !open ? "locked" : stars ? "done" : "new";
+            const note = !ready ? "Coming soon" : !open ? `Earn a star in ${i}` : null;
+            const next = CAMPAIGN[i + 1];
+            const ahead = next && !(isUnlocked(ids, i + 1, progress) && !!next.build);
             return (
-              <button key={cm.id} className={`g-card ${tone}`} disabled={!open || !ready} autoFocus={i === 0} onClick={(e) => activate(e.currentTarget, () => onPick(cm.id))}>
-                <span className="num">{String(cm.number).padStart(2, "0")}</span>
-                <span className="name">{cm.name}</span>
-                <span className="hook">{cm.hook}</span>
-                <Stars n={stars} />
-                <span className="state"><i aria-hidden />{state}</span>
-              </button>
+              <li key={cm.id} className={ahead ? "ahead" : ""}>
+                <button className={`fp-rung ${tone}`} disabled={!open || !ready} autoFocus={i === 0} onClick={(e) => activate(e.currentTarget, () => onPick(cm.id))}>
+                  <i className="fp-node" aria-hidden />
+                  <span className="fp-num">{String(cm.number).padStart(2, "0")}</span>
+                  <span className="fp-name">{cm.name}</span>
+                  {note ? <span className="fp-note">{note}</span> : <Stars n={stars} />}
+                  {!note && <span className="fp-hook">{cm.hook}</span>}
+                </button>
+              </li>
             );
           })}
-        </div>
+        </ol>
       </div>
     </div>
   );
