@@ -20,7 +20,6 @@ export function lamp(track: Track): Point {
   const [x, y] = along(track, .5);
   return [x * W, (y - (track.shaft === "track" && track.order >= 6 ? .08 : .037)) * H];
 }
-const lamps = new Map([...tracks].map(([id, track]) => [id, lamp(track)]));
 function visible(pod: Pod, tick: number) {
   if (pod.status === "scheduled") return pod.nurse || pod.cargo === "medicine";
   // Short-haul freight unloads at the relay; the two clinic berths stay in view.
@@ -34,6 +33,7 @@ function overlaps(a: Box, b: Box) {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 }
 export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasElement, trimUrl?: string) {
+  const lamps = new Map([...tracks].map(([id, track]) => [id, lamp(track)])); // tracks differ per Descent level (layouts.ts), so read them per scene
   const images = new Map<Sprite, HTMLImageElement>();
   const ground = backdrop.getContext("2d")!;
   const live = canvas.getContext("2d")!;
@@ -142,7 +142,7 @@ export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasEleme
       const nurse = arrived.has("MED-1"), delivered = arrived.has("SUP-3");
       const supply = obs.pods.find((p) => p.cargo === "medicine")!;
       const medical = obs.pods.find((p) => p.nurse)!;
-      const pax = obs.pods.find((p) => p.id === "PAX-1")!;
+      const pax = obs.pods.find((p) => p.id === "PAX-1");
       const fixed: Box[] = [];
       const signs: { box: Box; copy: string; ink: string }[] = [];
       ground.clearRect(0, 0, W, H);
@@ -241,18 +241,17 @@ export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasEleme
         const [x, y] = lamps.get(event.sectorId!)!;
         fixedTag("✕", x / W, (y - 20) / H, T.redText);
       }
-      const gate = obs.sectors.find((s) => s.sealed);
-      if (gate) {
+      for (const gate of obs.sectors.filter((s) => s.sealed)) {
         const tr = tracks.get(gate.id)!, x = tr.b[0] * W, y = tr.b[1] * H;
         ground.fillStyle = T.redBg;
         ground.fillRect(x - 16, y - 24, 148, 24);
         for (let i = 0; i < 7; i++) line(ground, x - 14 + i * 20, y - 2, x + i * 20, y - 22, T.red, 6);
         line(ground, x - 16, y, x + 132, y, T.red, 4);
-        fixedTag("SEALED · MAIN SHAFT", .665, .70, T.redText);
+        fixedTag("SEALED · MAIN SHAFT", tr.b[0] - .07, tr.b[1] - .065, T.redText); // level 1: (.665, .70)
       }
       if (level === 4 && medical.rerouted) fixedTag("DRY BYPASS", .25, .746, T.good);
       if (
-        echo && pax.status === "waiting" && pax.at < 0 && obs.log.some((e) => e.kind === "yield" && e.podId === pax.id)
+        echo && pax && pax.status === "waiting" && pax.at < 0 && obs.log.some((e) => e.kind === "yield" && e.podId === pax.id)
       ) {
         const holder = obs.sectors.find((s) => s.id === "trunk0")?.holder;
         fixedTag(holder ? holder + " FIRST · PAX-1 HOLDS" : "PAX-1 HOLDS AT BOUNDARY", .82, .624, T.redText);

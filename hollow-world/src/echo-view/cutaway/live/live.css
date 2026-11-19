@@ -74,8 +74,6 @@
 .descent-live .live-flood-chip { left: 4.8%; top: 70%; transform: translateY(-50%); color: var(--amberHi); }
 .descent-live .live-cursor { margin: 12px 0 0 12px; color: var(--good); }
 .descent-live .live-cursor.invalid { color: var(--redText); }
-.descent-live .live-intro { position: absolute; inset: 0; display: grid; align-content: center; justify-items: center; gap: 12px; background: #0d161cbd; z-index: 5; text-align: center; }
-.descent-live .live-intro p { max-width: min(65vw,360px); color: var(--head); font-size: clamp(15px,1.25vw,22px); line-height: 1.4; }
 .descent-live .live-margins dd { text-align: right; }
 .descent-live .live-margins small { display: block; color: var(--text2); margin-top: 3px; }
 .descent-live .live-blind, .descent-live .live-next-star { font-size: 13px; line-height: 1.4; color: var(--text2); margin: 8px 0; }
@@ -87,8 +85,6 @@
 @keyframes pip-spent { 50% { transform: translateY(-3px); background: var(--amber); } }
 @keyframes reject-place { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
 @media (max-width: 850px) {
-  .descent-live .live-intro { justify-items: start; padding-left: 25px; }
-  .descent-live .live-intro p { text-align: left; }
 }
 @media (prefers-reduced-motion: reduce) {
   .descent-live .live-socket, .descent-live .live-pips .spent, .descent-live .live-feedback span { animation: none; }
@@ -105,3 +101,4 @@
   mask-image: linear-gradient(transparent,#000); animation: flood-shimmer 4.5s ease-in-out infinite alternate; }
 @keyframes flood-shimmer { to { background-position: 30px 10px; opacity: .62; } }
 @media (prefers-reduced-motion: reduce) { .descent-live .live-water.sealed::after { animation: none; } }
+.descent-live .live-hint-caption { position: absolute; left: 50%; bottom: 3%; transform: translateX(-50%); z-index: 4; margin: 0; max-width: min(70%, 640px); padding: 8px 14px; background: var(--stage); border-left: 3px solid var(--amber); color: var(--amberHi); font-size: 14px; line-height: 1.4; pointer-events: none; }

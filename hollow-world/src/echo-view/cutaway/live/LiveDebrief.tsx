@@ -10,9 +10,12 @@ export interface LiveDebriefProps {
   mission: Mission;
   commands: Command[]; // the player's accepted command log (the save)
   stars: 0 | 1 | 2 | 3;
-  onRetry: () => void;
+  onRetry?: () => void; // hidden when omitted (journey mode after a win)
   onNext?: () => void; // next level; the button is hidden when omitted
   onWatchSolution?: () => void;
+  retryLabel?: string; // journey mode: "Retry leg" (and the R key is then LiveScreen's)
+  nextLabel?: string; // journey mode: "Continue the journey"
+  note?: string; // a line above the buttons (the cost of a retry)
 }
 
 const when = (t: number | null) => (t === null ? "never" : `minute ${t}`);
@@ -24,7 +27,7 @@ function nextStep(stars: number, o: RunOutcome): string | null {
   return "Beacon the relay track early to cut blind waits.";
 }
 
-export function LiveDebrief({ mission, commands, stars, onRetry, onNext, onWatchSolution }: LiveDebriefProps) {
+export function LiveDebrief({ mission, commands, stars, onRetry, onNext, onWatchSolution, retryLabel = "Retry", nextLabel = "Next level", note }: LiveDebriefProps) {
   const base = useMemo(() => runBaseline(mission, commands), [mission, commands]);
   const lines = useMemo(() => explainRun(base.you.log, mission).map((l) => displayLocations(l).replace(/^./, (c) => c.toUpperCase())), [base, mission]);
   const why = lines.filter((l) => !isMargin(l));
@@ -41,7 +44,7 @@ export function LiveDebrief({ mission, commands, stars, onRetry, onNext, onWatch
       <ol className="live-why">{why.map((l) => <li key={l}>{l}</li>)}</ol>
       <h3>The same run, three ways</h3>
       <table className="live-compare">
-        <thead><tr><th scope="col" /> {cols.map(([n, , k]) => <th key={k} scope="col" className={k === "you" ? "you" : ""}>{n}</th>)}</tr></thead>
+        <thead><tr><th scope="col" />{cols.map(([n, , k]) => <th key={k} scope="col" className={k === "you" ? "you" : ""}>{n}</th>)}</tr></thead>
         <tbody>
           {([["Nurse Mara", "mara"], ["Medicine", "medicine"]] as const).map(([label, key]) => (
             <tr key={key}>
@@ -54,9 +57,10 @@ export function LiveDebrief({ mission, commands, stars, onRetry, onNext, onWatch
       <p className="live-tower-says">{base.towerSays}</p>
       {hint && <p className="live-next"><strong>Next star:</strong> {hint}</p>}
       {stars >= 3 && <p className="live-next"><strong>Best possible run.</strong></p>}
+      {note && <p className="live-next">{note}</p>}
       <div className="live-button-row">
-        <button className="live-primary" onClick={onRetry} autoFocus>Retry <kbd>R</kbd></button>
-        {onNext && <button onClick={onNext}>Next level</button>}
+        {onRetry && <button className="live-primary" onClick={onRetry} autoFocus={!onNext}>{retryLabel} <kbd>R</kbd></button>}
+        {onNext && <button className="live-primary" onClick={onNext} autoFocus>{nextLabel}</button>}
         {onWatchSolution && <button onClick={onWatchSolution}>Watch the solution</button>}
       </div>
     </section>

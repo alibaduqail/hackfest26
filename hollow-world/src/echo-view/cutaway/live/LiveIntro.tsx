@@ -6,14 +6,15 @@ import { LEVEL_HINTS } from "./hints";
 export interface LiveIntroProps {
   mission: Mission;
   hint?: string | null; // defaults to the level 1 hint; pass null to hide
+  goal?: string; // the deadline line; defaults to Descent I's 1-star goal (pass the level's own from DESCENT_LEVELS)
   onStart: () => void;
 }
 
-export function LiveIntro({ mission, hint = LEVEL_HINTS[1], onStart }: LiveIntroProps) {
+export function LiveIntro({ mission, hint = LEVEL_HINTS[1], goal: goalText, onStart }: LiveIntroProps) {
   const mara = mission.pods.find((p) => p.nurse);
   const city = (id: string) => mission.world.cities.find((c) => c.id === id)?.name ?? id;
   const name = (mara?.label.split("· ")[1] ?? "The nurse").replace(/^Nurse /, "");
-  const goal = DESCENT_LIVE_GOALS[0];
+  const goal = { text: goalText ?? DESCENT_LIVE_GOALS[0].text };
   return (
     <div className="live-intro-backdrop">
       <section className="live-intro" role="dialog" aria-modal="true" aria-labelledby="live-intro-title">
