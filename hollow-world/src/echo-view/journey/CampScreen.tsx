@@ -6,6 +6,7 @@ import { useEnterKey } from "./keys";
 import type { CampScreenProps } from "./props";
 import { SupplyLine } from "./ResourceBar";
 import { TrailRail } from "./TrailMap";
+import { useParallax } from "./useParallax";
 
 const EASE = "cubic-bezier(.23, 1, .32, 1)";
 const reduced = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -78,6 +79,9 @@ export function CampScreen({ event, res, limit = LIMIT, legIndex, attempt, log, 
   const { hereLevel } = trailModel(legIndex, log);
   const g = useMemo(() => forkGeo(size.w, size.h, event.choices.length, hereLevel), [size.w, size.h, event.choices.length, hereLevel]);
   const hot = picked ? null : hover ?? focus;
+  const bg = useRef<HTMLDivElement>(null);
+  const lean = useParallax(bg, stage);
+  useEffect(() => { const n = event.choices.length; lean(hot === null || n < 2 ? 0 : (hot - (n - 1) / 2) / ((n - 1) / 2)); }, [hot, event.choices.length, lean]);
 
   // The light: it rests on Mara, runs down the branch being weighed, and on a pick runs the whole way to Continue down.
   useLayoutEffect(() => {
@@ -123,7 +127,7 @@ export function CampScreen({ event, res, limit = LIMIT, legIndex, attempt, log, 
 
   return (
     <div className="g-screen j-camp2">
-      <div className="j-title-bg j-camp-bg" aria-hidden />
+      <div className="j-title-bg j-camp-bg" ref={bg} aria-hidden />
       <section className="j-cl" aria-labelledby="j-event-title">
         <p className="j-where">{camp ? `${camp} · ${where}` : where}</p>
         <h2 id="j-event-title">{title}</h2>
