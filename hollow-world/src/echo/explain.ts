@@ -27,7 +27,8 @@ export function explainRun(log: LogEvent[], mission: Mission): string[] {
   if (!seal) lines.push(`The flood never hit. ${name} ${arrived === null ? "did not reach the clinic" : `reached the clinic at minute ${arrived}`}.`);
   else if (reroute) lines.push(`The flood sealed ${sealId} at minute ${seal.tick}. The news hopped beacon to beacon, ${name} re-routed at minute ${reroute.tick}${arrived === null ? " but did not arrive" : ` and reached the clinic at minute ${arrived}`}.`);
   else if (stuck) lines.push(`The flood sealed ${sealId} at minute ${seal.tick}. No warning reached ${name}: she met the sealed shaft at minute ${heard!.tick} and could not get through.`);
-  else lines.push(`${name} cleared the shaft before the flood sealed ${sealId} at minute ${seal.tick}${arrived === null ? "" : ` and reached the clinic at minute ${arrived}`}.`);
+  else if (arrived === null) lines.push(`${name} did not reach the clinic.`); // e.g. still queued at timeout: never claim she cleared the shaft
+  else lines.push(`${name} cleared the shaft before the flood sealed ${sealId} at minute ${seal.tick} and reached the clinic at minute ${arrived}.`);
 
   // 2. the cause (stuck) or the cost of dark sectors (arrived)
   if (stuck && seal) {
