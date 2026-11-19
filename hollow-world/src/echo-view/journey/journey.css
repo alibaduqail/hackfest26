@@ -1,0 +1,127 @@
+/* The Journey screens. Same Strata tokens as game.css (theme.ts); reuses .g-screen .g-btn .g-kicker .g-stars .g-row. Desktop only. */
+.j-page { position: relative; z-index: 1; max-width: 1120px; margin: 0 auto; padding: 28px 28px 40px; display: flex; flex-direction: column; gap: 18px; min-height: 100%; justify-content: center; }
+.j-page *, .j-page *::before, .j-page *::after { box-sizing: border-box; }
+
+/* title */
+.j-title h1 { font-size: clamp(88px, 15vw, 176px); }
+.j-descent { display: flex; align-items: center; gap: 22px; width: min(560px, 80vw); color: var(--amberText); font-size: clamp(18px, 2.6vw, 28px); letter-spacing: .34em; text-indent: .34em; font-weight: 600; }
+.j-descent::before, .j-descent::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--amberDim)); }
+.j-descent::after { transform: scaleX(-1); }
+.j-premise { max-width: 31em; margin: 6px 0 0; font-size: 18px; line-height: 1.6; color: var(--text); }
+.j-title .g-row { margin-top: 14px; }
+.j-begin { padding: 13px 34px; font-size: 18px; }
+.j-links { display: flex; gap: 6px 26px; margin-top: 8px; }
+.j-link { background: none; border: 0; padding: 6px 2px; font: inherit; font-size: 14px; color: var(--text2); cursor: pointer; text-decoration: underline; text-decoration-color: var(--line2); text-underline-offset: 4px; }
+.j-link:hover { color: var(--amberText); text-decoration-color: var(--amber); }
+.j-link:focus-visible, .j-choice:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; border-radius: 4px; }
+
+/* supply bar */
+.j-bar { display: grid; grid-template-columns: 1fr 1.7fr 1fr; background: rgba(21,36,44,.94); border: 1px solid var(--line2); border-radius: 8px; box-shadow: 0 5px 22px #050d1260; }
+.j-res { display: flex; align-items: center; gap: 14px; padding: 14px 22px; position: relative; }
+.j-res + .j-res { border-left: 1px solid var(--line); }
+.j-res-ico { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; background: var(--panelHi); border: 1px solid var(--line2); color: var(--amber); flex: none; }
+.j-res-ico svg { width: 24px; height: 24px; }
+.j-res-clock .j-res-ico { color: var(--blue); }
+.j-res:last-child .j-res-ico { color: var(--good); }
+.j-res-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.j-res-body b { font-size: 30px; line-height: 1; font-weight: 700; color: var(--head); font-variant-numeric: tabular-nums; }
+.j-res-body b small { font-size: 14px; font-weight: 400; color: var(--muted); }
+.j-res-body b.over { color: var(--red); }
+.j-res-name { font-size: 13px; color: var(--text2); }
+.j-track { display: block; height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin-top: 7px; }
+.j-fill { display: block; height: 100%; background: var(--blue); border-radius: 3px; transition: width .4s ease-out; }
+.j-fill.over { background: var(--red); }
+.j-delta { font-style: normal; font-weight: 700; font-size: 14px; padding: 2px 9px; border-radius: 99px; border: 1px solid; white-space: nowrap; animation: j-pop .3s ease-out; }
+.j-delta.good { color: var(--good); border-color: var(--good); background: #7ec8b31a; }
+.j-delta.bad { color: var(--redText); border-color: var(--redLine); background: var(--redBg); }
+
+/* layout: card + trail map */
+.j-camp-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; }
+.j-side { position: sticky; top: 24px; }
+.j-card { background: rgba(21,36,44,.94); border: 1px solid var(--line2); border-radius: 8px; padding: 26px 30px 24px; box-shadow: 0 5px 22px #050d1260; }
+.j-card h2 { margin: 6px 0 12px; font-size: 30px; line-height: 1.2; font-weight: 600; color: var(--head); letter-spacing: .01em; }
+.j-body { margin: 0 0 12px; font-size: 17px; line-height: 1.65; color: var(--text); max-width: 40em; }
+
+/* choices */
+.j-choices { list-style: none; margin: 20px 0 0; padding: 0; display: grid; gap: 10px; }
+.j-choice { width: 100%; display: grid; grid-template-columns: 38px 1fr; gap: 16px; align-items: start; text-align: left; font: inherit; color: var(--text); background: var(--btn); border: 1px solid var(--line2); border-radius: 6px; padding: 14px 18px 14px 14px; cursor: pointer; transition: border-color .12s, background .12s, opacity .2s; }
+.j-choice:hover:not(.passed) { border-color: var(--amber); background: var(--btn2); }
+.j-choice kbd { display: grid; place-items: center; width: 34px; height: 34px; margin-top: 1px; font: 700 16px var(--mono); color: var(--amberText); background: var(--stage); border: 1px solid var(--amberDim); border-bottom-width: 3px; border-radius: 6px; }
+.j-choice-main { display: flex; flex-direction: column; gap: 4px; }
+.j-choice b { font-size: 17px; font-weight: 600; color: var(--head); }
+.j-detail { color: var(--text2); font-size: 15px; line-height: 1.45; }
+.j-costs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.j-cost { font-size: 13px; font-weight: 600; padding: 1px 10px; border-radius: 99px; border: 1px solid var(--line2); color: var(--muted); font-variant-numeric: tabular-nums; }
+.j-cost.good { color: var(--good); border-color: #7ec8b388; }
+.j-cost.bad { color: var(--redText); border-color: var(--redLine); background: var(--redBg); }
+.j-choice.picked { border-color: var(--amber); background: var(--amberBg); }
+.j-choice.picked kbd { background: var(--amber); color: var(--ink); }
+.j-choice.passed { opacity: .45; cursor: default; }
+
+.j-reveal { min-height: 46px; margin: 14px 0 4px; }
+.j-reveal p { margin: 0; padding: 10px 16px; border-left: 3px solid var(--amber); background: var(--amberBg); color: var(--amberText); font-size: 16px; line-height: 1.5; animation: j-pop .3s ease-out; }
+.j-actions { margin-top: 12px; }
+.j-actions .g-btn { padding: 11px 28px; font-size: 16px; }
+.j-hint { color: var(--muted); font-size: 13px; }
+
+/* trail map: the depth of the Hollow, strata-banded; done lit teal, next leg amber, ahead dim and dashed */
+.j-trail { background: linear-gradient(180deg, rgba(28,48,58,.96), rgba(13,22,28,.97)); border: 1px solid var(--line2); border-radius: 8px; padding: 14px 18px 12px 12px; box-shadow: 0 5px 22px #050d1260; }
+.j-trail ol { list-style: none; margin: 0; padding: 0; }
+.j-trail li { position: relative; display: grid; grid-template-columns: 30px 1fr auto; align-items: center; column-gap: 8px; padding: 11px 0; }
+.j-trail li:not(:last-child)::before { content: ""; position: absolute; left: 14px; top: 50%; height: 100%; border-left: 2px solid var(--line2); }
+.j-trail li.done:not(:last-child)::before { border-color: var(--good); }
+.j-trail li.current:not(:last-child)::before { border-color: var(--amberDim); }
+.j-trail li.ahead:not(:last-child)::before, .j-trail li.current + li.ahead::before { border-left-style: dashed; border-color: var(--line); }
+.j-dot { position: relative; z-index: 1; justify-self: center; width: 14px; height: 14px; border-radius: 50%; background: var(--stage); border: 2px solid var(--line2); display: grid; place-items: center; }
+.j-trail .done .j-dot { background: var(--good); border-color: var(--good); }
+.j-trail .current .j-dot { border-color: var(--amber); box-shadow: 0 0 8px #d2a76a88; }
+.j-trail .here .j-dot { width: 20px; height: 20px; background: var(--amber); border-color: var(--amberHi); box-shadow: 0 0 14px var(--amber); animation: j-lamp 2.4s ease-in-out infinite; }
+.j-lv { display: flex; flex-direction: column; min-width: 0; font-size: 15px; color: var(--muted); }
+.j-lv b { font-weight: 600; color: var(--text2); }
+.j-lv b span { font-weight: 400; color: var(--muted); margin-left: 4px; }
+.j-trail .done .j-lv b { color: var(--head); }
+.j-trail .current .j-lv b { color: var(--amberText); }
+.j-trail .ahead .j-lv b, .j-trail .ahead .j-lv b span { color: var(--dim); }
+.j-lv em { font-style: normal; font-size: 12px; color: var(--amberText); }
+.j-leg { display: flex; flex-direction: column; align-items: flex-end; font-size: 12px; color: var(--text2); line-height: 1.25; }
+.j-leg .g-stars { font-size: 13px; letter-spacing: .05em; }
+.j-leg-state { color: var(--dim); }
+.j-trail .current .j-leg-state { color: var(--amberText); }
+.j-trail li.j-camp { padding: 4px 0; }
+.j-trail li.j-camp .j-dot { width: 22px; height: 22px; border: 0; background: none; box-shadow: none; color: var(--dim); }
+.j-trail li.j-camp.done .j-dot { color: var(--good); }
+.j-camp .j-lv { font-size: 13px; color: var(--dim); }
+.j-camp.done .j-lv { color: var(--text2); }
+.j-trail.compact li { padding: 7px 0; }
+
+/* ending */
+.j-verdict { padding-top: 24px; padding-bottom: 22px; }
+.j-logcard { padding-top: 20px; padding-bottom: 14px; }
+.j-page .j-logcard h2 { margin-bottom: 0; }
+.j-stamp { display: inline-block; font-size: 15px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; padding: 4px 16px 4px 18px; border: 2px solid; border-radius: 4px; transform: rotate(-2deg); }
+.j-verdict.saved .j-stamp { color: var(--good); border-color: var(--good); }
+.j-verdict.late .j-stamp { color: var(--red); border-color: var(--red); background: var(--redBg); }
+.j-verdict h2 { margin-top: 16px; font-size: 34px; }
+.j-verdict.late { border-color: var(--redLine); }
+.j-score { display: flex; align-items: baseline; gap: 10px; margin: 0 0 14px; }
+.j-score b { font-size: 64px; line-height: 1; font-weight: 700; color: var(--amber); font-variant-numeric: tabular-nums; text-shadow: 0 0 24px rgba(210,167,106,.25); }
+.j-score span { color: var(--text2); font-size: 15px; }
+.j-closing { margin: 6px 0 20px; padding: 12px 18px; border-left: 3px solid var(--amber); background: var(--amberBg); color: var(--amberText); font-size: 18px; line-height: 1.5; }
+.j-verdict .j-bar { margin-top: 4px; background: var(--stage); box-shadow: none; }
+.j-verdict .j-actions { margin-top: 22px; }
+
+/* trail log: a timeline of every leg attempt and camp choice */
+.j-log { list-style: none; margin: 14px 0 0; padding: 0 0 0 4px; column-count: 2; column-gap: 40px; }
+.j-log li { break-inside: avoid; position: relative; display: grid; grid-template-columns: 1fr auto; column-gap: 14px; padding: 8px 0 8px 22px; border-left: 2px solid var(--line2); margin-left: 6px; }
+.j-log li::before { content: ""; position: absolute; left: -7px; top: 15px; width: 12px; height: 12px; border-radius: 50%; background: var(--good); border: 2px solid var(--panel); }
+.j-log li.choice::before { width: 10px; height: 10px; left: -6px; border-radius: 2px; transform: rotate(45deg); background: var(--amber); }
+.j-log li.failed::before { background: var(--red); }
+.j-log-title { font-weight: 600; color: var(--head); }
+.j-log li.choice .j-log-title { font-weight: 400; color: var(--amberText); }
+.j-log li.failed .j-log-title { color: var(--redText); }
+.j-log-detail { grid-column: 1 / -1; font-size: 14px; color: var(--text2); }
+.j-log li.choice .j-log-detail { color: var(--text); }
+
+@keyframes j-pop { 0% { transform: scale(.94); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes j-lamp { 50% { box-shadow: 0 0 22px var(--amberHi); } }
+@media (prefers-reduced-motion: reduce) { .j-delta, .j-reveal p, .j-trail .here .j-dot { animation: none; } .j-fill { transition: none; } }
