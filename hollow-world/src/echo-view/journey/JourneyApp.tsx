@@ -32,6 +32,9 @@ function save(s: JourneyState | null) {
   try { if (s) localStorage.setItem(KEY, JSON.stringify(s)); else localStorage.removeItem(KEY); } catch { /* private mode or full: the journey just is not saved */ }
 }
 
+/** A new seed per journey (UI layer): it decides which floods this run draws; the engine is deterministic given it. */
+const freshSeed = () => (Date.now() ^ Math.floor(Math.random() * 0x7fffffff)) >>> 0;
+
 export interface JourneyAppProps { onTowerDown: () => void; onStrata: () => void; onFreePlay: () => void }
 
 export function JourneyApp({ onTowerDown, onStrata, onFreePlay }: JourneyAppProps) {
@@ -44,7 +47,7 @@ export function JourneyApp({ onTowerDown, onStrata, onFreePlay }: JourneyAppProp
       <>
         <Backdrop />
         <TitleScreen
-          onBegin={() => play(startJourney())}
+          onBegin={() => play(startJourney(freshSeed()))}
           onContinue={saved ? () => setS(saved) : undefined}
           onTowerDown={onTowerDown} onStrata={onStrata} onFreePlay={onFreePlay}
         />
@@ -65,7 +68,7 @@ export function JourneyApp({ onTowerDown, onStrata, onFreePlay }: JourneyAppProp
       ) : (
         <EndingScreen
           ending={tower(ending(s))} res={s.res} limit={LIMIT} log={s.log} choiceNames={choiceNamesFor(s.seed)}
-          onAgain={() => { save(null); setSaved(null); setS(startJourney()); }}
+          onAgain={() => { save(null); setSaved(null); setS(startJourney(freshSeed())); }}
         />
       )}
       <SoundToggle />
@@ -82,7 +85,7 @@ function Leg({ s, play, toTitle }: { s: JourneyState; play: (s: JourneyState) =>
     <Suspense fallback={<p role="status" className="g-muted">Loading the Descent…</p>}>
       <LiveScreen
         key={`${s.legIndex}-${s.attempt}-${s.log.length}`}
-        mission={cur.mission} legId={cur.legId} journeyMode
+        mission={cur.mission} legId={cur.legId} attempt={s.attempt} seed={s.seed} journeyMode
         onLegEnd={(r: LegResult) => play(completeLeg(s, r))}
         onExit={(e: MouseEvent<HTMLAnchorElement>) => { e.preventDefault(); toTitle(); }}
       />

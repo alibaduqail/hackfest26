@@ -6,25 +6,27 @@ import { campEvent, choose, completeLeg, currentLeg, ending, lastReveal, LIMIT, 
 import { LEGS, TUNING } from "./journey-events";
 import type { Command } from "./types";
 
+// Floods are seeded per journey now. Seed 34 draws candidate 0 (the original floods) on all three levels for the first try, which is what these tuning numbers are measured on.
+const SEED = 34;
 const place = (ids: string[], atTick = 0): Command[] => ids.map((sectorId) => ({ type: "placeBeacon", sectorId, atTick }));
 const idx = (s: JourneyState) => s.legIndex;
 
 /** Play the current leg on the real engine with up to `budget` commands, and report it the way the screen will. */
 function play(s: JourneyState, cmds: Command[]): LegResult {
   const { legId, mission } = currentLeg(s);
-  const goals = DESCENT_LEVELS[idx(s)].goals;
+  const goals = DESCENT_LEVELS[idx(s)].goalsFor({ seed: s.seed, attempt: s.attempt });
   const placed = cmds.slice(0, mission.beaconBudget ?? 0);
   const o = playRun(mission, "echo", placed);
   const hold = o.log.find((l) => l.kind === "hold" && l.podId === "MED-1")?.tick;
   const stars = goals.reduce<0 | 1 | 2 | 3>((n, g) => (o.mara !== null && o.mara <= g.maraBy && (g.medicineBy === undefined || (o.medicine !== null && o.medicine <= g.medicineBy)) ? g.stars : n), 0);
   return { legId, stars, maraAt: o.mara, medicineAt: o.medicine, beaconsPlaced: placed.length, ticks: o.mara ?? hold ?? mission.endTick };
 }
-const solution = (s: JourneyState) => DESCENT_LEVELS[idx(s)].solution;
+const solution = (s: JourneyState) => DESCENT_LEVELS[idx(s)].solutionFor({ seed: s.seed, attempt: s.attempt });
 const warn = (s: JourneyState) => place(LEGS[idx(s)].minWin);
 
 /** A scripted journey: choice per camp (by event order) + a command policy per attempt. */
 function run(choices: string[], cmds: (s: JourneyState, attempt: number) => Command[]): JourneyState {
-  let s = startJourney();
+  let s = startJourney(SEED);
   const picks = [...choices];
   for (let guard = 0; guard < 30 && s.phase !== "ending"; guard++) {
     if (s.phase === "camp") s = choose(s, picks.shift() ?? "retry");
@@ -34,7 +36,7 @@ function run(choices: string[], cmds: (s: JourneyState, attempt: number) => Comm
 }
 
 test("the engine agrees with the minimum winning sets: the warning chain is worth a star, one beacon less is not", () => {
-  const s0 = startJourney();
+  const s0 = startJourney(SEED);
   for (let i = 0; i < 3; i++) {
     const s = { ...s0, legIndex: i, phase: "leg" as const };
     assert.ok(play(s, warn(s)).stars >= 1, `leg ${i} warning only`);
@@ -68,7 +70,7 @@ test("a careless journey (two failures, then trusting the tower) ends Too late",
 });
 
 test("failure cost: clock += ticks + 15, placed beacons lost, -1 dose, retry the same leg from a retry camp", () => {
-  let s = choose(startJourney(), "extra-medicine"); // 13 beacons, 8 doses
+  let s = choose(startJourney(SEED), "extra-medicine"); // 13 beacons, 8 doses
   const before = s.res;
   const r = play(s, place(["link0", "link1", "link2"])); // 3 route beacons, no warning: Mara is trapped
   assert.equal(r.stars, 0);
@@ -84,7 +86,7 @@ test("failure cost: clock += ticks + 15, placed beacons lost, -1 dose, retry the
 });
 
 test("soft-lock guard: Scavenge appears below the smallest winning set, stays in camp, and repeats until you can win", () => {
-  let s: JourneyState = { ...startJourney(), legIndex: 1, phase: "camp", res: { beacons: 1, clock: 100, doses: 3 } }; // leg 2 needs 4
+  let s: JourneyState = { ...startJourney(SEED), legIndex: 1, phase: "camp", res: { beacons: 1, clock: 100, doses: 3 } }; // leg 2 needs 4
   assert.ok(campEvent(s).choices.some((c) => c.id === "scavenge"));
   s = choose(s, "scavenge");
   assert.deepEqual([s.phase, s.res.beacons, s.res.clock], ["camp", 3, 125]);
@@ -94,13 +96,13 @@ test("soft-lock guard: Scavenge appears below the smallest winning set, stays in
   assert.ok(!campEvent(s).choices.some((c) => c.id === "scavenge"));
   assert.equal(choose(s, "verify-beacons").phase, "leg");
   // and a retry camp offers it too
-  const failed = completeLeg({ ...startJourney(), phase: "leg", res: { beacons: 1, clock: 0, doses: 6 } }, { legId: "descent1", stars: 0, maraAt: null, medicineAt: null, beaconsPlaced: 1, ticks: 70 });
+  const failed = completeLeg({ ...startJourney(SEED), phase: "leg", res: { beacons: 1, clock: 0, doses: 6 } }, { legId: "descent1", stars: 0, maraAt: null, medicineAt: null, beaconsPlaced: 1, ticks: 70 });
   assert.ok(campEvent(failed).choices.some((c) => c.id === "scavenge"));
 });
 
 test("tower lie: Trust sets revealLead 0 for leg 2 only; Verify leaves the normal reveal", () => {
   const base = (id: string) => {
-    let s = choose(startJourney(), "leave-now");
+    let s = choose(startJourney(SEED), "leave-now");
     s = completeLeg(s, play(s, solution(s)));
     assert.equal(campEvent(s).id, "tower-lies");
     return choose(s, id);
@@ -117,7 +119,7 @@ test("tower lie: Trust sets revealLead 0 for leg 2 only; Verify leaves the norma
 });
 
 test("leg budget is min(leg cap, beacons carried) and goes into the mission", () => {
-  const s = choose(startJourney(), "leave-now");
+  const s = choose(startJourney(SEED), "leave-now");
   assert.deepEqual([currentLeg(s).mods.budget, currentLeg(s).mission.beaconBudget], [5, 5]);
   const poor = { ...s, res: { ...s.res, beacons: 3 } };
   assert.deepEqual([currentLeg(poor).mods.budget, currentLeg(poor).mission.beaconBudget], [3, 3]);
@@ -127,7 +129,7 @@ test("deterministic: the same seed and choices replay to the same state; pure fu
   const a = run(["extra-beacons", "verify-beacons", "check-credential"], solution);
   const b = run(["extra-beacons", "verify-beacons", "check-credential"], solution);
   assert.deepEqual(a, b);
-  const s0 = startJourney();
+  const s0 = startJourney(SEED);
   const snap = JSON.stringify(s0);
   choose(s0, "extra-beacons");
   assert.equal(JSON.stringify(s0), snap);
@@ -145,10 +147,10 @@ test("both endings are reachable, including running out of doses", () => {
 });
 
 test("Leave now really saves 15 minutes (the clock starts above zero, so the saving is not clamped away)", () => {
-  const s = choose(startJourney(), "leave-now");
+  const s = choose(startJourney(SEED), "leave-now");
   assert.equal(s.res.clock, TUNING.start.clock - 15);
-  assert.ok(s.res.clock > 0 && s.res.clock < startJourney().res.clock);
-  assert.equal(choose(startJourney(), "extra-beacons").res.clock, TUNING.start.clock);
+  assert.ok(s.res.clock > 0 && s.res.clock < startJourney(SEED).res.clock);
+  assert.equal(choose(startJourney(SEED), "extra-beacons").res.clock, TUNING.start.clock);
 });
 
 test("currentLeg throws a clear error outside a leg instead of a TypeError", () => {
@@ -158,7 +160,7 @@ test("currentLeg throws a clear error outside a leg instead of a TypeError", () 
 });
 
 test("completeLeg ignores a stale or malformed result (wrong leg, NaN ticks)", () => {
-  const s = choose(startJourney(), "leave-now");
+  const s = choose(startJourney(SEED), "leave-now");
   const ok = play(s, solution(s));
   assert.equal(completeLeg(s, { ...ok, legId: "descent2" }), s);
   assert.equal(completeLeg(s, { ...ok, ticks: NaN }), s);

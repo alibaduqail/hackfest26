@@ -15,6 +15,7 @@ export interface LiveDebriefProps {
   onWatchSolution?: () => void;
   retryLabel?: string; // journey mode: "Retry leg" (and the R key is then LiveScreen's)
   nextLabel?: string; // journey mode: "Continue the journey"
+  endReason?: string; // why the run ended (observation.endReason), shown under the result
   note?: string; // a line above the buttons (the cost of a retry)
 }
 
@@ -23,11 +24,11 @@ const isMargin = (l: string) => /^(Next star|Best possible)/.test(l);
 
 function nextStep(stars: number, o: RunOutcome): string | null {
   if (stars >= 3) return null;
-  if (stars === 0) return o.mara === null ? "Put beacons on the flooding shaft and the link before it, before the flood lands." : "Light Mara's route so she is not waiting blind.";
+  if (stars === 0) return o.mara === null ? "Beacon the shafts on Mara's route so the warning can reach her the moment the flood is called." : "Light Mara's route so she is not waiting blind.";
   return "Beacon the relay track early to cut blind waits.";
 }
 
-export function LiveDebrief({ mission, commands, stars, onRetry, onNext, onWatchSolution, retryLabel = "Retry", nextLabel = "Next level", note }: LiveDebriefProps) {
+export function LiveDebrief({ mission, commands, stars, onRetry, onNext, onWatchSolution, retryLabel = "Retry", nextLabel = "Next level", endReason, note }: LiveDebriefProps) {
   const base = useMemo(() => runBaseline(mission, commands), [mission, commands]);
   const lines = useMemo(() => explainRun(base.you.log, mission).map((l) => displayLocations(l).replace(/^./, (c) => c.toUpperCase())), [base, mission]);
   const why = lines.filter((l) => !isMargin(l));
@@ -38,6 +39,7 @@ export function LiveDebrief({ mission, commands, stars, onRetry, onNext, onWatch
     <section className="live-debrief live-debrief2" aria-label="Run result">
       <div className="eyebrow">RUN COMPLETE</div>
       <h2>{stars ? "Clinic supplied" : "Deadline missed"}</h2>
+      {endReason && <p className="live-end-reason">{endReason}</p>}
       <p className="live-stars" aria-label={stars + " of 3 stars"}>{"★".repeat(stars)}{"☆".repeat(3 - stars)}</p>
       {margin && <p className="live-margin">{margin}</p>}
       <h3>What happened</h3>

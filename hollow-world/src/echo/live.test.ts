@@ -2,7 +2,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createEngine } from "./engine";
-import { DESCENT_LIVE_GOALS, DESCENT_LIVE_SOLUTION, descent, descentLive, descentLiveStars } from "./descent";
+import { BEACON_BUILD_TICKS, DESCENT_LIVE_GOALS, DESCENT_LIVE_SOLUTION, descent, descentLive, descentLiveStars } from "./descent";
 import { validateMission } from "./missions";
 import type { Command, LogEvent, Mission, Mode, Observation } from "./types";
 
@@ -36,19 +36,19 @@ test("placeBeacon: same mission and commands give an identical log, whatever ord
   assert.deepEqual(a.log, b.log);
   assert.deepEqual(a.obs, b.obs);
   assert.deepEqual(a.log, c.log, "queued commands apply in (atTick, sectorId) order");
-  assert.deepEqual(placed(a.log).map((l) => [l.tick, l.sectorId]), DESCENT_LIVE_SOLUTION.map((x) => [(x as { atTick: number }).atTick, (x as { sectorId: string }).sectorId]));
+  assert.deepEqual(placed(a.log).map((l) => [l.tick, l.sectorId]), DESCENT_LIVE_SOLUTION.map((x) => [(x as { atTick: number }).atTick + BEACON_BUILD_TICKS, (x as { sectorId: string }).sectorId])); // each goes live BEACON_BUILD_TICKS after its command
 });
 
 test("placeBeacon: applies at the start of its tick, before the protocol, and sets sector.beacon", () => {
   const e = createEngine(descentLive(), "echo");
   assert.deepEqual(e.act(place("link0", 3)), { ok: true });
-  e.step(3);
-  assert.ok(e.observe().sectors.find((s) => s.id === "link0")!.beacon !== true, "not yet at tick 3 (steps 0..2 done)");
+  e.step(BEACON_BUILD_TICKS + 3); // steps 0..4 done: the command is at tick 3, the beacon goes live at tick 5
+  assert.ok(e.observe().sectors.find((s) => s.id === "link0")!.beacon !== true, "not yet at tick 5 (steps 0..4 done)");
   e.step();
   const o = e.observe();
   assert.equal(o.sectors.find((s) => s.id === "link0")!.beacon, true);
   const ev = o.log.find((l) => l.kind === "beacon-placed")!;
-  assert.deepEqual([ev.tick, ev.sectorId, ev.podId], [3, "link0", undefined]);
+  assert.deepEqual([ev.tick, ev.sectorId, ev.podId], [3 + BEACON_BUILD_TICKS, "link0", undefined]);
   // the mission data is never mutated
   assert.equal(descentLive().world.sectors.find((s) => s.id === "link0")!.beacon, false);
 });
@@ -106,7 +106,7 @@ test("a live beacon removes a blind wait", () => {
   const blind = dark.log.find((l) => l.kind === "blind" && l.podId === "MED-1" && l.sectorId === "link0")!;
   const enterDark = firstTick(dark.log, (l) => l.kind === "enter" && l.podId === "MED-1" && l.sectorId === "link0")!;
   assert.ok(enterDark - blind.tick >= 3, "dark: MED-1 waits at least 3 minutes before entering");
-  const lit = run([place("link0", blind.tick + 1)]);
+  const lit = run([place("link0", blind.tick - 1)]); // goes live at blind.tick + 1, in the middle of the 3-minute wait
   const enterLit = firstTick(lit.log, (l) => l.kind === "enter" && l.podId === "MED-1" && l.sectorId === "link0")!;
   assert.ok(enterLit < enterDark, "beacon lands mid-wait: MED-1 goes in at once");
   assert.ok(enterLit <= blind.tick + 2);
@@ -136,9 +136,9 @@ test("a live beacon lets seal news arrive, and only hops through it from the tic
   const eager = front([place("main1", 0), place("main0", 0), place("trunk2", 0)]);
   assert.deepEqual([eager.get("main1"), eager.get("main0"), eager.get("trunk2")], [41, 42, 43]);
   const late = front([place("main1", 0), place("main0", 0), place("trunk2", 60)]);
-  assert.deepEqual([late.get("main1"), late.get("main0"), late.get("trunk2")], [41, 42, 60], "trunk2 hears at the tick its beacon goes live");
+  assert.deepEqual([late.get("main1"), late.get("main0"), late.get("trunk2")], [41, 42, 60 + BEACON_BUILD_TICKS], "trunk2 hears at the tick its beacon goes live");
   // a beacon on the sealed sector placed after the seal starts the news then
-  assert.equal(front([place("main1", 50), place("main0", 0)]).get("main0"), 51);
+  assert.equal(front([place("main1", 50), place("main0", 0)]).get("main0"), 51 + BEACON_BUILD_TICKS);
 });
 
 test("stars: no live beacons 0, a decent play 2, the stored solution 3, all within budget", () => {
@@ -188,7 +188,8 @@ test("a pod that never heard the flood is legibly stuck: seal-heard then hold at
   assert.equal(mara[0].sectorId, "main1");
   assert.match(mara[1].text, /no way around the seal/);
   const med = r.obs.pods.find((p) => p.id === "MED-1")!;
-  assert.deepEqual([med.status, med.path[med.at], r.obs.tick, r.obs.over], ["holding", "main0", 120, true], "holding at the end of main0, facing the sealed main1");
+  assert.deepEqual([med.status, med.path[med.at], r.obs.tick, r.obs.over], ["holding", "main0", 72, true], "holding at the end of main0, facing the sealed main1; the run ends at once (early end), not at t120");
+  assert.match(r.obs.endReason!, /Mara is trapped/);
   assert.equal(med.path[med.at + 1], "main1");
 });
 
