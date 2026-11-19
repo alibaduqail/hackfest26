@@ -65,3 +65,10 @@ test("debrief headline agrees with the result: a 0-star run that reached the cli
   assert.match(html, /Continue anyway/);
   assert.doesNotMatch(debrief([], 0), /Continue anyway/);
 });
+
+test("debrief, solution replay: labelled, no stars, no next level, no credit hints", () => {
+  const html = debrief(DESCENT_LIVE_SOLUTION, 3, { replay: true, onNext: noop, onContinue: noop, onWatchSolution: noop, retryLabel: "Play yourself" });
+  assert.match(html, /Solution replay<\/p>/);
+  assert.doesNotMatch(html, /of 3 stars|★|Next level|Continue anyway|Best possible|Next star/);
+  assert.match(html, /Play yourself/);
+});

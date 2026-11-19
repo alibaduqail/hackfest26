@@ -71,7 +71,7 @@ function holds(o: Observation, c: Cond): boolean {
 }
 function say(c: Cond): string {
   const by = c.by === undefined ? "" : ` by minute ${c.by}`;
-  if (c.what === "mara") return `Mara reaches Lagos${by}`;
+  if (c.what === "mara") return `Mara reaches Lagos Deep${by}`;
   if (c.what === "nurses") return `all nurses arrive${by}`;
   if (c.half) return `half the supply runs arrive${by}`;
   return c.by === undefined ? "all supply runs arrive" : `the last supply run arrives${by}`;
@@ -120,7 +120,7 @@ const builder = (name: string): (() => Mission) | null => {
 export const CAMPAIGN: CampaignMission[] = [
   {
     id: "tower-down", number: 1, name: "Tower Down",
-    hook: "The tower goes dark. Get Nurse Mara Vale to Lagos.",
+    hook: "The tower goes dark. Get Nurse Mara Vale to Lagos Deep.",
     ...fromStory("tower-down"),
     objectives: goals("tower-down"),
     allowDispatch: true, defaultSpeed: 10, build: builder("towerDown"),
