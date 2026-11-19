@@ -94,20 +94,44 @@ export function descent(): Mission {
 
 // ---- Live play: the Relay places beacons during the run (placeBeacon commands). See DESCENT.md "Live play". ----
 
-/** Options every live level builder accepts. `attempt` seeds the flood location; `revealLead` is how many ticks before a seal its
- * telegraph (sector and minute) becomes visible (default DEFAULT_REVEAL_LEAD; 0 = no advance reveal, the seal is first visible when it fires). */
+/** Options every live level builder accepts. `seed` and `attempt` pick the flood location (see pickFlood); `revealLead` is how many ticks before a
+ * seal its telegraph (sector and minute) becomes visible (default DEFAULT_REVEAL_LEAD; 0 = no advance reveal, the seal is first visible when it fires). */
 export interface LevelOpts {
+  seed?: number;
   attempt?: number;
   revealLead?: number;
 }
 export const DEFAULT_REVEAL_LEAD = 8;
 export const BEACON_BUILD_TICKS = 2; // a placed beacon goes live this many ticks after the command
-/** A builder argument is either an attempt number or an options object. */
-export const levelOpts = (a: number | LevelOpts = {}): Required<LevelOpts> => {
+/** A builder argument is either an attempt number or an options object. `seed` stays undefined when not given (that means "candidate 0 first"). */
+export const levelOpts = (a: number | LevelOpts = {}): { seed: number | undefined; attempt: number; revealLead: number } => {
   const o = typeof a === "number" ? { attempt: a } : a;
-  return { attempt: Math.max(0, Math.floor(o.attempt ?? 0)), revealLead: Math.max(0, Math.floor(o.revealLead ?? DEFAULT_REVEAL_LEAD)) };
+  return { seed: o.seed, attempt: Math.max(0, Math.floor(o.attempt ?? 0)), revealLead: Math.max(0, Math.floor(o.revealLead ?? DEFAULT_REVEAL_LEAD)) };
 };
-/** Deterministic pick of one of `n` candidates from the attempt number (attempt 0 is always candidate 0; no Math.random). */
+/** Seeded PRNG (mulberry32): deterministic, no Math.random. */
+export function mulberry32(seed: number): () => number {
+  let a = seed | 0;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+/** Which of `n` flood candidates a level uses. Attempt 0 is drawn from the seed; every later attempt is drawn from the other candidates, so two
+ * consecutive attempts never get the same flood. With no seed, attempt 0 is candidate 0 (the original flood) and the chain continues from seed 0. */
+export function pickFlood(levelIndex: number, n: number, o: { seed?: number; attempt?: number } = {}): number {
+  if (n <= 1) return 0;
+  const rng = mulberry32(Math.imul((o.seed ?? 0) | 0, 0x9e3779b1) ^ Math.imul(levelIndex + 1, 0x85ebca6b));
+  const first = rng();
+  let c = o.seed === undefined ? 0 : Math.floor(first * n);
+  for (let i = 1; i <= Math.max(0, Math.floor(o.attempt ?? 0)); i++) {
+    const r = Math.floor(rng() * (n - 1));
+    c = r >= c ? r + 1 : r;
+  }
+  return c;
+}
+/** Older deterministic pick from the attempt number alone; kept for callers that predate seeds. */
 export const pickCandidate = (attempt: number, n: number): number => (attempt === 0 ? 0 : (Math.imul(attempt, 2654435761) >>> 16) % n);
 
 export type Goals = { stars: 1 | 2 | 3; maraBy: number; medicineBy?: number; text: string }[];
@@ -117,6 +141,7 @@ export interface LiveCandidate {
   at: number; // and when
   goals: Goals; // star table, calibrated for this candidate by scenarios/live-search.ts
   solution: Command[]; // a replayable 3-star run; it reacts to the flood telegraph (a placement at or after sealAt - DEFAULT_REVEAL_LEAD)
+  seals?: { at: number; sectorId: string }[]; // further floods after the first (level 2's flood B); each telegraphs on its own
 }
 
 const LIVE_START = ["ramp0", "ramp1", "ramp2"]; // the L1 depot ramp and the first relay sector
@@ -185,8 +210,10 @@ export const DESCENT_LIVE_SOLUTION: Command[] = DESCENT_LIVE_CANDIDATES[0].solut
 /** The 3-star run of every candidate, by candidate id. */
 export const DESCENT_LIVE_SOLUTIONS: Record<string, Command[]> = Object.fromEntries(DESCENT_LIVE_CANDIDATES.map((c) => [c.id, c.solution]));
 
-export function descentLiveCandidateIndex(attempt = 0): number {
-  return pickCandidate(attempt, DESCENT_LIVE_CANDIDATES.length);
+/** Candidate index of descentLive(a): `a` is an attempt number or { seed, attempt }. */
+export function descentLiveCandidateIndex(a: number | LevelOpts = 0): number {
+  const { seed, attempt } = levelOpts(a);
+  return pickFlood(0, DESCENT_LIVE_CANDIDATES.length, { seed, attempt });
 }
 
 /** Same world and pods as descent(), but only LIVE_START has a beacon. Every other sector is a dead zone: a pod waits 3 minutes blind before
@@ -194,8 +221,8 @@ export function descentLiveCandidateIndex(attempt = 0): number {
  * only `revealLead` ticks before the seal (before that: "flood risk: main shaft"). Beacons take BEACON_BUILD_TICKS to go live and the run ends
  * as soon as it is decided (observation.endReason). Run is longer than descent() so slow, unbeaconed runs can still arrive late and score. */
 export function descentLive(a: number | LevelOpts = 0): Mission {
-  const { attempt, revealLead } = levelOpts(a);
-  const c = DESCENT_LIVE_CANDIDATES[descentLiveCandidateIndex(attempt)];
+  const { revealLead } = levelOpts(a);
+  const c = DESCENT_LIVE_CANDIDATES[descentLiveCandidateIndex(a)];
   const m = descent();
   for (const s of m.world.sectors) s.beacon = LIVE_START.includes(s.id);
   return {
@@ -210,6 +237,6 @@ export function starsFor(goals: Goals, pods: Pick<Pod, "id" | "arriveTick">[]): 
   return goals.reduce<0 | 1 | 2 | 3>((n, g) => (by("MED-1", g.maraBy) && (g.medicineBy === undefined || by("SUP-3", g.medicineBy)) ? g.stars : n), 0);
 }
 
-/** Stars of a finished live run of `descentLive(attempt)`. */
-export const descentLiveStars = (pods: Pick<Pod, "id" | "arriveTick">[], attempt = 0): 0 | 1 | 2 | 3 =>
-  starsFor(DESCENT_LIVE_CANDIDATES[descentLiveCandidateIndex(attempt)].goals, pods);
+/** Stars of a finished live run of `descentLive(a)` (same `a`: attempt number or { seed, attempt }). */
+export const descentLiveStars = (pods: Pick<Pod, "id" | "arriveTick">[], a: number | LevelOpts = 0): 0 | 1 | 2 | 3 =>
+  starsFor(DESCENT_LIVE_CANDIDATES[descentLiveCandidateIndex(a)].goals, pods);

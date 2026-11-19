@@ -6,8 +6,8 @@
 // of her. Lighting the junction removes that asymmetric head start so her priority actually keeps her moving; the flood
 // warning is still required to arrive at all. descent(), descentLive() and descentLive2() are untouched.
 import { sign } from "./credential";
-import { BEACON_BUILD_TICKS, levelOpts } from "./descent";
-import type { LevelOpts } from "./descent";
+import { BEACON_BUILD_TICKS, levelOpts, pickFlood, starsFor } from "./descent";
+import type { Goals, LevelOpts, LiveCandidate } from "./descent";
 import type { City, Command, Mission, Pod, Sector, World } from "./types";
 import { findPath } from "./world";
 
@@ -72,7 +72,8 @@ const LIVE_START_3 = ["ramp0", "ramp1", "ramp2", "spur0", "spur1", "spur2", "pax
  * begins; a second forged pod and two passengers add more traffic behind it, right as the shaft floods downstream.
  * Only LIVE_START_3 has a beacon. */
 export function descentLive3(a: number | LevelOpts = 0): Mission {
-  const { revealLead } = levelOpts(a); // one flood location only: the attempt number does not move this flood
+  const { revealLead } = levelOpts(a);
+  const c = DESCENT_LIVE_CANDIDATES_3[descentLiveCandidateIndex3(a)];
   const world: World = structuredClone({ cities, sectors });
   for (const s of world.sectors) s.beacon = LIVE_START_3.includes(s.id);
   const ghost1: Pod = { ...pod("GHOST-1", "GHOST-1 · Medical courier", "medical", "ghostSrc", "clinic3", 0, world, { ghost: true, nurse: false, sig: "forged" }), status: "moving" };
@@ -89,7 +90,7 @@ export function descentLive3(a: number | LevelOpts = 0): Mission {
   return {
     id: "descent-live-3", title: "The Descent (live) III: Forged Rush", seed: 20261120, world, endTick: T3.end,
     towerDownAt: T3.towerDown, towerRatePerHour: 30, towerInflation: 14,
-    sealAt: T3.seal, sealSectorId: "main1", beaconBudget: 6, pods,
+    sealAt: c.at, sealSectorId: c.sectorId, beaconBudget: 6, pods,
     floodReveal: { lead: revealLead, risk: ["flood risk: main shaft"] }, beaconBuildTicks: BEACON_BUILD_TICKS, earlyEnd: true,
   };
 }
@@ -102,16 +103,11 @@ export function descentLive3(a: number | LevelOpts = 0): Mission {
  * Full budget without the junction, best routing: 99/123 (2 stars). Full budget with the junction but no bypass speed:
  * 81/105 (2 stars — the junction alone is not enough either). Full budget with both: 78/102, the best of 20 tied
  * 6-beacon layouts (3 stars). */
-export const DESCENT_LIVE_GOALS_3: { stars: 1 | 2 | 3; maraBy: number; medicineBy?: number; text: string }[] = [
+export const DESCENT_LIVE_GOALS_3: Goals = [
   { stars: 1, maraBy: 111, text: "Warn the flood: Nurse Mara reaches the deep clinic by minute 111." },
   { stars: 2, maraBy: 99, medicineBy: 123, text: "Mara by minute 99 and the medicine by minute 123." },
   { stars: 3, maraBy: 78, medicineBy: 102, text: "Mara by minute 78 and the medicine by minute 102." },
 ];
-
-export function descentLiveStars3(pods: Pick<Pod, "id" | "arriveTick">[]): 0 | 1 | 2 | 3 {
-  const by = (id: string, t = Infinity) => (pods.find((p) => p.id === id)?.arriveTick ?? Infinity) <= t;
-  return DESCENT_LIVE_GOALS_3.reduce<0 | 1 | 2 | 3>((n, g) => (by("MED-1", g.maraBy) && (g.medicineBy === undefined || by("SUP-3", g.medicineBy)) ? g.stars : n), 0);
-}
 
 /** A replayable run worth 3 stars (Mara t78, medicine t102): light the whole junction trunk early (so Mara wins the
  * race the instant GHOST-1 vacates it), then the flood warning (main1, main0), then one bypass beacon ahead of Mara on
@@ -124,3 +120,55 @@ export const DESCENT_LIVE_SOLUTION_3: Command[] = [
   { type: "placeBeacon", sectorId: "main0", atTick: 41 },
   { type: "placeBeacon", sectorId: "byp0", atTick: 42 },
 ];
+
+// Flood candidates (seeded by descentLive3 options). Calibrated by scenarios/live-search3.ts over every placement set within budget. The junction
+// beacons are common to every flood, so ladders were chosen so that no placement set earns stars on every candidate (blind play at t0 averages
+// at most 1 star). Two of them are single-run levels: main2 (the news must hop three sectors, or round the whole bypass) and main0 (the seal is at
+// the fork mouth, so Mara sees it with no news and the whole budget is speed). Their upper stars share one run.
+export const DESCENT_LIVE_CANDIDATES_3: LiveCandidate[] = [
+  { id: "main1", sectorId: "main1", at: T3.seal, goals: DESCENT_LIVE_GOALS_3, solution: DESCENT_LIVE_SOLUTION_3 },
+  {
+    // main2 at t50: junction, the whole bypass lit, and main2 to seed the news. Mara t75, medicine t99.
+    id: "main2", sectorId: "main2", at: 50,
+    goals: [
+      { stars: 1, maraBy: 99, text: "Warn the flood: Nurse Mara reaches the deep clinic by minute 99." },
+      { stars: 2, maraBy: 75, medicineBy: 104, text: "Mara by minute 75 and the medicine by minute 104." },
+      { stars: 3, maraBy: 75, medicineBy: 99, text: "Mara by minute 75 and the medicine by minute 99." },
+    ],
+    solution: [
+      { type: "placeBeacon", sectorId: "trunk0", atTick: 5 },
+      { type: "placeBeacon", sectorId: "main2", atTick: 42 }, // the telegraph appears at t42 (8 ticks before the seal)
+      { type: "placeBeacon", sectorId: "byp3", atTick: 43 },
+      { type: "placeBeacon", sectorId: "byp2", atTick: 44 },
+      { type: "placeBeacon", sectorId: "byp1", atTick: 45 },
+      { type: "placeBeacon", sectorId: "byp0", atTick: 46 },
+    ],
+  },
+  {
+    // main0 at t46: the seal is at the fork mouth; no warning, all speed: light the junction and the bypass. Mara t72, medicine t96.
+    id: "main0", sectorId: "main0", at: 46,
+    goals: [
+      { stars: 1, maraBy: 72, text: "Speed her down: Nurse Mara reaches the deep clinic by minute 72." },
+      { stars: 2, maraBy: 72, medicineBy: 101, text: "Mara by minute 72 and the medicine by minute 101." },
+      { stars: 3, maraBy: 72, medicineBy: 96, text: "Mara by minute 72 and the medicine by minute 96." },
+    ],
+    solution: [
+      { type: "placeBeacon", sectorId: "trunk0", atTick: 5 },
+      { type: "placeBeacon", sectorId: "trunk1", atTick: 18 },
+      { type: "placeBeacon", sectorId: "trunk2", atTick: 22 },
+      { type: "placeBeacon", sectorId: "byp0", atTick: 38 }, // the telegraph appears at t38
+      { type: "placeBeacon", sectorId: "byp1", atTick: 39 },
+      { type: "placeBeacon", sectorId: "byp2", atTick: 40 },
+    ],
+  },
+];
+export const DESCENT_LIVE_SOLUTIONS_3: Record<string, Command[]> = Object.fromEntries(DESCENT_LIVE_CANDIDATES_3.map((c) => [c.id, c.solution]));
+
+/** Candidate index of descentLive3(a): `a` is an attempt number or { seed, attempt }. */
+export function descentLiveCandidateIndex3(a: number | LevelOpts = 0): number {
+  const { seed, attempt } = levelOpts(a);
+  return pickFlood(2, DESCENT_LIVE_CANDIDATES_3.length, { seed, attempt });
+}
+
+/** Stars of a finished run of `descentLive3(a)`. */
+export const descentLiveStars3 = (pods: Pick<Pod, "id" | "arriveTick">[], a: number | LevelOpts = 0): 0 | 1 | 2 | 3 => starsFor(DESCENT_LIVE_CANDIDATES_3[descentLiveCandidateIndex3(a)].goals, pods);
