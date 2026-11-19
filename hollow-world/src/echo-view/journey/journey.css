@@ -178,7 +178,7 @@
 .j-score2 span { font: 400 14px/1.4 var(--label, var(--mono)); color: var(--muted); }
 .j-end2 .j-supply { margin-top: 24px; }
 .j-again { position: relative; width: 0; height: 56px; margin-top: 32px; }
-.j-again .rl-bar { position: absolute; left: 0; top: 50%; transform: translate(calc(-1 * var(--rl-padx) - var(--rl-dot) / 2), -50%); }
+.j-again .rl-bar { --rl-padx: 14px; position: absolute; left: 0; top: 50%; transform: translate(calc(-1 * var(--rl-padx)), -50%); }
 .j-again .rl-node { flex-direction: row-reverse; }
 
 .j-er { position: relative; z-index: 1; display: flex; align-items: center; padding: 40px 0; min-width: 0; animation: j-fade .6s .1s ease-out both; }
