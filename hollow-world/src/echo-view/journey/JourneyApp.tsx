@@ -3,7 +3,7 @@
 import { lazy, Suspense, useMemo, useState, type MouseEvent } from "react";
 import { campEvent, choose, completeLeg, currentLeg, ending, LIMIT, startJourney, type JourneyState, type LegResult } from "../../echo/journey";
 import { Backdrop } from "../game/Backdrop";
-import { SoundToggle } from "../game/SoundToggle";
+import { SettingsGear } from "../game/SettingsGear";
 import { CampScreen } from "./CampScreen";
 import { EndingScreen } from "./EndingScreen";
 import { choiceNamesFor } from "./helpers";
@@ -45,13 +45,13 @@ export function JourneyApp({ onTowerDown, onStrata, onFreePlay }: JourneyAppProp
   if (!s) {
     return (
       <>
-        <Backdrop />
+        <div className="j-title-bg" aria-hidden="true" />
         <TitleScreen
           onBegin={() => play(startJourney(freshSeed()))}
           onContinue={saved ? () => setS(saved) : undefined}
           onTowerDown={onTowerDown} onStrata={onStrata} onFreePlay={onFreePlay}
         />
-        <SoundToggle />
+        <SettingsGear />
       </>
     );
   }
@@ -71,7 +71,7 @@ export function JourneyApp({ onTowerDown, onStrata, onFreePlay }: JourneyAppProp
           onAgain={() => { save(null); setSaved(null); setS(startJourney(freshSeed())); }}
         />
       )}
-      <SoundToggle />
+      <SettingsGear />
     </>
   );
 }

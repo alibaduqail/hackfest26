@@ -4,6 +4,9 @@
 
 /* title */
 /* the title itself is Relay + .g-title from game.css; only the choice focus ring lives here */
+/* title backdrop: the 2D pixel-art Descent cutaway (bundled by Vite) under the mockup's radial shade; replaces game.css's .g-title dimmer on this screen */
+.j-title-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(ellipse 55% 45% at 50% 46%, rgba(13,18,22,.55), rgba(13,18,22,.82) 70%, rgba(13,18,22,.94)), url("../cutaway/art/descent.webp") center / cover no-repeat, #0d1216; image-rendering: pixelated; }
+.j-title::before { display: none; }
 .j-choice:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; border-radius: 4px; }
 
 /* supply bar */
