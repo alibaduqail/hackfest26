@@ -178,7 +178,6 @@
 .j-score2 { display: flex; align-items: baseline; gap: 12px; margin: 20px 0 0; font-variant-numeric: tabular-nums; }
 .j-score2 b { font: 800 112px/1 var(--display); font-variation-settings: "opsz" 144; letter-spacing: -.02em; color: var(--amberHi); }
 .j-score2 span { font: 400 14px/1.4 var(--label, var(--mono)); color: var(--muted); }
-.j-end2 .j-line { margin-top: 12px; }
 .j-end2 .j-supply { margin-top: 24px; }
 .j-again { position: relative; width: 0; height: 56px; margin-top: 32px; }
 .j-again .rl-bar { position: absolute; left: 0; top: 50%; transform: translate(calc(-1 * var(--rl-padx) - var(--rl-dot) / 2), -50%); }
