@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { LIMIT } from "../../echo/journey";
 import { RelayButton } from "../relay/Relay";
-import { applyEffect, formatEffect, LEG_IDS, LEG_NAMES, trailModel } from "./helpers";
+import { applyEffect, formatEffect, LEG_IDS, LEG_NAMES, retryCosts, trailModel } from "./helpers";
 import { useEnterKey } from "./keys";
 import type { CampScreenProps } from "./props";
 import { SupplyLine } from "./ResourceBar";
@@ -150,7 +150,7 @@ export function CampScreen({ event, res, limit = LIMIT, legIndex, attempt, log, 
         <div className="j-forks" role="group" aria-label="Choices">
           {event.choices.map((c, i) => {
             const state = picked === null ? "" : c.id === picked ? " picked" : " passed";
-            const costs = formatEffect(c.effect);
+            const costs = c.id === "retry" ? retryCosts(log) : formatEffect(c.effect);
             return (
               <button
                 key={c.id} ref={(el) => { btns.current[i] = el; }} type="button"

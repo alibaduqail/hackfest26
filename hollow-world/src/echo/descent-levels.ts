@@ -24,6 +24,14 @@ export interface DescentLevel {
   candidateIndex: (a?: number | LevelOpts) => number;
 }
 
+/** The star table of the flood a built mission carries (matched on its seal sector, minute and further seals). Falls back to candidate 0 for a mission no candidate matches. */
+export const goalsForMission = (m: Pick<Mission, "id" | "sealAt" | "sealSectorId" | "seals">): Goals | undefined => {
+  const l = DESCENT_LEVELS.find((x) => x.id === m.id);
+  if (!l) return undefined;
+  const key = (a: number | null | undefined, s: string | null | undefined, r: unknown) => JSON.stringify([a, s, r ?? []]);
+  return (l.candidates.find((c) => key(c.at, c.sectorId, c.seals) === key(m.sealAt, m.sealSectorId, m.seals)) ?? l.candidates[0]).goals;
+};
+
 /** Which flood candidate a level uses for { seed, attempt }: attempt 0 comes from the seed, later attempts never repeat the previous one. No seed means candidate 0 first. */
 export const floodCandidate = (levelIndex: number, o: number | LevelOpts = {}): number => DESCENT_LEVELS[levelIndex].candidateIndex(o);
 

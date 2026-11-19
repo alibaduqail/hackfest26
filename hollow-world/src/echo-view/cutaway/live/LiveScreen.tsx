@@ -7,7 +7,8 @@ import { play } from "../../game/audio";
 import { THEME } from "../../theme";
 import { SettingsGear } from "../../game/SettingsGear";
 import { applyLayout } from "../layouts";
-import { along, displayLocations, type Frame, podPose, tracks } from "../run";
+import { along, type Frame, neighbors, podPose, tracks } from "../run";
+import { plainText } from "./names";
 import { createScene, lamp } from "../scene";
 import "../style.css";
 import { hitSector, RAIL_HEIGHT, RAIL_WIDTH } from "./hit";
@@ -23,7 +24,7 @@ import "./live.css";
 import "./intro-debrief.css";
 
 const alertKinds = new Set(["blind", "beacon-placed", "credential-reject", "seal", "seal-heard", "hold", "reroute"]);
-const logLocation = (id: string) => displayLocations(id);
+const logLocation = (id: string) => plainText(id).replace(/^./, (c) => c.toUpperCase());
 
 function sceneFrame(obs: Observation, rejected = new Map<string, LogEvent>()): Frame {
   return {
@@ -56,7 +57,7 @@ export interface LiveScreenProps {
   journeyMode?: boolean;
   attempt?: number; // journey mode: the leg's failed tries so far, and the journey's seed: together they picked the flood candidate when the mission was built
   seed?: number;
-  onLegEnd?: (result: LegResult) => void;
+  onLegEnd?: (result: LegResult, opts?: { continueAnyway?: boolean }) => void;
 }
 
 export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = false, attempt: journeyAttempt = 0, seed: journeySeed, onLegEnd }: LiveScreenProps) {
@@ -100,6 +101,10 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
   // A beacon is live when its entry leaves observation.building (sector.beacon flips at readyAt + 1), so the countdown runs to readyAt inclusive.
   const liveIn = (id: string) => Math.max(1, building.get(id)! - obs.tick + 1);
   const sectionOrder = [...tracks.keys()];
+  // Mara's planned route (from the observation's pod path) and, while hovering, the beacons a new one would link to.
+  const route = new Set(mara.path);
+  const hoverTrack = hover ? tracks.get(hover) : undefined;
+  const linked = new Set(hoverTrack ? [...tracks].filter(([id, t]) => id !== hover && neighbors(hoverTrack, t)).map(([id]) => id) : []);
   const activeSector = tracks.get(mara.path[mara.at]);
   const over = live.ended;
   const warnSections = flood && warning
@@ -242,10 +247,10 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
     live.start();
   }
   /** Journey mode: hand the finished leg to the journey (a win moves on; a loss applies its cost and goes to the retry camp). Once only. */
-  function endLeg() {
+  function endLeg(continueAnyway = false) {
     if (finished.current || !onLegEnd || !legId) return;
     finished.current = true;
-    onLegEnd({ legId, stars, maraAt: mara.arriveTick, medicineAt: medicine.arriveTick, beaconsPlaced: live.commands.length, ticks: obs.tick });
+    onLegEnd({ legId, stars, maraAt: mara.arriveTick, medicineAt: medicine.arriveTick, beaconsPlaced: live.commands.length, ticks: obs.tick }, continueAnyway ? { continueAnyway } : undefined);
   }
   function restart(watch: boolean) {
     setIntroDone(true);
@@ -350,6 +355,13 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
             <canvas ref={ground} aria-hidden="true" />
             <canvas ref={lightCanvas} className="live-overlay" aria-hidden="true" />
             <div className="live-markers" aria-hidden="true">
+              {!over && !solution && (
+                <svg className="live-route" viewBox="0 0 1 1" preserveAspectRatio="none">
+                  {mara.path.map((id) => tracks.get(id)).filter((t) => !!t).map((t) => (
+                    <line key={t!.sectorId} x1={t!.a[0]} y1={t!.a[1]} x2={t!.b[0]} y2={t!.b[1]} />
+                  ))}
+                </svg>
+              )}
               {!over && obs.sectors.filter((s) =>
                 s.beacon === false || queued.has(s.id) || hover === s.id ||
                 live.events.some((e) => e.kind === "beacon-placed" && e.sectorId === s.id && e.tick === obs.tick - 1)
@@ -359,6 +371,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
                   className={"live-socket" + (queued.has(s.id) ? " queued" : "") + (building.has(s.id) ? " building" : "") +
                     ((hover ?? selected) === s.id ? " selected" : "") +
                     (hover === s.id && !canPlace(s.id) ? " invalid" : "") +
+                    (route.has(s.id) ? " on-route" : "") + (linked.has(s.id) ? " linked" : "") +
                     (warning && warnSections.includes(s.id) ? " warn-here" : "") +
                     (live.events.some((e) =>
                         e.kind === "beacon-placed" && e.sectorId === s.id && e.tick === obs.tick - 1
@@ -419,8 +432,8 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
             ? (
               journeyMode
                 ? won
-                  ? <LiveDebrief mission={mission} commands={live.commands} stars={stars} endReason={obs.endReason} onNext={endLeg} nextLabel="Continue the journey" />
-                  : <LiveDebrief mission={mission} commands={live.commands} stars={stars} endReason={obs.endReason} onRetry={endLeg} retryLabel="Retry leg"
+                  ? <LiveDebrief mission={mission} commands={live.commands} stars={stars} endReason={obs.endReason} onNext={() => endLeg()} nextLabel="Continue the journey" />
+                  : <LiveDebrief mission={mission} commands={live.commands} stars={stars} endReason={obs.endReason} onRetry={() => endLeg()} retryLabel="Retry leg" onContinue={() => endLeg(true)}
                       note={`Retrying costs ${obs.tick + 15} minutes on the clock, 1 dose${live.commands.length ? `, and the ${live.commands.length} beacon${live.commands.length === 1 ? "" : "s"} you placed` : ""}.`} />
                 : <LiveDebrief mission={mission} commands={live.commands} stars={stars} endReason={obs.endReason} onRetry={() => restart(false)} onWatchSolution={() => restart(true)} />
             )
@@ -489,7 +502,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
             {events.map((e) => (
               <li key={[e.tick, e.kind, e.podId, e.sectorId].join("/")}>
                 <time>t+{e.tick}</time>
-                <span>{displayLocations(e.text)}</span>
+                <span>{plainText(e.text)}</span>
               </li>
             ))}
           </ol>
@@ -501,7 +514,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
             {playing ? "Ⅱ Pause" : obs.tick === 0 ? "▶ Start run" : "▶ Resume"} <kbd>Space</kbd>
           </button>
           <div className="switch" role="group" aria-label="Run speed">
-            {([1, 2] as const).map((speed) => (
+            {([1, 2, 4] as const).map((speed) => (
               <button
                 key={speed}
                 aria-pressed={live.speed === speed}

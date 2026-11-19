@@ -148,7 +148,7 @@ export const DESCENT_LIVE_CANDIDATES_3: LiveCandidate[] = [
     // main0 at t46: the seal is at the fork mouth; no warning, all speed: light the junction and the bypass. Mara t72, medicine t96.
     id: "main0", sectorId: "main0", at: 46,
     goals: [
-      { stars: 1, maraBy: 72, text: "Speed her down: Nurse Mara reaches the deep clinic by minute 72." },
+      { stars: 1, maraBy: 107, text: "Speed her down: Nurse Mara reaches the deep clinic by minute 107." },
       { stars: 2, maraBy: 72, medicineBy: 101, text: "Mara by minute 72 and the medicine by minute 101." },
       { stars: 3, maraBy: 72, medicineBy: 96, text: "Mara by minute 72 and the medicine by minute 96." },
     ],

@@ -1,7 +1,7 @@
 // explainRun: 2-4 plain lines that say why a run went the way it did, built only from log events and the mission data.
 // Pass the complete log (RunOutcome.log from baseline.ts); observe().log keeps only the last 60 events and loses the early ones.
 // Never invents or rounds a number in the player's favour: every tick and margin below comes from an event.
-import { DESCENT_LEVELS } from "./descent-levels";
+import { goalsForMission } from "./descent-levels";
 import type { LogEvent, Mission, Pod } from "./types";
 
 const BLIND_MIN = 3; // protocol.ts BLIND_TICKS: a pod waits this long at an unbeaconed sector (can overlap queue time, so costs are "up to")
@@ -57,7 +57,7 @@ export function explainRun(log: LogEvent[], mission: Mission): string[] {
   else if (med && medArrived === null && stuck) lines.push("The medicine was trapped by the same flood.");
 
   // 4. margin to the next star (descent-live only): both deadlines, the way the star table judges them
-  const goals = DESCENT_LEVELS.find((l) => l.id === mission.id)?.goals;
+  const goals = goalsForMission(mission); // the star table of the flood this mission carries
   if (goals && arrived !== null) {
     const met = (g: (typeof goals)[number]) => arrived <= g.maraBy && (g.medicineBy === undefined || (medArrived !== null && medArrived <= g.medicineBy));
     const stars = goals.reduce((n, g) => (met(g) ? g.stars : n), 0);
