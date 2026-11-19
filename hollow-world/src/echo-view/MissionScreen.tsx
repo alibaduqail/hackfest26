@@ -8,7 +8,8 @@ import { drawMap, makeProjection, PULSE_MS, shakeOffset, type Fx, type Variant }
 import { play, type Sound } from "./game/audio";
 
 const STRATA_URL = "/strata.html"; // the Strata city sim, home of Sector 07
-import { EchoLog, Scoreboard, TowerBanner } from "./panels";
+import { EchoBanner, EchoLog, Scoreboard, TowerBanner } from "./panels";
+import { Legend } from "./Legend";
 import { EndCard } from "./EndCard";
 import "./echo.css";
 
@@ -19,17 +20,7 @@ const DISPATCH_MIN_TICK = 31; // the reroute beat needs the pod to depart at or 
 const css = `
 html,body,#root{margin:0;height:100%;background:var(--bg);color:var(--text);font:13px/1.45 var(--sans)}
 .echo-screen{position:relative;display:flex;flex-direction:column;height:100%}
-.echo-main{flex:1;display:grid;grid-template-columns:1fr 1fr 360px;gap:1px;background:var(--line);min-height:0}
-.echo-pane{position:relative;background:var(--stage);min-width:0;min-height:0}
-.echo-pane canvas{position:absolute;inset:0;width:100%;height:100%}
-.echo-pane::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 54% 43%,transparent 42%,#050e1670 100%)}
-.echo-cap{position:absolute;left:14px;top:12px;z-index:1;pointer-events:none}
-.echo-cap b{display:block;font-size:14px;letter-spacing:.04em}
-.echo-cap span{color:var(--muted)}
-.echo-overlay{position:absolute;left:14px;bottom:14px;z-index:1;max-width:calc(100% - 28px)}
-.echo-overlay .echo-card{padding:8px 12px}.echo-overlay .echo-title{margin:0 0 2px}
-.echo-overlay .echo-tower-lie{display:flex;flex-wrap:wrap;gap:0 16px;align-items:baseline}
-.echo-overlay .echo-claimed,.echo-overlay .echo-real{font-size:20px;margin:0}
+.echo-main{flex:1;display:grid;grid-template-columns:1fr 1fr 360px;gap:2px;background:var(--line);min-height:0}
 .echo-side{background:var(--bg);padding:12px;min-height:0;overflow:hidden}
 .echo-side .echo-panels{height:100%}
 .echo-bar{background:var(--panel);display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:8px 14px;border-top:1px solid var(--line)}
@@ -42,7 +33,7 @@ html,body,#root{margin:0;height:100%;background:var(--bg);color:var(--text);font
 .echo-ticker{display:flex;gap:8px;align-items:center;margin-bottom:8px;padding:5px 10px;background:var(--redBg);border:1px solid var(--redLine);border-radius:4px;color:var(--red);font-size:12px;letter-spacing:.06em;animation:echo-tick .5s ease-out}
 .echo-ticker b{flex:none;background:var(--red);color:var(--redBg);padding:0 6px;font-size:10px;letter-spacing:.25em}
 @keyframes echo-tick{from{opacity:0;transform:translateY(4px)}}
-.echo-hint{position:absolute;left:14px;bottom:14px;z-index:3;max-width:calc(100% - 28px);display:flex;flex-direction:column;gap:2px;text-align:left;background:var(--amberBg);color:var(--amberText);border:1px solid var(--amber);border-radius:6px;padding:10px 14px;font:inherit;font-size:16px;line-height:1.35;cursor:pointer;animation:echo-hint .35s ease-out;text-wrap:balance;hyphens:none}
+.echo-hint{position:absolute;left:14px;bottom:104px;z-index:3;max-width:calc(100% - 28px);display:flex;flex-direction:column;gap:2px;text-align:left;background:var(--amberBg);color:var(--amberText);border:1px solid var(--amber);border-radius:6px;padding:10px 14px;font:inherit;font-size:16px;line-height:1.35;cursor:pointer;animation:echo-hint .35s ease-out;text-wrap:balance;hyphens:none}
 .echo-hint small{color:var(--amberDim);font-size:11px;letter-spacing:.08em}
 @keyframes echo-hint{from{opacity:0;transform:translateY(6px)}}
 .echo-flash{position:absolute;inset:0;z-index:4;pointer-events:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(90,8,6,.38);box-shadow:inset 0 0 160px rgba(255,59,59,.55);animation:echo-flash 2s forwards}
@@ -132,8 +123,8 @@ function collectFx(fx: Fx, history: LogEvent[], o: Observation, mission: Mission
   }
 }
 
-function MapPane({ obsRef, fxRef, variant, title, sub, children }: {
-  obsRef: MutableRefObject<Observation>; fxRef: MutableRefObject<Fx>; variant: Variant; title: string; sub: string; children?: React.ReactNode;
+function MapPane({ obsRef, fxRef, variant, kicker, title, sub, down, children }: {
+  obsRef: MutableRefObject<Observation>; fxRef: MutableRefObject<Fx>; variant: Variant; kicker: string; title: string; sub: string; down: boolean; children?: React.ReactNode;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
@@ -154,8 +145,9 @@ function MapPane({ obsRef, fxRef, variant, title, sub, children }: {
     return () => cancelAnimationFrame(raf);
   }, [variant, obsRef, fxRef]);
   return (
-    <div className="echo-pane">
-      <div className="echo-cap"><b>{title}</b><span>{sub}</span></div>
+    <div className={`echo-pane echo-pane-${variant}${down ? " is-down" : ""}`}>
+      <header className="echo-cap"><span className="echo-kicker">{kicker}</span><b>{title}</b><span>{sub}</span></header>
+      <div className="echo-map">
       <canvas
         ref={ref}
         onClick={(ev) => {
@@ -167,6 +159,7 @@ function MapPane({ obsRef, fxRef, variant, title, sub, children }: {
         }}
       />
       {children}
+      </div>
     </div>
   );
 }
@@ -308,13 +301,14 @@ export function MissionScreen({ mission: missionProp, allowDispatch = true, spee
     <div className="echo-screen">
       <style>{css}</style>
       <div className="echo-main">
-        <MapPane obsRef={towerRef} fxRef={fxRef} variant="tower" title="Directorate alone" sub="one tower clears every flight">
+        <MapPane obsRef={towerRef} fxRef={fxRef} variant="tower" kicker="Centralized" title="Tower" sub="One tower clears every flight. Lose it and the network is blind." down={!tower.towerUp}>
           <div className="echo-overlay">
             {story && (() => { const [beat, line] = tickerLine(story, tower, world.current.mission); return <div className="echo-ticker" key={beat} role="status"><b>BROADCAST</b>{line}</div>; })()}
             <TowerBanner obs={tower} />
           </div>
         </MapPane>
-        <MapPane obsRef={echoRef} fxRef={fxRef} variant="echo" title="Echo" sub="every pod navigates, beacons relay, three rules">
+        <MapPane obsRef={echoRef} fxRef={fxRef} variant="echo" kicker="Decentralized" title="Echo" sub="Every pod navigates. Beacons relay seals and yields. No tower." down={!tower.towerUp}>
+          <div className="echo-overlay"><EchoBanner obs={echo} /></div>
           {hint && <button className="echo-hint" key={hint.id} onClick={nextHint}>{hint.text}<small>click to dismiss</small></button>}
         </MapPane>
         <div className="echo-side">
@@ -324,6 +318,7 @@ export function MissionScreen({ mission: missionProp, allowDispatch = true, spee
           </div>
         </div>
       </div>
+      <Legend />
       <div className="echo-bar">
         <button onClick={() => (echo.over ? reset() : setRunning((r) => !r))}>{echo.over ? "Replay" : running ? "Pause" : "Run"}</button>
         {speeds.map((s) => (
