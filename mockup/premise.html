@@ -3,161 +3,190 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Premise intro mockup</title>
-<!-- MOCKUP ONLY. Not wired into the app. States: ?s=a (mid-typing, line 2), ?s=b (full log), ?s=c (log receding, ECHO fading in), ?s=d (alternative placement, full log). No ?s = live autoplay. -->
+<title>Premise intro mockup v2</title>
+<!-- MOCKUP ONLY, not wired into the app. Autoplay by default. Freeze a frame with ?s=1 | 1b | 2 | 3a | 3b | 3c | 4, or ?t=<ms>. Add ?rm=1 to force the reduced-motion path. -->
 <style>
-@font-face { font-family: "Fraunces"; font-weight: 800; src: url("../hollow-world/public/fonts/Fraunces-800.woff2") format("woff2"); }
-@font-face { font-family: "IBM Plex Mono"; font-weight: 500; src: url("../hollow-world/public/fonts/IBMPlexMono-500.woff2") format("woff2"); }
-@font-face { font-family: "IBM Plex Mono"; font-weight: 600; src: url("../hollow-world/public/fonts/IBMPlexMono-600.woff2") format("woff2"); }
-:root { --bg:#0d1216; --text:#ddd8c1; --head:#e9e0c8; --text2:#b4c4ba; --muted:#90a59f; --dim:#6f857f; --amber:#d2a76a; --amberHi:#e4c494; --amberText:#edcd95; --good:#7ec8b3; --ease:cubic-bezier(.23,1,.32,1); }
-* { box-sizing: border-box; }
+@font-face { font-family:"Fraunces"; font-weight:800; src:url("../hollow-world/public/fonts/Fraunces-800.woff2") format("woff2"); }
+@font-face { font-family:"IBM Plex Mono"; font-weight:500; src:url("../hollow-world/public/fonts/IBMPlexMono-500.woff2") format("woff2"); }
+@font-face { font-family:"IBM Plex Mono"; font-weight:600; src:url("../hollow-world/public/fonts/IBMPlexMono-600.woff2") format("woff2"); }
+:root { --bg:#0d1216; --text:#ddd8c1; --head:#e9e0c8; --text2:#b4c4ba; --muted:#90a59f; --dim:#6f857f; --amber:#d2a76a; --amberHi:#e4c494; --amberText:#edcd95; --good:#7ec8b3; --red:#e0634f; --redText:#f0a898; }
+* { box-sizing:border-box; }
 html, body { margin:0; height:100%; background:var(--bg); color:var(--text); overflow:hidden; font-family:"IBM Plex Mono", ui-monospace, Menlo, monospace; }
-
-/* The stage is the art's own coordinate space (1672x941, "cover"), so the log stays pinned to the dark void and the clinic at any viewport. */
+/* the stage is the art's own coordinate space (1672x941, cover), so everything stays pinned to the shaft at any viewport */
 .stage { position:absolute; left:50%; top:50%; width:max(100vw, calc(100vh * 1672 / 941)); aspect-ratio:1672/941; transform:translate(-50%,-50%); container-type:size; }
-.art { position:absolute; inset:0; background:url("../hollow-world/src/echo-view/cutaway/art/descent.webp") center/100% 100% no-repeat; image-rendering:pixelated; }
-/* the shade: the title's radial dimmer, but only over the centre. During the log the room is left lit around the void and the clinic. */
-.shade { position:absolute; inset:0; background:radial-gradient(ellipse 55% 45% at 50% 46%, rgba(13,18,22,.55), rgba(13,18,22,.82) 70%, rgba(13,18,22,.94)); opacity:var(--shade,.3); transition:opacity 1.6s var(--ease); }
-.dusk { position:absolute; inset:0; background:rgba(8,12,15,.52); opacity:var(--dusk,.18); transition:opacity 1.6s var(--ease); }
+.art, #dark, .shade, .world { position:absolute; inset:0; width:100%; height:100%; }
+.art { background:url("../hollow-world/src/echo-view/cutaway/art/descent.webp") center/100% 100% no-repeat; image-rendering:pixelated; }
+.shade { background:radial-gradient(ellipse 55% 45% at 50% 46%, rgba(13,18,22,.55), rgba(13,18,22,.82) 70%, rgba(13,18,22,.94)); opacity:0; }
+.world { pointer-events:none; overflow:visible; }
+.world text { font-family:"IBM Plex Mono", monospace; font-weight:500; }
+.glow { filter:drop-shadow(0 0 7px rgba(210,167,106,.7)); }
+.glowt { filter:drop-shadow(0 0 6px rgba(126,200,179,.8)); }
 
-/* ---- the log: set into the blacked-out level, on its floor ---- */
-.log { position:absolute; left:8.2%; top:45.6%; width:34%; font-size:1cqw; line-height:1.62; color:var(--text2); font-weight:500; transition:opacity 1.8s ease-in-out, transform 1.8s ease-in-out, filter 1.8s ease-in-out; }
-.log-head { display:flex; align-items:center; gap:1.1em; color:var(--dim); font-size:.86em; line-height:1; padding-bottom:.9em; margin-bottom:.35em; border-bottom:1px solid rgba(126,200,179,.22); }
+/* 1. the Director: a tower PA strip bolted across the blacked-out level. Cold, red-ruled, nothing like Mara's log. */
+.pa { position:absolute; left:0; right:0; top:43.4%; height:13.4%; display:flex; align-items:center; gap:2.2cqw; padding:0 6.2cqw; background:repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 2px, transparent 2px 4px), rgba(22,8,9,.9); border-top:2px solid var(--red); border-bottom:2px solid var(--red); opacity:0; }
+.pa .grille { flex:none; width:2.6cqw; height:5.4cqw; display:grid; grid-template-columns:repeat(4,1fr); gap:.34cqw; align-content:center; }
+.pa .grille i { width:.34cqw; height:.34cqw; border-radius:50%; background:#5a2a27; }
+.pa .grille.on i { background:var(--red); }
+.pa .tag { position:absolute; right:6.2cqw; top:.9cqw; font-size:.82cqw; color:var(--redText); opacity:.8; letter-spacing:.02em; }
+.pa .msg { color:#e8eef0; font-weight:600; font-size:1.9cqw; line-height:1.4; white-space:nowrap; }
+.pa .msg div { opacity:0; }
+.pa .msg div:first-child { color:#fff; }
+
+/* 2. the plea: Mara's radio log, in the dark */
+.log { position:absolute; left:8.2%; top:46.2%; width:36%; font-size:1cqw; line-height:1.62; color:var(--head); opacity:0; }
+.log-head { display:flex; align-items:center; gap:1.1em; color:var(--dim); font-size:.86em; line-height:1; padding-bottom:.9em; margin-bottom:.4em; border-bottom:1px solid rgba(126,200,179,.22); }
 .log-head b { color:var(--good); font-weight:500; }
-.sig { display:inline-flex; gap:.45em; margin-left:auto; }
-.sig i { width:.62em; height:.62em; border-radius:50%; border:1.5px solid var(--dim); background:transparent; transition:background .3s, border-color .3s; }
-.sig i.on { background:var(--good); border-color:var(--good); }
-.ln { visibility:hidden; display:grid; grid-template-columns:3.7em 1fr; white-space:nowrap; min-height:1.62em; }
-.ln time { color:var(--dim); font-size:.9em; }
-.ln span { color:var(--head); }
-.ln.call span::first-line { color:var(--head); }
-.ln .who { color:var(--amberText); }
-.caret { display:inline-block; width:.55em; height:1.05em; margin-left:.12em; vertical-align:-.17em; background:var(--amber); animation:blink 1s steps(1) infinite; }
-@keyframes blink { 50% { opacity:0; } }
-/* static: a line arrives with a short horizontal tear, then settles */
-.ln.hit span { animation:tear .22s steps(2) 1; }
-@keyframes tear { 0%{ transform:translateX(5px); opacity:.5; } 40%{ transform:translateX(-4px); opacity:.85; } 70%{ transform:translateX(2px); } 100%{ transform:none; opacity:1; } }
-.scan { position:absolute; left:0; right:0; top:0; height:1px; background:rgba(126,200,179,.35); opacity:0; pointer-events:none; }
-.log.live .scan { animation:scan 4.4s linear infinite; }
-@keyframes scan { 0%{ top:0; opacity:0; } 8%{ opacity:.7; } 92%{ opacity:.7; } 100%{ top:100%; opacity:0; } }
+.sig { display:inline-flex; gap:.45em; margin-left:auto; } .sig i { width:.62em; height:.62em; border-radius:50%; border:1.5px solid var(--good); background:var(--good); } .sig i.off { background:transparent; }
+.ln { min-height:1.62em; white-space:nowrap; } .ln.first { color:var(--amberText); }
+.caret { display:inline-block; width:.55em; height:1.05em; margin-left:.12em; vertical-align:-.17em; background:var(--amber); }
 
-/* ---- Mara: a beacon in the clinic, and the hop line that carries her voice up to the log ---- */
-.hop { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible; }
-.hop path { fill:none; stroke:var(--good); stroke-width:2; stroke-dasharray:4 7; opacity:.95; vector-effect:non-scaling-stroke; }
-.mara { position:absolute; left:76.2%; top:90.6%; width:0; height:0; transition:opacity 1.2s var(--ease); }
-.mara .dot { position:absolute; left:-.62cqw; top:-.62cqw; width:1.24cqw; height:1.24cqw; border-radius:50%; background:var(--amber); border:2px solid var(--amberHi); box-shadow:0 0 12px rgba(210,167,106,.55); }
-.mara .ping { position:absolute; left:-.62cqw; top:-.62cqw; width:1.24cqw; height:1.24cqw; border-radius:50%; border:1.5px solid var(--amberHi); animation:ping 3.2s var(--ease) infinite; }
-@keyframes ping { 0%{ transform:scale(1); opacity:.9; } 100%{ transform:scale(3.4); opacity:0; } }
-.mara em { position:absolute; left:1.7cqw; top:-.75cqw; font-style:normal; font-size:.86cqw; color:var(--amberText); white-space:nowrap; letter-spacing:.04em; }
-.mara em small { display:block; font-size:.9em; color:var(--text2); opacity:.8; }
-
-/* ---- the title: unchanged from the game (Fraunces ECHO, Relay nodes) ---- */
-.title { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; transition:opacity 1.2s var(--ease); }
-.title .bar { opacity:0; transition:opacity 1.2s var(--ease) .7s; }
-.stage[data-s="recede"] .title .bar, .stage[data-s="done"] .title .bar { opacity:1; }
-.title::before { content:""; position:absolute; inset:0; background:radial-gradient(ellipse 50% 46% at center, rgba(10,16,19,.7), rgba(10,16,19,.35) 55%, transparent 100%); pointer-events:none; }
-.title h1 { position:relative; margin:0; font:800 min(15vw, 24.5cqh*1.0)/.92 "Fraunces", Georgia, serif; font-size:clamp(96px, 15vw, 220px); font-variation-settings:"opsz" 144; letter-spacing:.07em; margin-right:-.07em; color:var(--head); text-shadow:0 0 60px rgba(126,200,179,.22), 0 2px 24px rgba(6,11,14,.8); }
-.bar { position:relative; display:flex; justify-content:center; gap:clamp(8px,3vw,56px); margin-top:clamp(40px,7vh,72px); }
-.more { margin-top:clamp(8px,2vh,20px); gap:clamp(0px,2vw,32px); }
+/* 4. the title: unchanged from the game */
+.title { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; opacity:0; pointer-events:none; }
+.title h1 { margin:0; font:800 clamp(96px,15vw,220px)/.92 "Fraunces", Georgia, serif; font-variation-settings:"opsz" 144; letter-spacing:.07em; margin-right:-.07em; color:var(--head); text-shadow:0 0 60px rgba(126,200,179,.22), 0 2px 24px rgba(6,11,14,.8); }
+.bar { display:flex; justify-content:center; gap:clamp(8px,3vw,56px); margin-top:clamp(40px,7vh,72px); opacity:0; } .more { margin-top:clamp(8px,2vh,20px); gap:clamp(0px,2vw,32px); }
 .node { display:flex; flex-direction:column; align-items:center; gap:14px; padding:12px 30px; min-height:44px; background:none; border:0; color:var(--text); font:600 19px/1.15 "IBM Plex Mono", monospace; letter-spacing:.16em; cursor:pointer; }
 .node .d { width:16px; height:16px; border-radius:50%; border:2px solid var(--text2); background:#0a1013; }
-.node.primary .d { background:var(--amber); border-color:var(--amberHi); box-shadow:0 0 12px rgba(210,167,106,.55); }
-.node.primary .l { color:var(--head); }
-.node.quiet { font-size:15px; font-weight:500; letter-spacing:.08em; color:var(--text2); gap:9px; padding:8px 18px; }
-.node.quiet .d { width:9px; height:9px; margin:1.5px 0; border-color:var(--text2); }
-
-/* ---- Skip: a quiet Relay node, bottom-left under the log ---- */
-.skip { position:absolute; left:6.4%; bottom:5.2%; flex-direction:row; gap:10px; font-size:14px; letter-spacing:.08em; font-weight:500; color:var(--muted); padding:8px 14px; transition:opacity .8s var(--ease); }
-.skip .d { width:9px; height:9px; border-color:var(--muted); }
-.skip kbd { font:inherit; color:var(--dim); margin-left:.4em; }
-.skip:hover { color:var(--amberText); } .skip:hover .d { border-color:var(--amberHi); }
-
-/* ---- state switches (JS sets data-s on .stage: type | read | recede | done) ---- */
-.stage .title { opacity:0; pointer-events:none; }
-.stage .skip { opacity:1; }
-.stage[data-s="recede"] .log, .stage[data-s="done"] .log { opacity:0; transform:translateY(-10px); filter:blur(1.5px); }
-.stage[data-s="recede"] .title, .stage[data-s="done"] .title { opacity:1; pointer-events:auto; }
-.stage[data-s="recede"] .skip, .stage[data-s="done"] .skip { opacity:0; pointer-events:none; }
-.stage[data-s="recede"] .mara, .stage[data-s="done"] .mara, .stage[data-s="recede"] .hop, .stage[data-s="done"] .hop { opacity:0; transition:opacity 1.4s var(--ease); }
-.stage[data-s="recede"], .stage[data-s="done"] { --dusk:0; --shade:1; }
-
-/* ---- alternative placement (d): lower-left void, level 4, one floor above Mara's clinic ---- */
-.stage.alt .log { top:5.4%; left:56.4%; width:34%; font-size:.96cqw; }
-.stage.alt .hop-main { display:none; } .stage:not(.alt) .hop-alt { display:none; }
-
-
-@media (prefers-reduced-motion: reduce) { .caret, .scan, .mara .ping { animation:none !important; } .ln.hit span { animation:none !important; } .stage .title, .log, .mara, .hop { transition-duration:.01s !important; } }
+.node.primary .d { background:var(--amber); border-color:var(--amberHi); box-shadow:0 0 12px rgba(210,167,106,.55); } .node.primary .l { color:var(--head); }
+.node.quiet { font-size:15px; font-weight:500; letter-spacing:.08em; color:var(--text2); gap:9px; padding:8px 18px; } .node.quiet .d { width:9px; height:9px; margin:1.5px 0; }
+.skip { position:absolute; left:6.4%; bottom:5.2%; flex-direction:row; gap:10px; font-size:14px; letter-spacing:.08em; font-weight:500; color:var(--muted); padding:8px 14px; }
+.skip .d { width:9px; height:9px; border-color:var(--muted); } .skip kbd { font:inherit; color:var(--dim); margin-left:.4em; } .skip:hover { color:var(--amberText); }
 </style>
 </head>
 <body>
-<div class="stage" id="stage" data-s="type">
+<div class="stage" id="stage">
   <div class="art"></div>
-  <div class="dusk"></div>
-  <div class="shade"></div>
+  <canvas id="dark"></canvas>
+  <div class="shade" id="shade"></div>
 
-  <svg class="hop" viewBox="0 0 1672 941" preserveAspectRatio="none" aria-hidden="true">
-    <path class="hop-main" id="hopMain" d="M1275 880 V566 H742"/>
-    <path class="hop-alt" id="hopAlt" d="M1275 880 V742 H1535 V212"/>
+  <svg class="world" id="world" viewBox="0 0 1672 941" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+    <defs>
+      <mask id="mRoute" maskUnits="userSpaceOnUse" x="0" y="0" width="1672" height="941"><path id="mrP" d="M420 196 H857 V893 H1150" fill="none" stroke="#fff" stroke-width="6"/></mask>
+      <mask id="mDet" maskUnits="userSpaceOnUse" x="0" y="0" width="1672" height="941"><path id="mdP" d="M857 545 H700 V720 H857" fill="none" stroke="#fff" stroke-width="6"/></mask>
+    </defs>
+    <g id="route" mask="url(#mRoute)"><path d="M420 196 H857 V893 H1150" fill="none" stroke="#7ec8b3" stroke-width="2.4" stroke-dasharray="4 8"/></g>
+    <g id="chev" fill="#7ec8b3"></g>
+    <g id="det" mask="url(#mDet)"><path d="M857 545 H700 V720 H857" fill="none" stroke="#7ec8b3" stroke-width="2.4" stroke-dasharray="4 8"/></g>
+    <g id="seal"><line x1="857" y1="545" x2="857" y2="720" stroke="#e0634f" stroke-width="2.6" stroke-dasharray="4 8"/><circle cx="857" cy="632" r="13" fill="#2a1210" stroke="#e0634f" stroke-width="2"/><path d="M851 626 L863 638 M863 626 L851 638" stroke="#f0a898" stroke-width="2.2"/></g>
+    <g id="beacons"></g>
+    <circle id="hop" r="6.5" fill="#7ec8b3" class="glowt"/>
+    <g id="mara"><circle id="maraPing" r="10" fill="none" stroke="#e4c494" stroke-width="1.6"/><circle r="10" fill="#d2a76a" stroke="#e4c494" stroke-width="2.4" class="glow"/><text x="420" y="-34" text-anchor="middle" fill="#edcd95" font-size="17">Mara</text></g>
+    <rect id="pod" width="26" height="15" rx="6" fill="#d2a76a" stroke="#e4c494" stroke-width="2" class="glow"/>
+    <g id="clinic"><circle cx="1150" cy="893" r="10" fill="#0a1013" stroke="#7ec8b3" stroke-width="2.4"/><circle id="clinicFill" cx="1150" cy="893" r="10" fill="#7ec8b3" class="glowt" opacity="0"/><text x="1150" y="868" text-anchor="middle" fill="#b4c4ba" font-size="17">Deep Clinic</text></g>
+    <g id="caps"><text id="cap" x="735" y="498" text-anchor="end" fill="#e9e0c8" font-size="19" font-weight="600"></text></g>
   </svg>
-  <div class="mara" id="mara" aria-hidden="true"><span class="ping"></span><span class="dot"></span><em>Mara</em></div>
 
-  <section class="log live" id="log" aria-label="Radio log from Mara, Deep Clinic">
-    <div class="scan"></div>
-    <div class="log-head"><span><b>Deep Clinic</b>, level 5</span><span>to any relay</span><span class="sig" aria-hidden="true"><i></i><i></i><i></i><i></i></span></div>
-    <div id="lines"></div>
+  <section class="pa" id="pa" aria-label="Tower announcement from the Director">
+    <div class="grille" id="grille"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="msg"><div id="p1">This is the Director.</div><div id="p2">All transit is suspended. I am shutting the tower down.</div></div>
+    <div class="tag">Directorate · tower address</div>
+  </section>
+
+  <section class="log" id="log" aria-label="Radio message from Mara">
+    <div class="log-head"><span><b>Level 1</b>, open channel</span><span>to any relay</span><span class="sig"><i></i><i></i><i class="off"></i><i class="off"></i></span></div>
+    <div class="ln first" id="l0"></div><div class="ln" id="l1"></div><div class="ln" id="l2"></div>
   </section>
 
   <div class="title" id="title">
     <h1 aria-label="Echo"><span aria-hidden="true">ECHO</span></h1>
-    <div class="bar"><button class="node primary"><span class="d"></span><span class="l">Begin</span></button></div>
-    <div class="bar more"><button class="node quiet"><span class="d"></span>Tower Down</button><button class="node quiet"><span class="d"></span>Strata city</button><button class="node quiet"><span class="d"></span>Descent</button></div>
+    <div class="bar" id="bar1"><button class="node primary"><span class="d"></span><span class="l">Begin</span></button></div>
+    <div class="bar more" id="bar2"><button class="node quiet"><span class="d"></span>Tower Down</button><button class="node quiet"><span class="d"></span>Strata city</button><button class="node quiet"><span class="d"></span>Descent</button></div>
   </div>
-
   <button class="node quiet skip" id="skip"><span class="d"></span>Skip<kbd>any key</kbd></button>
 </div>
 
 <script>
-const LINES = [
-  ["02:14", "Mara, nurse, Deep Clinic. Anyone on the relay?"],
-  ["02:14", "Tower says all clear. It isn't. People can't breathe."],
-  ["02:15", "The medicine is five levels up. It has to come down."],
-  ["02:16", "You're the relay now. Light the beacons down to us."],
-];
-// signal strength per line: the tower's lie knocks one bar out
-const SIG = [3, 2, 3, 4];
-const q = new URLSearchParams(location.search), forced = q.get("s");
-const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
-const stage = document.getElementById("stage"), box = document.getElementById("lines"), bars = [...document.querySelectorAll(".sig i")];
-if (forced === "d" || q.get("alt")) stage.classList.add("alt");
-const rows = LINES.map(([t, s]) => { const r = document.createElement("div"); r.className = "ln"; r.innerHTML = `<time>${t}</time><span></span>`; box.appendChild(r); return r; });
-const setSig = n => bars.forEach((b, i) => b.classList.toggle("on", i < n));
-const set = s => stage.dataset.s = s;
-const show = (i, n) => { rows[i].style.visibility = "visible"; rows[i].querySelector("span").textContent = LINES[i][1].slice(0, n); };
-let timers = [], done = false;
-const later = (f, ms) => timers.push(setTimeout(f, ms));
-const caretTo = i => { document.querySelector(".caret")?.remove(); const c = document.createElement("i"); c.className = "caret"; rows[i].querySelector("span").appendChild(c); };
+// ---- timeline (ms). Everything on screen is a pure function of t, so any frame can be frozen. ----
+const B2 = 4000, B3A = 7600, B3B = 9600, B3C = 12000, TITLE = 14800, DONE = 16800;   // beat starts; ECHO arrives at TITLE (14.8s)
+const BEATS = { "1":1600, "1b":2900, "2":6900, "3a":9100, "3b":11200, "3c":13900, "4":17300 };
+const LINES = ["Anyone on the relay?", "Nurse Mara and the medicine have to reach the Deep Clinic.", "You have to help."];
+const LSTART = [B2 + 500, B2 + 1000, B2 + 2100], CPS = 14;           // type speed 14ms per char
+const BY = [196, 372, 545, 720, 893], BX = 857;                    // beacon column: one per level, bolted to the shaft track
+const BAPPEAR = [B3B + 0, B3B + 120, B3A + 300, B3B + 240, B3B + 360];
+const HOPAT = [B3B + 500, B3B + 950, B3B + 1400, B3B + 1850, B3B + 2300];   // signal reaches beacon i
+const CAPS = [[B3A + 150, "Bolt a beacon to the track"], [B3B + 150, "Beacons pass news to neighbours"], [B3C + 150, "Pods reroute themselves. No tower."]];
+const WP = [[380,196,0],[857,196,450],[857,372,650],[857,545,900],[700,545,1600],[700,720,1900],[857,720,2200],[857,893,2500],[1150,893,2800]]; // pod waypoints [x, y, ms into beat 3c]
+const BANDS = [[0,235],[235,400],[400,575],[575,740],[740,941]];     // the five levels of the art, y in art px
 
-function finish() { if (done) return; done = true; timers.forEach(clearTimeout); document.querySelector(".caret")?.remove(); rows.forEach((_, i) => show(i, 99)); setSig(4); set("recede"); later(() => set("done"), 1700); }
+const $ = id => document.getElementById(id), q = new URLSearchParams(location.search);
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v)), ease = x => 1 - Math.pow(1 - clamp(x), 3);
+const reduced = q.get("rm") === "1" || matchMedia("(prefers-reduced-motion: reduce)").matches;
+const stage = $("stage"), cv = $("dark"), ctx = cv.getContext("2d"), NS = "http://www.w3.org/2000/svg";
 
-function play() {
-  if (reduced) { rows.forEach((_, i) => show(i, 99)); setSig(4); set("read"); later(finish, 6000); return; }
-  let t = 600;
-  LINES.forEach(([, s], i) => {
-    later(() => { setSig(SIG[i]); rows[i].style.visibility = "visible"; rows[i].classList.add("hit"); caretTo(i); }, t);
-    for (let c = 1; c <= s.length; c++) later(() => { show(i, c); caretTo(i); }, t + 120 + c * 24);
-    t += 120 + s.length * 24 + 520;
-  });
-  later(() => set("read"), t);
-  later(finish, t + 1500);          // hold, then the log recedes and ECHO + buttons arrive
+// beacons (the Relay dot: amber, ringed) and chevrons pointing DOWN the shaft
+const bg = $("beacons"); const beac = BY.map((y, i) => { const g = document.createElementNS(NS, "g"); g.innerHTML = `<circle cx="${BX}" cy="${y}" r="10" fill="none" stroke="#e4c494" stroke-width="1.6" class="ring"/><circle cx="${BX}" cy="${y}" r="10" fill="#d2a76a" stroke="#e4c494" stroke-width="2.4" class="glow"/>`; bg.appendChild(g); return g; });
+$("chev").innerHTML = [290, 460, 632, 806].map(y => `<path d="M${BX-7} ${y-5} L${BX+7} ${y-5} L${BX} ${y+6} Z"/>`).join("");
+const mr = $("mrP"), md = $("mdP"), LR = mr.getTotalLength(), LD = md.getTotalLength();
+mr.style.strokeDasharray = LR; md.style.strokeDasharray = LD;
+const set = (el, o) => { for (const k in o) el.setAttribute(k, o[k]); };
+
+function lights(t) {                  // [artX, artY, radius, strength] holes cut into the darkness
+  const L = [], u = (t0, d) => ease((t - t0) / d);
+  if (t > B2 + 400) L.push([420, 196, 175 * u(B2 + 400, 900), 1]);                                  // Mara's lamp relights first
+  BY.forEach((y, i) => { if (t >= BAPPEAR[i]) { const bump = clamp(1 - (t - HOPAT[i]) / 500) * (t >= HOPAT[i] && t < B3C ? 1 : 0); L.push([BX, y, (150 * u(BAPPEAR[i], 800)) + 40 * bump, 1]); } });
+  if (t > B3C + 2500) L.push([1150, 893, 150 * u(B3C + 2500, 700), 1]);                             // the clinic answers
+  return L;
 }
-// any key / click / skip node ends the log at once. The click is only the node, so the backdrop is not a skip target.
-addEventListener("keydown", e => { if (!e.metaKey && !e.ctrlKey && !e.altKey && stage.dataset.s !== "done") finish(); });
-document.getElementById("skip").addEventListener("click", finish);
+function drawDark(t) {
+  const w = stage.clientWidth, h = stage.clientHeight, d = devicePixelRatio || 1;
+  if (cv.width !== Math.round(w * d)) { cv.width = Math.round(w * d); cv.height = Math.round(h * d); }
+  const k = cv.width / 1672; ctx.globalCompositeOperation = "source-over"; ctx.clearRect(0, 0, cv.width, cv.height);
+  const fade = 1 - ease((t - TITLE) / 1800);
+  BANDS.forEach(([a, b], i) => { const al = clamp((t - (1900 + 380 * i)) / 500) * .94 * fade; if (al > 0) { ctx.fillStyle = `rgba(4,7,9,${al})`; ctx.fillRect(0, a * k, cv.width, (b - a) * k + 1); } });
+  ctx.globalCompositeOperation = "destination-out";
+  lights(t).forEach(([x, y, r]) => { if (r < 2) return; const g = ctx.createRadialGradient(x * k, y * k, 0, x * k, y * k, r * k); g.addColorStop(0, "rgba(0,0,0,1)"); g.addColorStop(.55, "rgba(0,0,0,.8)"); g.addColorStop(1, "rgba(0,0,0,0)"); ctx.fillStyle = g; ctx.fillRect((x - r) * k, (y - r) * k, 2 * r * k, 2 * r * k); });
+}
+function podAt(u) {
+  if (u <= 0) return [WP[0][0], WP[0][1]]; for (let i = 1; i < WP.length; i++) if (u <= WP[i][2]) { const a = WP[i-1], b = WP[i], f = (u - a[2]) / (b[2] - a[2]); return [a[0] + (b[0]-a[0]) * f, a[1] + (b[1]-a[1]) * f]; } return [WP.at(-1)[0], WP.at(-1)[1]];
+}
+const typed = (i, t) => LINES[i].slice(0, Math.max(0, Math.floor((t - LSTART[i]) / CPS)));
+function render(t) {
+  drawDark(t);
+  const inT = t >= TITLE, rec = ease((t - TITLE) / 1400), beatsOp = 1 - rec;
+  // 1 director
+  const pa = $("pa"); const p1 = clamp((t - 300) / 150), p2 = clamp((t - 1200) / 150);
+  const jit = (s) => (t > s && t < s + 220) ? Math.round(Math.sin(t * .9) * 6) : 0;
+  pa.style.opacity = clamp((t - 200) / 150) * (1 - clamp((t - 3500) / 500)); pa.style.transform = `translateX(${jit(300) + jit(1200)}px)`;
+  $("p1").style.opacity = p1; $("p2").style.opacity = p2; $("grille").classList.toggle("on", (t > 300 && t < 3500) && Math.floor(t / 260) % 2 === 0);
+  // 2 plea
+  const log = $("log"); log.style.opacity = clamp((t - B2 - 200) / 200) * (1 - clamp((t - B3A) / 400));
+  LINES.forEach((_, i) => { const s = typed(i, t), live = s.length < LINES[i].length && t > LSTART[i]; $("l" + i).innerHTML = s + (live ? '<i class="caret"></i>' : ""); });
+  // world
+  const route = clamp((t - (B2 + 700)) / 1500); mr.style.strokeDashoffset = LR * (1 - route);
+  $("route").style.opacity = (t >= B2 + 700 ? 1 : 0) * (t > B3A ? .55 : 1) * beatsOp;
+  $("chev").style.opacity = clamp((t - B2 - 1800) / 400) * beatsOp * .8;
+  const m = $("mara"); m.style.opacity = clamp((t - B2 - 100) / 300) * beatsOp; m.setAttribute("transform", "translate(0,196)");
+  m.firstChild.setAttribute("cx", 420); m.children[1].setAttribute("cx", 420); m.children[0].setAttribute("cy", 0); m.children[1].setAttribute("cy", 0);
+  const ring = clamp((t % 3200) / 3200); set(m.children[0], { r: 10 + 24 * ring, opacity: reduced ? 0 : (1 - ring) * .9, cx: 420 });
+  $("clinic").style.opacity = clamp((t - B2 - 900) / 400) * beatsOp; const cf = clamp((t - B3C - 2500) / 600); $("clinicFill").setAttribute("opacity", cf);
+  // beacons + the hopping signal
+  beac.forEach((g, i) => { const on = t >= BAPPEAR[i]; g.style.opacity = on ? clamp((t - BAPPEAR[i]) / 200) * beatsOp : 0; const rg = g.firstChild, since = t - HOPAT[i], pulseT = t < B3A + 900 && i === 2 ? (t - BAPPEAR[2]) : since; const k = clamp(pulseT / 700); set(rg, { r: 10 + 30 * k, opacity: pulseT > 0 && pulseT < 700 ? (1 - k) * .9 : 0 }); });
+  const hop = $("hop"); let hp = null; for (let i = 1; i < 5; i++) if (t >= HOPAT[i-1] - 450 && t < HOPAT[i]) { const f = clamp((t - (HOPAT[i] - 450)) / 450); hp = [BX, BY[i-1] + (BY[i] - BY[i-1]) * ease(f)]; }
+  if (t >= B3B && t < B3C && hp) { set(hop, { cx: hp[0], cy: hp[1], opacity: 1 }); } else hop.setAttribute("opacity", 0);
+  // 3c reroute
+  const u = t - B3C, sealA = clamp((u - 900) / 350), detA = clamp((u - 1250) / 350);
+  $("seal").style.opacity = sealA * (t >= B3C ? 1 : 0) * beatsOp; md.style.strokeDashoffset = LD * (1 - detA); $("det").style.opacity = (t >= B3C ? 1 : 0) * beatsOp;
+  const pod = $("pod"), pp = podAt(u); pod.setAttribute("x", pp[0] - 13); pod.setAttribute("y", pp[1] - 7.5); pod.style.opacity = clamp((t - B2 - 100) / 300) * beatsOp;
+  // captions live next to the beacon column, left of the shaft, in the dark
+  const c = [...CAPS].reverse().find(([s]) => t >= s), cap = $("cap");
+  if (c) { cap.textContent = c[1]; const idx = CAPS.indexOf(c), end = [B3B, B3C, TITLE][idx]; cap.style.opacity = clamp((t - c[0]) / 250) * (1 - clamp((t - (end - 250)) / 250)) * (idx === 2 ? 1 - rec : 1); } else cap.style.opacity = 0;
+  // 4 title
+  $("shade").style.opacity = rec;
+  const ti = $("title"); ti.style.opacity = clamp((t - TITLE - 300) / 1200); ti.style.pointerEvents = t > TITLE + 900 ? "auto" : "none"; $("bar1").style.opacity = $("bar2").style.opacity = clamp((t - TITLE - 1100) / 1200);
+  $("skip").style.opacity = clamp(1 - (t - TITLE) / 400); $("skip").style.pointerEvents = inT ? "none" : "auto";
+}
 
-if (forced === "a") { show(0, 99); show(1, 27); setSig(2); caretTo(1); rows[1].classList.add("hit"); rows[1].querySelector("span").style.animation = "none"; set("type"); }
-else if (forced === "b" || forced === "d") { rows.forEach((_, i) => show(i, 99)); setSig(4); set("read"); caretTo(3); }
-else if (forced === "c") { rows.forEach((_, i) => show(i, 99)); setSig(4); set("read"); setTimeout(() => set("recede"), 60); }
-else play();
+// ---- driving it ----
+const frozen = q.get("s") && BEATS[q.get("s")] != null ? BEATS[q.get("s")] : (q.get("t") ? +q.get("t") : null);
+let t0 = performance.now(), bonus = 0, reducedIdx = 0;
+const REDUCED = [1700, 3900, 6900, 9500, 11900, 14000];             // stills, crossfaded; no typing, caret or ping
+const finish = () => { if (frozen != null || performance.now() - t0 + bonus >= TITLE) return; bonus = TITLE - (performance.now() - t0); if (reduced) reducedIdx = REDUCED.length; };
+addEventListener("keydown", e => { if (!e.metaKey && !e.ctrlKey && !e.altKey) finish(); });
+$("skip").addEventListener("click", finish);
+if (frozen != null) { document.fonts.ready.then(() => render(frozen)); }
+else if (reduced) {
+  let last = performance.now();
+  const step = () => { const now = performance.now(); if (now - last > 1700 || reducedIdx === REDUCED.length) { if (reducedIdx < REDUCED.length) reducedIdx++; last = now; } render(reducedIdx < REDUCED.length ? REDUCED[reducedIdx] : TITLE + 2600); stage.style.opacity = 1; if (reducedIdx < REDUCED.length || true) requestAnimationFrame(step); }; step();
+} else { const loop = () => { render(Math.min(performance.now() - t0 + bonus, DONE + 600)); requestAnimationFrame(loop); }; loop(); }
 </script>
 </body>
 </html>
