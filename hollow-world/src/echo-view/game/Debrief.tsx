@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Observation } from "../../echo/types";
 import { EndCard } from "../EndCard";
+import { RelayBar } from "../relay/Relay";
 import { play } from "./audio";
 import { verdict, type CampaignMission } from "./campaign";
 
@@ -32,23 +33,23 @@ export function Debrief({ cm, result, onRetry, onNext, nextLabel = "Next mission
   return (
     <div className="g-screen">
       <EndCard
-        tower={tower} echo={echo} normal={normal} title={cm.name.toUpperCase()}
+        tower={tower} echo={echo} normal={normal} title={cm.name}
         top={
           <div className="g-debrief-top">
             <StarReveal n={stars} />
             {cm.verdicts?.[stars] && <div className="verdict">{cm.verdicts[stars]}</div>}
             <div className={cm.verdicts?.[stars] ? "g-muted" : "verdict"}>{verdict(echo, normal)}</div>
             <div className="g-debrief-objs">
-              {cm.objectives.map((o, i) => <span key={i} className={met[i] ? "met" : ""}>{met[i] ? "✓" : "·"} {o.label}</span>)}
+              {cm.objectives.map((o, i) => <span key={i} className={met[i] ? "met" : ""}>{o.label}</span>)}
             </div>
           </div>
         }
       >
-        <div className="g-row">
-          <button className="g-btn lg" onClick={onMissions}>Missions</button>
-          <button className={`g-btn lg${onNext ? "" : " primary"}`} autoFocus={!onNext} onClick={onRetry}>Retry</button>
-          {onNext && <button className="g-btn lg primary" autoFocus onClick={onNext}>{nextLabel}</button>}
-        </div>
+        <RelayBar size="lg" label="After the mission" items={[
+          { key: "missions", label: "Missions", nav: true, onSelect: onMissions },
+          { key: "retry", label: "Retry", tone: onNext ? "secondary" : "primary", nav: true, autoFocus: !onNext, onSelect: onRetry },
+          ...(onNext ? [{ key: "next", label: nextLabel, tone: "primary" as const, nav: true, autoFocus: true, onSelect: onNext }] : []),
+        ]} />
       </EndCard>
     </div>
   );

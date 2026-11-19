@@ -33,8 +33,7 @@ const ITEMS: { group: string; items: [glyph: React.ReactNode, label: string][] }
 export function Legend() {
   return (
     <div className="echo-legend" role="group" aria-label="Map legend">
-      <span className="echo-lg-head">Legend</span>
-      {ITEMS.map((g) => (
+            {ITEMS.map((g) => (
         <div className="echo-lg-group" key={g.group}>
           <span className="echo-lg-name">{g.group}</span>
           {g.items.map(([glyph, label]) => (

@@ -1,6 +1,7 @@
+@import "./relay/relay.css";
 .echo-panels { display: flex; flex-direction: column; gap: 14px; height: 100%; min-height: 0; color: var(--text); font: 16px/1.4 var(--sans); }
 .echo-card { background: var(--panel); border: 1px solid var(--line2); border-radius: 8px; padding: 14px 18px; box-shadow: 0 5px 22px #050d1260; }
-.echo-title { margin: 0 0 10px; font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.echo-title { margin: 0 0 10px; font-family: var(--label, var(--mono)); font-size: 14px; font-weight: 500; letter-spacing: .02em; color: var(--text2); }
 
 .echo-tower-online { font-size: 28px; font-weight: 700; color: var(--muted); }
 .echo-tower-down { border-color: var(--redLine); }
@@ -35,11 +36,14 @@
 .echo-cap { position: relative; z-index: 2; flex: none; display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 12px; align-items: baseline; padding: 12px 16px; background: var(--panel); border-bottom: 1px solid var(--line2); border-top: 3px solid var(--line2); pointer-events: none; }
 .echo-pane-tower .echo-cap { border-top-color: var(--redLine); }
 .echo-pane-echo .echo-cap { border-top-color: var(--amber); }
-.echo-cap b { font-size: 22px; line-height: 1.1; letter-spacing: .02em; color: var(--head); display: inline; }
+.echo-cap b { font: 800 26px/1.1 var(--display); font-variation-settings: "opsz" 72; color: var(--head); display: inline; }
 .echo-cap > span:last-child { grid-column: 1 / -1; margin-top: 4px; font-size: 14px; color: var(--text2); }
-.echo-kicker { grid-column: 1; grid-row: 1; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; padding: 2px 8px; border-radius: 3px; border: 1px solid var(--line2); color: var(--muted); }
-.echo-pane-tower .echo-kicker { color: var(--redText); border-color: var(--redLine); background: var(--redBg); }
-.echo-pane-echo .echo-kicker { color: var(--amberText); border-color: var(--amberDim); background: var(--amberBg); }
+.echo-kicker { grid-column: 1; grid-row: 1; display: inline-flex; align-items: center; gap: 8px; font-family: var(--label, var(--mono)); font-size: 14px; font-weight: 500; letter-spacing: .02em; color: var(--text2); }
+.echo-kicker::before { content: ""; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--muted); box-sizing: border-box; }
+.echo-pane-tower .echo-kicker { color: var(--redText); }
+.echo-pane-tower .echo-kicker::before { border-color: var(--red); background: var(--red); }
+.echo-pane-echo .echo-kicker { color: var(--amberText); }
+.echo-pane-echo .echo-kicker::before { border-color: var(--amberHi); background: var(--amber); }
 .echo-cap b { grid-column: 2; grid-row: 1; }
 
 .echo-overlay { position: absolute; left: 16px; bottom: 16px; z-index: 2; max-width: calc(100% - 32px); }
@@ -56,16 +60,16 @@
 .echo-echo .echo-dot { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
 
 .echo-legend { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; padding: 8px 16px; background: var(--panel); border-top: 1px solid var(--line2); font-size: 13px; color: var(--text2); }
-.echo-lg-head { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.echo-lg-head { display: none; }
 .echo-lg-group { display: flex; align-items: center; gap: 4px 12px; padding-left: 16px; border-left: 1px solid var(--line); }
-.echo-lg-name { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); }
+.echo-lg-name { font-family: var(--label, var(--mono)); font-size: 12px; letter-spacing: .02em; color: var(--muted); }
 .echo-lg-item { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .echo-lg-item svg { flex: none; }
 .echo-lg-s07 { color: var(--amber); font-weight: 600; font-size: 12px; }
 @media (max-width: 760px) { .echo-legend { display: none; } }
 
-.echo-logtitle { display: flex; justify-content: space-between; align-items: baseline; }
-.echo-logtitle label { font: 12px var(--sans); letter-spacing: 0; text-transform: none; color: var(--text2); cursor: pointer; }
+.echo-logtitle { display: block; white-space: nowrap; }
+.echo-logtitle .rl-bar { display: flex; flex-wrap: nowrap; justify-content: flex-start; width: 100%; margin: 4px 0 -4px -9px; --rl-padx: 9px; }
 .echo-empty { margin: 0; color: var(--dim); font-size: 14px; }
 .echo-line { align-items: baseline; padding: 4px 8px; line-height: 1.35; }
 .echo-stat b { font-size: 34px; white-space: nowrap; }
