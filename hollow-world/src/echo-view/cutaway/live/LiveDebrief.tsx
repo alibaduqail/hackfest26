@@ -24,7 +24,7 @@ const isMargin = (l: string) => /^(Next star|Best possible)/.test(l);
 
 function nextStep(stars: number, o: RunOutcome): string | null {
   if (stars >= 3) return null;
-  if (stars === 0) return o.mara === null ? "Put beacons on the flooding shaft and the link before it, before the flood lands." : "Light Mara's route so she is not waiting blind.";
+  if (stars === 0) return o.mara === null ? "Beacon the shafts on Mara's route so the warning can reach her the moment the flood is called." : "Light Mara's route so she is not waiting blind.";
   return "Beacon the relay track early to cut blind waits.";
 }
 

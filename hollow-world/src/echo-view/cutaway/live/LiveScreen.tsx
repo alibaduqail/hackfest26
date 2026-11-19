@@ -15,7 +15,7 @@ import { mountEffects } from "./mount-effects";
 import * as fx from "./fx";
 import * as sfx from "./sfx";
 import trim from "./art/shaft-trim.png";
-import { heldAtFlood, useLive } from "./useLive";
+import { FREE_PLAY_SEED, heldAtFlood, useLive } from "./useLive";
 import { LiveDebrief } from "./LiveDebrief";
 import { LiveIntro } from "./LiveIntro";
 import { LEVEL_HINTS, nextHint } from "./hints";
@@ -54,19 +54,20 @@ export interface LiveScreenProps {
   mission?: Mission;
   legId?: LegId;
   journeyMode?: boolean;
-  attempt?: number; // journey mode: the leg's failed tries so far (the flood candidate was picked from it when the mission was built)
+  attempt?: number; // journey mode: the leg's failed tries so far, and the journey's seed: together they picked the flood candidate when the mission was built
+  seed?: number;
   onLegEnd?: (result: LegResult) => void;
 }
 
-export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = false, attempt: journeyAttempt = 0, onLegEnd }: LiveScreenProps) {
+export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = false, attempt: journeyAttempt = 0, seed: journeySeed, onLegEnd }: LiveScreenProps) {
   applyLayout(legMission?.id ?? "descent-live"); // the shared track map must match this level before anything reads it
   const levelIndex = Math.max(0, DESCENT_LEVELS.findIndex((l) => l.id === legMission?.id));
   const level = DESCENT_LEVELS[levelIndex];
-  const spec = useMemo(() => legMission ? { build: () => structuredClone(legMission), solution: () => level.solutionFor(journeyAttempt) } : undefined, [legMission, level, journeyAttempt]);
+  const spec = useMemo(() => legMission ? { build: () => structuredClone(legMission), solution: () => level.solutionFor({ seed: journeySeed, attempt: journeyAttempt }) } : undefined, [legMission, level, journeyAttempt, journeySeed]);
   const live = useLive(spec);
   const { mission, observation: obs, previous, playing, queued, remaining, solution, feedback } = live;
   const runAttempt = legMission ? journeyAttempt : live.attempt;
-  const goals = level.goalsFor(runAttempt); // the flood candidate has its own star table
+  const goals = level.goalsFor({ seed: legMission ? journeySeed : FREE_PLAY_SEED, attempt: runAttempt }); // the flood candidate has its own star table
   const [introDone, setIntroDone] = useState(false);
   const [hintText, setHintText] = useState<string | null>(null);
   const seenHints = useRef(new Set<number>([1])); // level 1's hint is on the intro card
@@ -96,6 +97,8 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
   const warning = !!telegraph;
   const sealed = !warning && !!flood?.sealed;
   const building = new Map((obs.building ?? []).map((b) => [b.sectorId, b.readyAt]));
+  // A beacon is live when its entry leaves observation.building (sector.beacon flips at readyAt + 1), so the countdown runs to readyAt inclusive.
+  const liveIn = (id: string) => Math.max(1, building.get(id)! - obs.tick + 1);
   const sectionOrder = [...tracks.keys()];
   const activeSector = tracks.get(mara.path[mara.at]);
   const over = live.ended;
@@ -365,7 +368,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
                     (!firstPlacement && s.id === starterId ? " starter" : "")}
                   style={atMidpoint(s.id)}
                 >
-                  {building.has(s.id) ? Math.max(1, building.get(s.id)! - obs.tick) : queued.has(s.id) || s.beacon ? "✓" : "+"}
+                  {building.has(s.id) ? liveIn(s.id) : queued.has(s.id) || s.beacon ? "✓" : "+"}
                 </span>
               ))}
               {flood && (warning || sealed) && (
@@ -392,7 +395,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
                   : queued.has(hover)
                   ? "Placement queued"
                   : building.has(hover)
-                  ? "Building · live in " + Math.max(1, building.get(hover)! - obs.tick)
+                  ? "Building · live in " + liveIn(hover)
                   : remaining === 0
                   ? "No beacons left"
                   : "Beacon online"}
@@ -444,7 +447,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
                       {queued.has(hover ?? selected)
                         ? "Placement queued"
                         : building.has(hover ?? selected)
-                        ? "Building · live in " + Math.max(1, building.get(hover ?? selected)! - obs.tick)
+                        ? "Building · live in " + liveIn(hover ?? selected)
                         : (obs.sectors.find((s) => s.id === (hover ?? selected)) ?? primary).beacon
                         ? "Beacon online"
                         : "No beacon"}

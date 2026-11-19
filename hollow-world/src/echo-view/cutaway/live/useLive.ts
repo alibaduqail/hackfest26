@@ -52,7 +52,11 @@ function blindApproach(obs: Observation): boolean {
 
 /** Which level to run: defaults to Descent I. A journey leg passes its own (budget-capped) mission and that level's solution. */
 export interface LiveSpec { build: (attempt: number) => Mission; solution: (attempt: number) => Command[] }
-const LEVEL_1: LiveSpec = { build: (a) => descentLive({ attempt: a }), solution: (a) => DESCENT_LEVELS[0].solutionFor(a) };
+/** Unseeded: candidate 0 first (what the tests and the harness use). */
+const LEVEL_1: LiveSpec = { build: (a) => descentLive({ attempt: a }), solution: (a) => DESCENT_LEVELS[0].solutionFor({ attempt: a }) };
+/** Free play's per-session seed: the flood sequence differs between page loads and is the same within one. UI layer only; the engine stays deterministic given the seed. */
+export const FREE_PLAY_SEED = (Date.now() ^ Math.floor(Math.random() * 0x7fffffff)) >>> 0;
+const FREE_PLAY: LiveSpec = { build: (a) => descentLive({ seed: FREE_PLAY_SEED, attempt: a }), solution: (a) => DESCENT_LEVELS[0].solutionFor({ seed: FREE_PLAY_SEED, attempt: a }) };
 
 export function createLive(spec: LiveSpec = LEVEL_1) {
   let attempt = 0;
@@ -197,7 +201,7 @@ export function createLive(spec: LiveSpec = LEVEL_1) {
   };
 }
 
-export function useLive(spec?: LiveSpec) {
+export function useLive(spec: LiveSpec = FREE_PLAY) {
   const [run] = useState(() => createLive(spec));
   const state = useSyncExternalStore(run.subscribe, run.getSnapshot, run.getSnapshot);
   useEffect(() => {
