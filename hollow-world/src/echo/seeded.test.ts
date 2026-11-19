@@ -164,3 +164,14 @@ test("Descent II: flood B stays a mid-run surprise in every candidate (first sho
     assert.equal(o.sectors.find((s) => s.id === m.seals![0].sectorId)!.sealed, false);
   });
 });
+
+test("50 consecutive attempts across several seeds never repeat a flood, on every level, and no candidate dominates", () => {
+  DESCENT_LEVELS.forEach((lv, li) => {
+    for (const seed of [1, 2, 3, 99, 20261119, 4242424242]) {
+      const seq = [...Array(50).keys()].map((attempt) => floodCandidate(li, { seed, attempt }));
+      seq.slice(1).forEach((c, i) => assert.notEqual(c, seq[i], `level ${li} seed ${seed}: attempts ${i} and ${i + 1} share candidate ${c}`));
+      const counts = lv.candidates.map((_, c) => seq.filter((x) => x === c).length);
+      assert.ok(Math.min(...counts) >= 8, `level ${li} seed ${seed}: ${counts}`);
+    }
+  });
+});
