@@ -108,7 +108,6 @@
 .j-cl { position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: center; padding: 64px 32px 64px 96px; animation: j-rise .5s cubic-bezier(.23, 1, .32, 1) both; }
 .j-where { margin: 0 0 16px; font: 500 14px/1.4 var(--label, var(--mono)); color: var(--amberText); }
 .j-cl h2 { margin: 0; font: 800 56px/1.04 var(--display); font-variation-settings: "opsz" 144; letter-spacing: -.01em; color: var(--head); text-wrap: balance; }
-.j-line { margin: 20px 0 0; max-width: 30em; font-size: 18px; line-height: 1.5; color: var(--text2); text-wrap: pretty; }
 .j-out { min-height: 56px; margin: 24px 0 0; max-width: 28em; font-size: 18px; line-height: 1.5; color: var(--amberText); }
 .j-out:not(:empty) { animation: j-rise .4s cubic-bezier(.23, 1, .32, 1) both; }
 .j-supply { display: flex; flex-wrap: wrap; gap: 4px 0; margin: 24px 0 0; font: 400 14px/1.5 var(--label, var(--mono)); color: var(--text2); font-variant-numeric: tabular-nums; }

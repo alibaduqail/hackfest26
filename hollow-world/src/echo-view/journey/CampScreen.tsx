@@ -134,7 +134,6 @@ export function CampScreen({ event, res, limit = LIMIT, legIndex, attempt, log, 
       <section className="j-cl" aria-labelledby="j-event-title">
         <p className="j-where">{camp ? `${camp} · ${where}` : where}</p>
         <h2 id="j-event-title">{title}</h2>
-        <p className="j-line">{oneLine(event.body)}</p>
         <p className="j-out" role="status" aria-live="polite">{choice?.reveal ? oneLine(choice.reveal) : ""}</p>
         <SupplyLine res={res} limit={limit} preview={choice ? applyEffect(res, choice.effect) : undefined} />
         <p className="j-key">{picked ? "Enter to continue down" : n === 1 ? "Press 1 to choose" : `Press 1–${n} to choose`}</p>
