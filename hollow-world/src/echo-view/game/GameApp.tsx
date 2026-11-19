@@ -144,7 +144,7 @@ export function GameApp() {
   if (st.screen === "journey") {
     return (
       <JourneyApp
-        onTowerDown={() => { const m = nextPlayable(progress); m ? pick(m.id) : go({ screen: "missions" }); }}
+        onTowerDown={() => pick(ids[0], false)}
         onStrata={() => location.assign("strata.html")}
         onFreePlay={() => { history.pushState({ fromEchoTitle: true }, "", "?screen=descent-live"); go({ screen: "descent-live" }); }}
       />

@@ -70,42 +70,41 @@ export function EchoLog({ obs, log }: { obs: Observation; log?: LogEvent[] }) {
   );
 }
 
-export function Scoreboard({ obs, normal }: { obs: Observation; normal?: Observation }) {
-  const s = obs.score;
-  const ratio = normal && normal.score.passengerDelayMin > 0 && s.passengerDelayMin > 0 ? s.passengerDelayMin / normal.score.passengerDelayMin : null;
+/** Tower vs Echo, one row per measure. `tower` is the tower-only run of the same mission; without it the Tower column shows a dash. */
+export function Scoreboard({ obs, tower }: { obs: Observation; tower?: Observation; normal?: Observation }) {
+  const e = obs.score, t = tower?.score;
+  const rows: [label: string, tower: string, echo: string][] = [
+    ["Moving", t ? String(t.realFlights) : "—", String(e.realFlights)],
+    ["Nurses", t ? `${t.nursesArrived}/${t.nursesTotal}` : "—", `${e.nursesArrived}/${e.nursesTotal}`],
+    ["Supplies", t ? `${t.suppliesDelivered}/${t.suppliesTotal}` : "—", `${e.suppliesDelivered}/${e.suppliesTotal}`],
+    ["Delay min", t ? String(t.passengerDelayMin) : "—", String(e.passengerDelayMin)],
+    ["Capacity", t ? `${Math.round(t.capacityPct)}%` : "—", `${Math.round(e.capacityPct)}%`],
+  ];
   return (
     <section className="echo-card echo-score">
       <h3 className="echo-title">Scoreboard</h3>
-      <div className="echo-stat echo-medical">
-        <b>{s.nursesArrived}/{s.nursesTotal}</b>
-        <span>nurses arrived</span>
-      </div>
-      <div className="echo-stat">
-        <b>{s.suppliesDelivered}/{s.suppliesTotal}</b>
-        <span>supplies delivered</span>
-      </div>
-      <div className="echo-stat">
-        <b>{s.passengerDelayMin} min</b>
-        <span>passenger delay, {ratio !== null ? `${ratio.toFixed(1)}x` : "—"} a normal day</span>
-      </div>
-      <div className="echo-stat">
-        <b>{Math.round(s.capacityPct)}%</b>
-        <span>of normal-day capacity</span>
-      </div>
-      <div className="echo-stat">
-        <b>{s.realFlights} vs {s.towerClaimed}</b>
-        <span>flying vs claimed by tower</span>
+      <div className="echo-sb" role="table" aria-label="Tower versus Echo">
+        <span />
+        <span className="echo-sb-h echo-sb-tower" role="columnheader">Tower</span>
+        <span className="echo-sb-h echo-sb-echo" role="columnheader">Echo</span>
+        {rows.map(([label, a, c]) => (
+          <div key={label} className="echo-sb-row" role="row">
+            <span className="echo-sb-l" role="rowheader">{label}</span>
+            <b className="echo-sb-tower" role="cell">{a}</b>
+            <b className="echo-sb-echo" role="cell">{c}</b>
+          </div>
+        ))}
       </div>
     </section>
   );
 }
 
-export default function Panels({ obs, normal }: { obs: Observation; normal?: Observation }) {
+export default function Panels({ obs, tower, normal }: { obs: Observation; tower?: Observation; normal?: Observation }) {
   return (
     <div className="echo-panels">
       <TowerBanner obs={obs} />
       <EchoLog obs={obs} />
-      <Scoreboard obs={obs} normal={normal} />
+      <Scoreboard obs={obs} tower={tower} normal={normal} />
     </div>
   );
 }
