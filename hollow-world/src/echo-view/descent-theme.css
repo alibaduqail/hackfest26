@@ -1,0 +1,59 @@
+/* Shared Descent look, extracted from the live leg (cutaway/style.css + cutaway/live/*.css). Values match the leg exactly.
+   Vars alias the palette that theme.ts installs on :root. Use these classes on every non-canvas screen. */
+:root {
+  --d-bg: var(--bg, #10191e);
+  --d-stage: var(--stage, #0d161c);
+  --d-panel: var(--panel, #15242c);
+  --d-panel-alt: #17242a; /* the leg's intro/alert panel */
+  --d-rule: var(--line, #3d535b);
+  --d-rule2: var(--line2, #4a5c61);
+  --d-amber: var(--amber, #d2a76a);
+  --d-amber-hi: var(--amberHi, #e4c494);
+  --d-amber-bg: var(--amberBg, #2a2418);
+  --d-teal: var(--good, #7ec8b3);
+  --d-red: var(--red, #e0634f);
+  --d-red-text: var(--redText, #f0a898);
+  --d-ink: var(--ink, #16262b);
+  --d-text: var(--text, #ddd8c1);
+  --d-text2: var(--text2, #b4c4ba);
+  --d-head: var(--head, #e9e0c8);
+  --d-muted: var(--muted, #90a59f);
+  --d-btn2: var(--btn2, #30434b);
+  --d-font-sans: var(--sans, "Aptos", "Segoe UI", ui-sans-serif, system-ui, sans-serif);
+  --d-font-mono: var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  --d-radius: 4px;
+}
+
+/* Amber mono uppercase kicker ("RUN COMPLETE", "WHAT HAPPENED"). */
+.d-kicker { margin: 0; color: var(--d-amber); font: 650 clamp(12px, .85vw, 16px)/1.3 var(--d-font-mono); text-transform: uppercase; letter-spacing: .14em; }
+/* Bold sans heading. */
+.d-h { margin: 0; color: var(--d-head); font: 670 clamp(24px, 1.85vw, 38px)/1.04 var(--d-font-sans); letter-spacing: -.035em; }
+.d-h--xl { font-size: clamp(35px, 2.9vw, 56px); }
+.d-body { margin: 0; color: var(--d-text2); font: clamp(14px, 1vw, 18px)/1.5 var(--d-font-sans); }
+.d-mono { font-family: var(--d-font-mono); }
+
+/* Flat slate panel, thin rule; .d-panel--accent adds the leg's amber left rule. */
+.d-panel { background: var(--d-panel-alt); border: 1px solid var(--d-rule2); border-radius: 0; padding: clamp(14px, 1.6vw, 28px); }
+.d-panel--accent { border-left: 3px solid var(--d-amber); }
+.d-rule { border: 0; border-top: 1px solid var(--d-rule); margin: 0; }
+
+/* Buttons: solid gold rectangle (primary) and outlined secondary. Put a <kbd> inside for the key hint. */
+.d-btn {
+  cursor: pointer; background: var(--d-amber); color: var(--d-ink); border: 1px solid var(--d-amber); border-radius: var(--d-radius);
+  padding: .52em .82em; font: 600 clamp(13px, .9vw, 17px)/1.2 var(--d-font-sans); text-decoration: none; display: inline-block;
+}
+.d-btn:hover { background: var(--d-amber-hi); border-color: var(--d-amber-hi); color: var(--d-ink); }
+.d-btn:focus-visible { outline: 3px solid var(--d-amber-hi); outline-offset: 3px; }
+.d-btn:disabled { opacity: .55; cursor: default; }
+.d-btn kbd { font: 500 .77em var(--d-font-mono); color: inherit; opacity: .78; margin-left: 3px; }
+.d-btn--secondary { background: var(--d-panel); color: var(--d-text2); border-color: var(--d-rule2); }
+.d-btn--secondary:hover { background: var(--d-btn2); color: var(--d-head); border-color: var(--d-rule2); }
+.d-btn-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+/* Sound toggle: small two-option switch. The chosen option is an amber outline, never a solid gold blob. */
+.d-toggle { display: inline-flex; }
+.d-toggle .d-btn { padding: .34em .7em; font-size: 12px; border-radius: 0; }
+.d-toggle .d-btn:first-child { border-radius: var(--d-radius) 0 0 var(--d-radius); }
+.d-toggle .d-btn:last-child { border-radius: 0 var(--d-radius) var(--d-radius) 0; border-left-width: 0; }
+.d-toggle .d-btn[aria-pressed="true"] { background: var(--d-amber-bg); color: var(--d-amber-hi); border-color: var(--d-amber); border-left-width: 1px; position: relative; }
+.d-toggle .d-btn[aria-pressed="false"] { background: var(--d-panel); color: var(--d-muted); border-color: var(--d-rule2); }

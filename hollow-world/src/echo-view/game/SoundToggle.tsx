@@ -1,6 +1,6 @@
-// The sound switch, fixed bottom-right on every game screen: two nodes on one line, the packet parked on the current one. Starts muted.
+// The sound switch, fixed bottom-right on every game screen: a small two-option Descent toggle. Starts muted.
 import { useEffect, useSyncExternalStore } from "react";
-import { RelayBar } from "../relay/Relay";
+import "../descent-theme.css";
 import { isMuted, subscribe, toggleMuted, unlockOnFirstGesture } from "./audio";
 
 export function SoundToggle() {
@@ -9,10 +9,10 @@ export function SoundToggle() {
   const set = (wantMuted: boolean) => { if (wantMuted !== isMuted()) toggleMuted(); };
   return (
     <div className="g-sound">
-      <RelayBar size="sm" label="Sound" value={muted ? "off" : "on"} items={[
-        { key: "off", label: "Silent", onSelect: () => set(true) },
-        { key: "on", label: "Sound", onSelect: () => set(false) },
-      ]} />
+      <div className="d-toggle" role="group" aria-label="Sound">
+        <button type="button" className="d-btn d-btn--secondary" aria-pressed={muted} onClick={() => set(true)}>Silent</button>
+        <button type="button" className="d-btn d-btn--secondary" aria-pressed={!muted} onClick={() => set(false)}>Sound</button>
+      </div>
     </div>
   );
 }
