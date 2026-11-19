@@ -16,7 +16,7 @@ const floors = [.07, .247, .419, .61, .789, 1];
 const spriteUrls = { med, freight, passenger, forged, mara, loader, technician, attendant };
 type Sprite = keyof typeof spriteUrls;
 type Box = { x: number; y: number; w: number; h: number };
-function lamp(track: Track): Point {
+export function lamp(track: Track): Point {
   const [x, y] = along(track, .5);
   return [x * W, (y - (track.shaft === "track" && track.order >= 6 ? .08 : .037)) * H];
 }
@@ -33,11 +33,16 @@ function color(p: Pod, rejected: boolean) {
 function overlaps(a: Box, b: Box) {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 }
-export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasElement) {
+export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasElement, trimUrl?: string) {
   const images = new Map<Sprite, HTMLImageElement>();
   const ground = backdrop.getContext("2d")!;
   const live = canvas.getContext("2d")!;
   let redraw = () => {};
+  const trim = trimUrl ? new Image() : null;
+  if (trim && trimUrl) {
+    trim.onload = () => redraw();
+    trim.src = trimUrl;
+  }
   const resize = new ResizeObserver(() => {
     const { width, height } = canvas.getBoundingClientRect();
     for (const [node, ctx] of [[backdrop, ground], [canvas, live]] as const) {
@@ -128,7 +133,7 @@ export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasEleme
     c.fillText(label, box.x + box.w / 2, box.y + box.h / 2);
   }
   let anim = 0;
-  function show(frame: Frame, previous: Frame, level: number, duration: number) {
+  function show(frame: Frame, previous: Frame, level: number, duration: number, hiddenChips?: ReadonlySet<string>) {
     cancelAnimationFrame(anim);
     function render(duration: number) {
       cancelAnimationFrame(anim);
@@ -282,6 +287,7 @@ export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasEleme
       const blocked = [...fixed, ...pods.map((p) => ({ x: p.x - 60, y: p.y - 47, w: 120, h: 48 }))];
       ground.font = font;
       for (const p of pods) {
+        if (hiddenChips?.has(p.id)) continue;
         const w = Math.ceil(ground.measureText(p.label).width) + 18;
         const h = 28;
         search: for (const dy of [-65, -98, -131, 27, 60, -164]) {
@@ -337,6 +343,14 @@ export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasEleme
         if (liftPod) {
           const y = liftPod.py + (liftPod.y - liftPod.py) * t;
           const x = .513 * W;
+          if (trim) {
+            line(live, x-9, .077*H, x-9, y-48, "#140f0a", 4);
+            line(live, x+9, .077*H, x+9, y-48, "#93836a", 2);
+            live.fillStyle = "#192328d9";
+            live.fillRect(x-58,y-48,116,48);
+            line(live,x-58,y-48,x+58,y-48,T.amberDim,5);
+            circle(live,x+42,y-38,4,T.amberHi);
+          }
           line(live, x - 58, y + 2, x + 58, y + 2, T.amberDim, 5);
           line(live, x - 58, y - 52, x - 58, y + 2, T.amberDim, 3);
           line(live, x + 58, y - 52, x + 58, y + 2, T.amberDim, 3);
@@ -370,6 +384,7 @@ export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasEleme
             }
           }
         }
+        if (trim?.complete && trim.naturalWidth) live.drawImage(trim, 0, 0, W, H);
         for (const p of pods) if (p.box.w) tag(live, p.box, p.label, p.ink);
         if (t < 1) anim = requestAnimationFrame(draw);
       }
@@ -384,6 +399,7 @@ export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasEleme
       resize.disconnect();
       cancelAnimationFrame(anim);
       for (const image of images.values()) image.onload = null;
+      if (trim) trim.onload = null;
       redraw = () => {};
     },
   };

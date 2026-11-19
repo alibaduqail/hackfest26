@@ -76,3 +76,13 @@ test("the full log keeps events the 60-event observe().log has dropped", () => {
   assert.ok(out.log.length > 60);
   assert.ok(out.log.some((l) => l.kind === "beacon-placed" && l.tick === 16));
 });
+
+test("never says Mara cleared the shaft when she did not arrive and was not held at a flood", () => {
+  // end the run after the seal (t41) but before Mara hears or reaches it: she is still on the way, so the sentence must not claim she cleared anything
+  const m = descentLive();
+  const log = playRun({ ...m, endTick: 50 }, "echo", []).log;
+  const l = explainRun(log, m);
+  assert.ok(log.some((e) => e.kind === "seal") && !log.some((e) => e.kind === "seal-heard"));
+  assert.ok(!l.some((x) => /cleared the shaft/.test(x)));
+  assert.match(l[0], /Mara Vale did not reach the clinic\./);
+});

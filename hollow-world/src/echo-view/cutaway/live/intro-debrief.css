@@ -1,0 +1,21 @@
+/* LiveIntro + LiveDebrief. Import once from LiveScreen (see WIRING-INTRO-DEBRIEF.md). Uses the theme tokens already installed for .descent-live. */
+.descent-live .live-intro-backdrop { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: #0a1115cc; padding: 24px; }
+.descent-live .live-intro { max-width: 560px; display: grid; gap: 14px; background: var(--relay-panel, #17242a); border: 1px solid var(--line2); border-left: 3px solid var(--amber); padding: clamp(18px, 2.4vw, 32px); }
+.descent-live .live-intro p, .descent-live .live-intro-rules { margin: 0; color: var(--text2); font-size: clamp(14px, 1vw, 18px); line-height: 1.5; }
+.descent-live .live-intro-rules { list-style: none; padding: 0; display: grid; gap: 8px; }
+.descent-live .live-intro-rules li { border-top: 1px solid var(--line); padding-top: 8px; }
+.descent-live .live-intro-rules strong { color: var(--head); }
+.descent-live .live-intro-hint { background: var(--relay-panel, #17242a); color: var(--amberHi); border-left: 3px solid var(--amber); padding: 8px 10px; }
+.descent-live .live-intro button { justify-self: start; }
+.descent-live .live-debrief2 { display: grid; gap: 8px; }
+.descent-live .live-debrief2 h3 { margin-top: 8px; }
+.descent-live .live-margin { color: var(--head); font-weight: 600; }
+.descent-live .live-why { padding-left: 1.2em; display: grid; gap: 6px; color: var(--text2); font-size: 13px; line-height: 1.45; }
+.descent-live .live-compare { width: 100%; border-collapse: collapse; font-size: 13px; }
+.descent-live .live-compare th, .descent-live .live-compare td { padding: 6px 6px; border-top: 1px solid var(--line); text-align: left; font-weight: 500; color: var(--text2); }
+.descent-live .live-compare thead th { color: var(--text2); font: 650 11px var(--mono); text-transform: uppercase; border-top: 0; }
+.descent-live .live-compare .you { color: var(--head); background: #d2a76a1a; font-weight: 650; }
+.descent-live .live-compare td.never { color: var(--redText); }
+.descent-live .live-compare td.you.never { color: var(--redText); }
+.descent-live .live-tower-says { color: var(--text2); font: 12px/1.4 var(--mono); }
+.descent-live .live-next { color: var(--amberHi); }

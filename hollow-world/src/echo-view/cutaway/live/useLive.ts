@@ -1,7 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { createEngine } from "../../../echo/engine";
 import { DESCENT_LIVE_SOLUTION, descentLive } from "../../../echo/descent";
-import type { Command, Mission, Observation } from "../../../echo/types";
+import type { Command, LogEvent, Mission, Observation, Pod } from "../../../echo/types";
 
 type Speed = 1 | 2;
 type Result = { ok: boolean; reason?: string };
@@ -11,6 +11,8 @@ type LiveState = {
   observation: Observation;
   previous: Observation;
   playing: boolean;
+  ended: boolean;
+  events: readonly LogEvent[];
   speed: Speed;
   remaining: number;
   commands: Command[];
@@ -21,13 +23,25 @@ type LiveState = {
   slow: boolean;
 };
 
-function danger(mission: Mission, obs: Observation): boolean {
-  if (mission.sealAt !== null && obs.tick >= mission.sealAt - 10 && obs.tick < mission.sealAt) return true;
+export function heldAtFlood(pod: Pod, obs: Observation): boolean {
+  return pod.status === "holding" && obs.sectors.some((sector) => sector.sealed && sector.id === pod.path[pod.at + 1]);
+}
+
+function complete(obs: Observation): boolean {
+  return obs.over || obs.pods.filter((p) => p.id === "MED-1" || p.id === "SUP-3")
+    .every((p) => p.status === "arrived" || heldAtFlood(p, obs));
+}
+
+function warning(mission: Mission, obs: Observation): boolean {
+  return mission.sealAt !== null && obs.tick >= mission.sealAt - 10 && obs.tick <= mission.sealAt;
+}
+
+function blindApproach(obs: Observation): boolean {
   return obs.pods.some((pod) => {
-    if (!["MED-1", "SUP-3"].includes(pod.id) || !["moving", "waiting"].includes(pod.status)) return false;
+    if ((pod.id !== "MED-1" && pod.id !== "SUP-3") || !["moving", "waiting"].includes(pod.status)) return false;
     const next = obs.sectors.find((sector) => sector.id === pod.path[pod.at + 1]);
     const current = obs.sectors.find((sector) => sector.id === pod.path[pod.at]);
-    return next?.beacon === false &&
+    return next?.beacon === false && !next.sealed &&
       (pod.status === "waiting" || !current || (1 - pod.progress) * current.minutes <= 3);
   });
 }
@@ -40,23 +54,32 @@ export function createLive() {
   let playing = false, started = false, solution = false, override = false;
   let speed: Speed = 1;
   let commands: Command[] = [];
+  let slowTicks = 0;
+  let events: LogEvent[] = [];
   let queued = new Set<string>();
   let feedback: string | null = null;
   const listeners = new Set<() => void>();
 
   function snapshot(): LiveState {
-    const slow = danger(mission, observation) && !override;
+    const ended = complete(observation);
+    // Reserve 11 slow ticks for the flood countdown.
+    const limit = mission.sealAt !== null && observation.tick < mission.sealAt - 10 ? 5 : 16;
+    const remaining = Math.max(0, (mission.beaconBudget ?? 0) - commands.length);
+    const slow = !ended && !override && slowTicks < limit &&
+      (warning(mission, observation) || (remaining > 0 && blindApproach(observation)));
     return {
       mission,
       observation,
       previous,
       playing,
+      ended,
+      events,
       speed,
       commands,
       queued,
       solution,
       feedback,
-      remaining: Math.max(0, (mission.beaconBudget ?? 0) - commands.length),
+      remaining,
       slow,
       stepMs: 600 / speed / (slow ? 0.35 : 1),
     };
@@ -67,7 +90,7 @@ export function createLive() {
     listeners.forEach((listener) => listener());
   }
   function suppressSlow() {
-    if (danger(mission, observation)) override = true;
+    if (state.slow) override = true;
   }
   function reset(watch: boolean) {
     mission = descentLive();
@@ -78,6 +101,8 @@ export function createLive() {
     started = watch;
     solution = watch;
     override = false;
+    slowTicks = 0;
+    events = [];
     commands = [];
     queued = new Set();
     feedback = null;
@@ -86,7 +111,11 @@ export function createLive() {
   function place(sectorId: string): Result {
     suppressSlow();
     const command: Command = { type: "placeBeacon", sectorId, atTick: observation.tick };
-    const result = solution ? { ok: false, reason: "solution is read-only" } : engine.act(command);
+    const result = state.ended
+      ? { ok: false, reason: "run ended" }
+      : solution
+      ? { ok: false, reason: "solution is read-only" }
+      : engine.act(command);
     feedback = result.ok ? null : result.reason ?? "placement refused";
     if (result.ok) {
       commands = [...commands, command];
@@ -100,7 +129,8 @@ export function createLive() {
     return result;
   }
   function step() {
-    if (observation.over) return;
+    if (state.ended) return;
+    if (state.slow) slowTicks++;
     if (solution) {
       for (const command of DESCENT_LIVE_SOLUTION) {
         if (command.atTick !== observation.tick) continue;
@@ -113,13 +143,17 @@ export function createLive() {
     engine.step();
     observation = engine.observe();
     queued = new Set([...queued].filter((id) => !observation.sectors.find((sector) => sector.id === id)?.beacon));
-    if (!danger(mission, observation)) override = false;
-    if (observation.over) playing = false;
+    events = [...events, ...observation.log.filter((e) => e.tick === previous.tick)];
+    if (
+      (!warning(mission, previous) && warning(mission, observation)) ||
+      (!warning(mission, observation) && !blindApproach(observation))
+    ) override = false;
+    if (complete(observation)) playing = false;
     publish();
   }
   function togglePause() {
     suppressSlow();
-    if (!observation.over) {
+    if (!state.ended) {
       playing = !playing;
       started = true;
     }
