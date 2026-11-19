@@ -1,6 +1,6 @@
-// Relay: the Echo button language. Buttons are beacon nodes (a dot and a mono label) on one hop line; a light packet travels to the
-// hovered or focused node and rests on the current one. Primary = solid amber dot, secondary = hollow teal, danger = rust dot that
-// needs a 600 ms hold, disabled = dashed broken dot with a broken hop line into it. Choices (speed, sound) park the packet on the value.
+// Relay: the Echo button language. Buttons are beacon nodes (a dot and a mono label) on one hop line; the hop line lights toward the
+// hovered, focused or current node, and the amber glow itself is the cursor (relay/cursor.ts). Primary = solid amber dot, secondary = hollow teal, danger = rust dot that
+// needs a 600 ms hold, disabled = dashed broken dot with a broken hop line into it. Choices (speed, sound) light the line to the value.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from "react";
 
 export type RelayTone = "primary" | "secondary" | "danger" | "quiet";
@@ -18,8 +18,8 @@ export interface RelayItem {
 }
 export interface RelayBarProps {
   items: RelayItem[];
-  value?: string; // choice mode: the selected key; packet parks on it and every node gets aria-pressed
-  rest?: string | null; // where the packet rests in action mode (default: first primary; null = nowhere until hovered)
+  value?: string; // choice mode: the selected key; the line lights to it and every node gets aria-pressed
+  rest?: string | null; // which node the line lights in action mode (default: first primary; null = nowhere until hovered)
   size?: "lg" | "md" | "sm";
   label?: string; // aria-label of the group
   className?: string;
@@ -69,7 +69,6 @@ interface Seg { x1: number; x2: number; y: number; broken: boolean; i: number }
 export function RelayBar({ items, value, rest, size = "md", label, className = "", pulseOnChange = true }: RelayBarProps) {
   const choice = value !== undefined;
   const bar = useRef<HTMLDivElement>(null);
-  const packet = useRef<HTMLSpanElement>(null);
   const nodes = useRef<(HTMLElement | null)[]>([]);
   const dots = useRef<(HTMLElement | null)[]>([]);
   const [geo, setGeo] = useState<Geo[]>([]);
@@ -108,31 +107,6 @@ export function RelayBar({ items, value, rest, size = "md", label, className = "
     document.fonts?.ready.then(measure);
     return () => ro.disconnect();
   }, [measure, items.length]);
-
-  // The packet travels: WAAPI from wherever it is right now to the target dot. A geometry change alone snaps it (no travel).
-  const placed = useRef<number | null>(null);
-  const anim = useRef<Animation | undefined>(undefined);
-  useLayoutEffect(() => {
-    const el = packet.current, b = bar.current;
-    if (!el || !b) return;
-    const g = target === null ? null : geo[target];
-    if (!g || (g.x === 0 && g.y === 0)) { el.style.opacity = "0"; placed.current = null; return; }
-    const to = `translate(${g.x}px, ${g.y}px)`;
-    const travel = placed.current !== null && placed.current !== target && !reduced() && el.style.opacity === "1";
-    if (travel) {
-      const cur = el.getBoundingClientRect(), br = b.getBoundingClientRect();
-      const fx = cur.left - br.left + cur.width / 2, fy = cur.top - br.top + cur.height / 2;
-      const dist = Math.hypot(g.x - fx, g.y - fy);
-      anim.current?.cancel();
-      el.style.transform = to;
-      anim.current = el.animate([{ transform: `translate(${fx}px, ${fy}px)` }, { transform: to }], { duration: Math.min(460, 200 + dist * 0.45), easing: "cubic-bezier(.23, 1, .32, 1)" });
-    } else {
-      anim.current?.cancel();
-      el.style.transform = to;
-    }
-    el.style.opacity = "1";
-    placed.current = target;
-  }, [target, geo]);
 
   // choice mode: a small sonar pulse where the value lands
   useEffect(() => {
@@ -199,7 +173,6 @@ export function RelayBar({ items, value, rest, size = "md", label, className = "
         <i key={s.i} className="rl-seg" aria-hidden data-broken={s.broken || undefined} data-lit={(target === s.i || target === s.i + 1) && !s.broken || undefined}
           style={{ left: s.x1, width: Math.max(0, s.x2 - s.x1), top: s.y }} />
       ))}
-      <span ref={packet} className="rl-packet" aria-hidden />
       {items.map((it, i) => {
         const tone = it.tone ?? "secondary";
         const Tag = it.href ? "a" : "button";
@@ -243,7 +216,7 @@ export function RelayBar({ items, value, rest, size = "md", label, className = "
   );
 }
 
-/** One node on its own (no line, no packet travel): for a lone action such as Continue or Skip. */
+/** One node on its own (no line): for a lone action such as Continue or Skip. */
 export function RelayButton(props: Omit<RelayItem, "key"> & { size?: RelayBarProps["size"]; className?: string }) {
   const { size, className, ...item } = props;
   return <RelayBar items={[{ key: "one", ...item }]} size={size} className={className} rest="one" />;
