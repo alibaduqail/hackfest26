@@ -8,10 +8,7 @@ import { SupplyLine } from "./ResourceBar";
 import { TrailRail } from "./TrailMap";
 import { useParallax } from "./useParallax";
 
-const EASE = "cubic-bezier(.23, 1, .32, 1)";
-const reduced = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-interface Geo { sx: number; maraY: number; choiceY: number; mergeY: number; contY: number; xs: number[]; width: number; branch: string[]; merge: string[]; run: string[] }
+interface Geo { sx: number; maraY: number; choiceY: number; mergeY: number; contY: number; xs: number[]; width: number; branch: string[]; merge: string[] }
 
 /** The fork, in the stage's pixels: Mara's dot on the trail line, one branch down to each choice, every branch rejoining at Continue down. */
 function forkGeo(w: number, h: number, n: number, hereLevel: number): Geo {
@@ -24,16 +21,8 @@ function forkGeo(w: number, h: number, n: number, hereLevel: number): Geo {
   const branch = xs.map((x) => `M${sx} ${maraY} C${sx} ${maraY + k} ${x} ${choiceY - k} ${x} ${choiceY}`);
   const rejoin = (x: number) => `C${x} ${mergeY + k2} ${sx} ${contY - k2} ${sx} ${contY}`;
   const merge = xs.map((x) => `M${x} ${mergeY} ${rejoin(x)}`);
-  const run = xs.map((x, i) => `${branch[i]} L${x} ${mergeY} ${rejoin(x)}`);
-  return { sx, maraY, choiceY, mergeY, contY, xs, width: gap - 24, branch, merge, run };
+  return { sx, maraY, choiceY, mergeY, contY, xs, width: gap - 24, branch, merge };
 }
-
-const pathLength = (d: string) => {
-  if (typeof document === "undefined") return 1;
-  const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
-  p.setAttribute("d", d);
-  return p.getTotalLength() || 1;
-};
 
 /** Camp: the situation on the left; on the right the trail line forks at Mara into the choices and rejoins at Continue down. Pick (click, 1-3, arrows), Continue (Enter). */
 export function CampScreen({ event, res, limit = LIMIT, legIndex, attempt, log, onPick, onContinue }: CampScreenProps) {
@@ -44,9 +33,6 @@ export function CampScreen({ event, res, limit = LIMIT, legIndex, attempt, log, 
   const stage = useRef<HTMLDivElement>(null);
   const next = useRef<HTMLDivElement>(null);
   const btns = useRef<(HTMLButtonElement | null)[]>([]);
-  const packet = useRef<HTMLSpanElement>(null);
-  const anim = useRef<Animation | undefined>(undefined);
-  const at = useRef<{ path: string; pos: number } | null>(null);
   useEffect(() => setPicked(null), [event.id, legIndex, attempt, log.length]); // log.length: Scavenge stays in camp, so the card must reset on any new choice
   useEffect(() => { if (picked) next.current?.querySelector<HTMLElement>(".rl-node")?.focus(); }, [picked]);
 
@@ -82,36 +68,6 @@ export function CampScreen({ event, res, limit = LIMIT, legIndex, attempt, log, 
   const bg = useRef<HTMLDivElement>(null);
   const lean = useParallax(bg, stage);
   useEffect(() => { const n = event.choices.length; lean(hot === null || n < 2 ? 0 : (hot - (n - 1) / 2) / ((n - 1) / 2)); }, [hot, event.choices.length, lean]);
-
-  // The light: it rests on Mara, runs down the branch being weighed, and on a pick runs the whole way to Continue down.
-  useLayoutEffect(() => {
-    const el = packet.current;
-    if (!el) return;
-    const go = (path: string, from: number, to: number, ms: number, done?: () => void) => {
-      anim.current?.cancel();
-      el.style.offsetPath = `path("${path}")`;
-      el.style.offsetDistance = `${to * 100}%`;
-      el.style.opacity = "1";
-      if (from !== to && !reduced()) {
-        anim.current = el.animate([{ offsetDistance: `${from * 100}%` }, { offsetDistance: `${to * 100}%` }], { duration: ms, easing: EASE });
-        if (done) anim.current.onfinish = done;
-      } else done?.();
-      at.current = { path, pos: to };
-    };
-    const prev = at.current;
-    if (pickIdx >= 0) {
-      const full = g.run[pickIdx];
-      if (prev?.path === full) return;
-      const from = prev?.path === g.branch[pickIdx] ? prev.pos * (pathLength(g.branch[pickIdx]) / pathLength(full)) : 0;
-      go(full, from, 1, 820 * (1 - from) + 120, () => { el.style.opacity = "0"; }); // Continue's own light takes over at the end
-    } else if (hot !== null) {
-      const path = g.branch[hot];
-      go(path, prev?.path === path ? prev.pos : 0, 1, 380);
-    } else {
-      const path = prev && g.branch.includes(prev.path) ? prev.path : g.branch[0];
-      go(path, prev?.path === path ? prev.pos : 0, 0, 260);
-    }
-  }, [hot, pickIdx, g]);
 
   const arrows = (i: number, e: KeyboardEvent<HTMLButtonElement>) => {
     const dir = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
@@ -149,7 +105,6 @@ export function CampScreen({ event, res, limit = LIMIT, legIndex, attempt, log, 
           })}
         </svg>
         <span className="j-mara" style={{ left: g.sx, top: g.maraY }} aria-hidden />
-        <span className="j-packet" ref={packet} aria-hidden />
 
         <div className="j-forks" role="group" aria-label="Choices">
           {event.choices.map((c, i) => {

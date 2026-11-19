@@ -1,0 +1,14 @@
+/* The amber glow cursor (relay/cursor.ts). Only active (html[data-glow]) for a fine, hovering pointer without reduced motion. */
+html[data-glow], html[data-glow] * { cursor: none !important; }
+html[data-glow] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="button"]), html[data-glow] textarea, html[data-glow] [contenteditable="true"] { cursor: text !important; }
+
+.gl-cursor { position: fixed; left: 0; top: 0; z-index: 2147483000; width: 0; height: 0; pointer-events: none; opacity: 0; transition: opacity .2s; will-change: transform; }
+.gl-cursor[data-on] { opacity: 1; }
+.gl-cursor[data-text] { opacity: 0; }
+.gl-cursor i { position: absolute; left: -3.5px; top: -3.5px; width: 7px; height: 7px; border-radius: 50%; background: #fff4d6; box-shadow: 0 0 0 2px rgba(228,196,148,.5), 0 0 14px 4px var(--amber, #d2a76a);
+  transition: transform .2s cubic-bezier(.23, 1, .32, 1), box-shadow .2s, width .15s, height .15s, left .15s, top .15s; }
+.gl-cursor[data-hot] i { transform: scale(1.5); box-shadow: 0 0 0 2px rgba(228,196,148,.6), 0 0 20px 7px var(--amber, #d2a76a); }
+.gl-cursor[data-down] i { transform: scale(.8); transition-duration: .08s; }
+/* over a map canvas: a crisp 2px centre point inside a softer halo, so placing stays exact */
+.gl-cursor[data-precise] i { left: -1px; top: -1px; width: 2px; height: 2px; box-shadow: 0 0 0 3px rgba(228,196,148,.4), 0 0 12px 5px rgba(210,167,106,.7); }
+.gl-cursor[data-precise][data-down] i { transform: scale(1); box-shadow: 0 0 0 4px rgba(228,196,148,.55), 0 0 14px 6px rgba(210,167,106,.8); }
