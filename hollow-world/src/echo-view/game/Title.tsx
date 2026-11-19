@@ -1,19 +1,19 @@
 import type { MouseEventHandler } from "react";
-import { RelayBar } from "../relay/Relay";
 
-// Title: the word, two nodes, two quieter nodes. Nothing else. The dimmed Strata backdrop is mounted by GameApp.
+// Title: the word, two buttons, two quieter links. The Descent look: flat slate, gold primary, outlined secondaries.
 export function Title({ onBegin, onMissions, onDescent }: { onBegin: () => void; onMissions: () => void; onDescent: MouseEventHandler<HTMLAnchorElement> }) {
   return (
     <div className="g-screen g-title">
-      <h1 aria-label="Echo"><span aria-hidden>ECHO</span><i aria-hidden>ECHO</i></h1>
-      <RelayBar size="lg" label="Start" className="g-title-main" items={[
-        { key: "begin", label: "Begin", tone: "primary", nav: true, autoFocus: true, onSelect: onBegin },
-        { key: "missions", label: "Missions", tone: "secondary", nav: true, onSelect: onMissions },
-      ]} />
-      <RelayBar size="md" label="More" className="g-title-more" rest={null} items={[
-        { key: "descent", label: "Play the Descent", tone: "quiet", nav: true, href: "?screen=descent-live", onSelect: (e) => onDescent(e as never) },
-        { key: "how", label: "See how Echo works", tone: "quiet", nav: true, href: "?screen=descent", onSelect: (e) => onDescent(e as never) },
-      ]} />
+      <p className="d-kicker">Sector 07 · Directorate offline</p>
+      <h1 className="d-h d-h--xl" aria-label="Echo">ECHO</h1>
+      <div className="d-btn-row g-title-main" role="group" aria-label="Start">
+        <button type="button" className="d-btn" autoFocus onClick={onBegin}>Begin</button>
+        <button type="button" className="d-btn d-btn--secondary" onClick={onMissions}>Missions</button>
+      </div>
+      <div className="d-btn-row g-title-more" role="group" aria-label="More">
+        <a className="d-btn d-btn--secondary" href="?screen=descent-live" onClick={onDescent}>Play the Descent</a>
+        <a className="d-btn d-btn--secondary" href="?screen=descent" onClick={onDescent}>See how Echo works</a>
+      </div>
     </div>
   );
 }

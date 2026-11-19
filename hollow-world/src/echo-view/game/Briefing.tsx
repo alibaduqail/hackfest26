@@ -2,7 +2,6 @@
 // Also exports the typewriter and the Interlude page used by the prologue and epilogue.
 import { useEffect, useState } from "react";
 import type { CampaignMission } from "./campaign";
-import { RelayBar } from "../relay/Relay";
 import { Stars } from "./MissionSelect";
 
 const CHARS_PER_FRAME = 2;
@@ -42,27 +41,27 @@ export function Briefing({ cm, best, hasBudget, onNext, onBack }: { cm: Campaign
       <div className="g-page g-brief">
         <div className="g-head">
           <div>
-            <div className="g-kicker">Mission {cm.number}</div>
-            <h2>{cm.name}</h2>
+            <div className="d-kicker">Mission {cm.number}</div>
+            <h2 className="d-h">{cm.name}</h2>
           </div>
-          {!tw.done && <RelayBar size="sm" label="Skip" items={[{ key: "skip", label: "Skip", tone: "quiet", onSelect: tw.skip }]} />}
+          {!tw.done && <button type="button" className="d-btn d-btn--secondary" onClick={tw.skip}>Skip</button>}
         </div>
         <Typed tw={tw} />
         <div className="g-broadcast" style={{ opacity: tw.done ? 1 : 0 }} aria-hidden={!tw.done}>
           <b>BROADCAST</b>
           <div>THE DIRECTORATE: {cm.broadcast}</div>
         </div>
-        <div className="g-kicker g-objs-head">Objectives</div>
+        <div className="d-kicker g-objs-head">Objectives</div>
         <ul className="g-objs">
           {cm.objectives.map((o, i) => (
             <li key={i} className={best > i ? "met" : ""}><Stars n={i + 1} /><span>{o.label}</span></li>
           ))}
         </ul>
         <div className="g-actions">
-          <RelayBar label="Briefing" items={[
-            { key: "back", label: "Back", nav: true, onSelect: onBack },
-            { key: "next", label: hasBudget ? "Place beacons" : "Begin", tone: "primary", nav: true, autoFocus: true, onSelect: onNext },
-          ]} />
+          <div className="d-btn-row" role="group" aria-label="Briefing">
+            <button type="button" className="d-btn d-btn--secondary" onClick={onBack}>Back <kbd>Esc</kbd></button>
+            <button type="button" className="d-btn" autoFocus onClick={onNext}>{hasBudget ? "Place beacons" : "Begin"}</button>
+          </div>
         </div>
       </div>
     </div>
@@ -77,13 +76,13 @@ export function Interlude({ kicker, title, paras, onDone }: { kicker: string; ti
       <div className="g-page g-brief g-select">
         <div className="g-head">
           <div>
-            <div className="g-kicker">{kicker}</div>
-            <h2>{title}</h2>
+            <div className="d-kicker">{kicker}</div>
+            <h2 className="d-h">{title}</h2>
           </div>
         </div>
         <Typed tw={tw} />
         <div className="g-actions end">
-          <RelayBar label={title} items={[{ key: "go", label: tw.done ? "Continue" : "Skip", tone: "primary", nav: tw.done, autoFocus: true, onSelect: onDone }]} />
+          <button type="button" className="d-btn" aria-label={title} autoFocus onClick={onDone}>{tw.done ? "Continue" : "Skip"}</button>
         </div>
       </div>
     </div>

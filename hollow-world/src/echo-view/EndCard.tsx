@@ -1,14 +1,13 @@
 // End card: the Directorate-alone run next to the Echo run, plus the honest cost. Props in, Observation only, no engine imports.
 // Mount it over the split screen when `echo.over`; `normal` is the final observation of the normal-day run.
 import type { ReactNode } from "react";
-import { RelayBar } from "./relay/Relay";
 import type { Observation } from "../echo/types";
 
 const css = `
 .echo-end{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:24px;background:var(--bg);color:var(--text);font:15px var(--sans)}
-.echo-end h2{margin:0;font-size:22px;letter-spacing:.06em;font-weight:600}
-.echo-end-grid{background:var(--panel);border:1px solid var(--line2);border-radius:8px;box-shadow:0 5px 22px #050d1260;padding:22px 34px;display:grid;grid-template-columns:minmax(0,auto) repeat(2,minmax(0,300px));gap:14px 40px;align-items:baseline}
-.echo-end-grid .h{color:var(--muted);font-size:14px;font-family:var(--label,var(--mono))}
+.echo-end h2{margin:0}
+.echo-end-grid{background:var(--d-panel-alt);border:1px solid var(--line2);border-radius:0;padding:22px 34px;display:grid;grid-template-columns:minmax(0,auto) repeat(2,minmax(0,300px));gap:14px 40px;align-items:baseline}
+.echo-end-grid .h{color:var(--amber);font:650 12px var(--mono);text-transform:uppercase;letter-spacing:.14em}
 .echo-end-grid .l{color:var(--text2)}
 .echo-end-grid .v{font-size:44px;line-height:1.1;font-weight:600}
 .echo-end-grid .v.sm{font-size:24px;white-space:nowrap}
@@ -34,7 +33,7 @@ export function EndCard({ tower, echo, normal, onReplay, title = "TOWER DOWN", t
   return (
     <div className="echo-end">
       <style>{css}</style>
-      <h2>{title} at t+{echo.endTick}</h2>
+      <h2 className="d-h">{title} at t+{echo.endTick}</h2>
       {top}
       <div className="echo-end-grid">
         <div />
@@ -49,7 +48,7 @@ export function EndCard({ tower, echo, normal, onReplay, title = "TOWER DOWN", t
       <div className="echo-end-note">
         Echo costs time: passengers wait {n.passengerDelayMin > 0 ? `${(e.passengerDelayMin / n.passengerDelayMin).toFixed(1)}× as long as` : "longer than"} on a normal day and the network runs at {e.capacityPct}% of normal. Echo is a fallback protocol, not a replacement for the tower. Nurse credentials are a simulated signature.
       </div>
-      {onReplay && <RelayBar size="lg" label="Replay" items={[{ key: "replay", label: "Replay", tone: "primary", onSelect: onReplay }]} />}
+      {onReplay && <button type="button" className="d-btn" onClick={onReplay}>Replay</button>}
       {children}
     </div>
   );

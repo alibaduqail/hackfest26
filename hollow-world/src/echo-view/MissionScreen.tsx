@@ -11,7 +11,6 @@ const STRATA_URL = "/strata.html"; // the Strata city sim, home of Sector 07
 import { EchoBanner, EchoLog, Scoreboard, TowerBanner } from "./panels";
 import { Legend } from "./Legend";
 import { EndCard } from "./EndCard";
-import { RelayBar } from "./relay/Relay";
 import "./echo.css";
 
 const SPEEDS = [1, 10, 60] as const;
@@ -24,13 +23,13 @@ html,body,#root{margin:0;height:100%;background:var(--bg);color:var(--text);font
 .echo-main{flex:1;display:grid;grid-template-columns:1fr 1fr 360px;gap:2px;background:var(--line);min-height:0}
 .echo-side{background:var(--bg);padding:12px;min-height:0;overflow:hidden}
 .echo-side .echo-panels{height:100%}
-.echo-bar{background:var(--panel);display:flex;flex-wrap:wrap;gap:4px 20px;align-items:center;padding:2px 14px;border-top:1px solid var(--line)}
+.echo-bar{background:var(--panel);display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;padding:10px 14px;border-top:1px solid var(--line2)}
 .echo-bar .grow{flex:1;min-width:0;color:var(--text2)}
-.echo-bar .echo-clock{font-family:var(--label,var(--mono));font-variant-numeric:tabular-nums;color:var(--text2)}
-.echo-ticker{display:flex;gap:8px;align-items:center;margin-bottom:8px;padding:5px 10px;background:var(--redBg);border:1px solid var(--redLine);border-radius:4px;color:var(--red);font-size:12px;letter-spacing:.06em;animation:echo-tick .5s ease-out}
+.echo-bar .echo-clock{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--text2)}
+.echo-ticker{display:flex;gap:8px;align-items:center;margin-bottom:8px;padding:5px 10px;background:var(--redBg);border:1px solid var(--redLine);border-radius:0;color:var(--red);font-size:12px;letter-spacing:.06em;animation:echo-tick .5s ease-out}
 .echo-ticker b{flex:none;background:var(--red);color:var(--redBg);padding:0 6px;font-size:10px;letter-spacing:.25em}
 @keyframes echo-tick{from{opacity:0;transform:translateY(4px)}}
-.echo-hint{position:absolute;left:14px;bottom:104px;z-index:3;max-width:calc(100% - 28px);display:flex;flex-direction:column;gap:2px;text-align:left;background:var(--amberBg);color:var(--amberText);border:1px solid var(--amber);border-radius:6px;padding:10px 14px;font:inherit;font-size:16px;line-height:1.35;cursor:pointer;animation:echo-hint .35s ease-out;text-wrap:balance;hyphens:none}
+.echo-hint{position:absolute;left:14px;bottom:104px;z-index:3;max-width:calc(100% - 28px);display:flex;flex-direction:column;gap:2px;text-align:left;background:var(--amberBg);color:var(--amberText);border:1px solid var(--amber);border-left-width:3px;border-radius:0;padding:10px 14px;font:inherit;font-size:16px;line-height:1.35;cursor:pointer;animation:echo-hint .35s ease-out;text-wrap:balance;hyphens:none}
 .echo-hint small{color:var(--amberDim);font-size:11px;letter-spacing:.08em}
 @keyframes echo-hint{from{opacity:0;transform:translateY(6px)}}
 .echo-flash{position:absolute;inset:0;z-index:4;pointer-events:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(90,8,6,.38);box-shadow:inset 0 0 160px rgba(255,59,59,.55);animation:echo-flash 2s forwards}
@@ -317,16 +316,18 @@ export function MissionScreen({ mission: missionProp, allowDispatch = true, spee
       </div>
       <Legend />
       <div className="echo-bar">
-        <RelayBar label="Run controls" items={[
-          { key: "run", label: echo.over ? "Replay" : running ? "Pause" : "Run", tone: "primary", onSelect: () => (echo.over ? reset() : setRunning((r) => !r)) },
-          { key: "reset", label: "Reset", tone: "danger", hold: true, onSelect: reset },
-          ...(allowDispatch ? [{ key: "dispatch", label: "Dispatch Nurse Mara Vale", disabled: !nurse || nurse.status !== "scheduled" || echo.over, onSelect: dispatch }] : []),
-        ]} />
-        <RelayBar label="Speed" value={String(speed)} items={speeds.map((s) => ({ key: String(s), label: `${s}×`, onSelect: () => setSpeed(s) }))} />
+        <div className="d-btn-row" role="group" aria-label="Run controls">
+          <button type="button" className="d-btn" onClick={() => (echo.over ? reset() : setRunning((r) => !r))}>{echo.over ? "Replay" : running ? "Pause" : "Run"}</button>
+          <button type="button" className="d-btn d-btn--secondary" onClick={reset}>Reset</button>
+          {allowDispatch && <button type="button" className="d-btn d-btn--secondary" disabled={!nurse || nurse.status !== "scheduled" || echo.over} onClick={dispatch}>Dispatch Nurse Mara Vale</button>}
+        </div>
+        <span className="d-toggle" role="group" aria-label="Speed">
+          {speeds.map((s) => <button key={s} type="button" className="d-btn d-btn--secondary" aria-pressed={s === speed} onClick={() => setSpeed(s)}>{`${s}×`}</button>)}
+        </span>
         <span className="grow">{note}</span>
-        <RelayBar size="md" label="Elsewhere" rest={null} items={[{ key: "strata", label: "Sector 07 city sim", tone: "secondary", nav: true, href: STRATA_URL, onSelect: () => location.assign(STRATA_URL) }]} />
+        <a className="d-btn d-btn--secondary" href={STRATA_URL}>Sector 07 city sim</a>
         <span className="echo-clock">t+{echo.tick} / {echo.endTick}</span>
-        {onExit && <RelayBar size="sm" label="Leave" items={[{ key: "abort", label: "Abort mission", tone: "danger", hold: true, onSelect: onExit }]} />}
+        {onExit && <button type="button" className="d-btn d-btn--secondary" onClick={onExit}>Abort mission <kbd>Esc</kbd></button>}
       </div>
       {story && fxRef.current.flashAt > 0 && performance.now() - fxRef.current.flashAt < FLASH_MS && (
         <div className="echo-flash" key={fxRef.current.flashAt} aria-hidden><b>TOWER OFFLINE</b><span>the Directorate's tower has gone dark</span></div>
