@@ -86,3 +86,38 @@ test("never says Mara cleared the shaft when she did not arrive and was not held
   assert.ok(!l.some((x) => /cleared the shaft/.test(x)));
   assert.match(l[0], /Mara Vale did not reach the clinic\./);
 });
+
+// Levels 2 and 3 (reviewer follow-ups on #105): the flood that decided the run, margins from the level's own star table, stars in the baseline.
+import { DESCENT_LEVELS } from "./descent-levels";
+const lvl = (i: number, cmds: Command[]) => {
+  const m = DESCENT_LEVELS[i].build();
+  const o = playRun(m, "echo", cmds);
+  return { o, l: explainRun(o.log, m) };
+};
+
+test("level 2: a trapped Mara is explained by the flood that trapped her, not the first one", () => {
+  const { o, l } = lvl(1, place(["mainA1", "mainA0"])); // flood A warned, flood B not
+  assert.equal(o.mara, null);
+  assert.match(l[0], /The flood sealed mainB1 at minute 55\. No warning reached Mara Vale/);
+  assert.match(l[1], /mainB1 and mainB0 had no beacon/);
+  assert.match(lvl(1, []).l[1], /mainA1 and mainA0 had no beacon/);
+});
+
+test("level 2: both floods warned re-routes twice; margins come from the level's star table", () => {
+  const { o, l } = lvl(1, place(["mainA1", "mainA0", "mainB1", "mainB0"]));
+  assert.equal(o.stars, 1);
+  assert.match(l[0], /The floods sealed mainA1 at minute 30 and mainB1 at minute 55\..*re-routed at minutes \d+ and \d+ and reached the clinic at minute 120/);
+  assert.match(l[2], /Next star \(★★\): Mara Vale by 114 \(arrived 120, 6 late\); medicine by 119 \(arrived 125, 6 late\)/);
+  assert.equal(lvl(1, DESCENT_LEVELS[1].solution).l.at(-1), "Best possible run.");
+});
+
+test("level 3: margin line and star count work, baseline stars are not null", () => {
+  const { l } = lvl(2, place(["main1", "main0"]));
+  assert.match(l.at(-1)!, /Next star \(★★\): Mara Vale by 99 \(arrived 111, 12 late\); medicine by 123 \(arrived 135, 12 late\)/);
+  for (const [i, want] of [[0, 3], [1, 3], [2, 3]] as const) {
+    const b = runBaseline(DESCENT_LEVELS[i].build(), DESCENT_LEVELS[i].solution);
+    assert.equal(b.you.stars, want);
+    assert.equal(b.none.stars, 0);
+    assert.match(b.towerSays, /Mara never arrives\./);
+  }
+});
