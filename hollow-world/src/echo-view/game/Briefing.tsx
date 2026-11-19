@@ -19,15 +19,18 @@ export function useTypewriter(paras: string[]) {
   }, [shown, done, total]);
   let left = shown;
   const visible = paras.map((p) => { const t = p.slice(0, Math.max(0, left)); left -= p.length; return t; }).filter((p, i) => p || i === 0);
-  return { visible, done, skip: () => setShown(total) };
+  return { visible, paras, done, skip: () => setShown(total) };
 }
 type Typewriter = ReturnType<typeof useTypewriter>;
 
 const Typed = ({ tw }: { tw: Typewriter }) => (
   <div className="g-type" onClick={tw.skip} aria-live="off">
-    {tw.visible.map((p, i) => (
-      <p key={i}>{p}{!tw.done && i === tw.visible.length - 1 && <span className="caret" />}</p>
-    ))}
+    {tw.paras.map((full, i) => {
+      const shown = tw.visible[i] ?? "";
+      return (
+        <p key={i}>{shown}{!tw.done && i === tw.visible.length - 1 && <span className="caret" />}<span className="rest" aria-hidden>{full.slice(shown.length)}</span></p>
+      );
+    })}
   </div>
 );
 
@@ -48,15 +51,15 @@ export function Briefing({ cm, best, hasBudget, onNext, onBack }: { cm: Campaign
           <b>BROADCAST</b>
           <div>THE DIRECTORATE: {cm.broadcast}</div>
         </div>
-        <div className="g-kicker" style={{ marginBottom: 10 }}>Objectives</div>
+        <div className="g-kicker g-objs-head">Objectives</div>
         <ul className="g-objs">
           {cm.objectives.map((o, i) => (
-            <li key={i} className={best > i ? "met" : ""}><Stars n={i + 1} />{o.label}</li>
+            <li key={i} className={best > i ? "met" : ""}><Stars n={i + 1} /><span>{o.label}</span></li>
           ))}
         </ul>
-        <div className="g-row">
+        <div className="g-row g-actions">
           <button className="g-btn" onClick={onBack}>Back</button>
-          <button className="g-btn primary" autoFocus onClick={onNext}>{hasBudget ? "Place beacons" : "Begin"}</button>
+          <button className="g-btn lg primary" autoFocus onClick={onNext}>{hasBudget ? "Place beacons" : "Begin"}</button>
         </div>
       </div>
     </div>
@@ -76,8 +79,8 @@ export function Interlude({ kicker, title, paras, onDone }: { kicker: string; ti
           </div>
         </div>
         <Typed tw={tw} />
-        <div className="g-row">
-          <button className="g-btn primary" autoFocus onClick={onDone}>{tw.done ? "Continue" : "Skip"}</button>
+        <div className="g-row g-actions end">
+          <button className="g-btn lg primary" autoFocus onClick={onDone}>{tw.done ? "Continue" : "Skip"}</button>
         </div>
       </div>
     </div>
