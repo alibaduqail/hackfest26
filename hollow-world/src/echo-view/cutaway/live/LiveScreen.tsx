@@ -203,6 +203,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
       }
     }
     if (!over) return;
+    if (solution) return; // a replay earns no stars, so no star chimes
     const tones = Array.from({ length: stars }, (_, i) => setTimeout(() => sfx.playStarDing(i), i * 180));
     return () => tones.forEach(clearTimeout);
   }, [obs, previous, warning, sealedNow.length, over, stars, solution, live.events, mara, medicine]);
@@ -248,7 +249,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
   }
   /** Journey mode: hand the finished leg to the journey (a win moves on; a loss applies its cost and goes to the retry camp). Once only. */
   function endLeg(continueAnyway = false) {
-    if (finished.current || !onLegEnd || !legId) return;
+    if (finished.current || !onLegEnd || !legId || solution) return; // a solution replay never records a leg
     finished.current = true;
     onLegEnd({ legId, stars, maraAt: mara.arriveTick, medicineAt: medicine.arriveTick, beaconsPlaced: live.commands.length, ticks: obs.tick }, continueAnyway ? { continueAnyway } : undefined);
   }
@@ -435,11 +436,11 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
                   ? <LiveDebrief mission={mission} commands={live.commands} stars={stars} endReason={obs.endReason} onNext={() => endLeg()} nextLabel="Continue the journey" />
                   : <LiveDebrief mission={mission} commands={live.commands} stars={stars} endReason={obs.endReason} onRetry={() => endLeg()} retryLabel="Retry leg" onContinue={() => endLeg(true)}
                       note={`Retrying costs ${obs.tick + 15} minutes on the clock, 1 dose${live.commands.length ? `, and the ${live.commands.length} beacon${live.commands.length === 1 ? "" : "s"} you placed` : ""}.`} />
-                : <LiveDebrief mission={mission} commands={live.commands} stars={stars} endReason={obs.endReason} onRetry={() => restart(false)} onWatchSolution={() => restart(true)} />
+                : <LiveDebrief mission={mission} commands={live.commands} stars={stars} endReason={obs.endReason} replay={solution} onRetry={() => restart(false)} retryLabel={solution ? "Play yourself" : undefined} onWatchSolution={solution ? undefined : () => restart(true)} />
             )
             : (
               <>
-                <div className="eyebrow">RELAY CONTROL{solution ? " · SOLUTION" : ""}</div>
+                <div className="eyebrow">RELAY CONTROL{solution ? " · SOLUTION REPLAY" : ""}</div>
                 <h2>Guide the pods</h2>
                 <p className="live-instructions" id="live-rail-help">
                   Click a + on the track to place a beacon. News travels only between neighbors. Focus the map to use

@@ -36,7 +36,7 @@ export function TitleScreen({ onBegin, onContinue, onTowerDown, onStrata, onFree
     : [{ key: "begin", label: "Begin", tone: "primary", autoFocus: true, onSelect: (e) => leave(onBegin, dotOf(e)) }];
   const more: RelayItem[] = [];
   if (onTowerDown) more.push({ key: "tower", label: "Tower Down", tone: "quiet", nav: true, onSelect: onTowerDown });
-  if (onStrata) more.push({ key: "strata", label: "Strata city", tone: "quiet", nav: true, onSelect: onStrata });
+  if (onStrata) more.push({ key: "strata", label: "The city Echo keeps alive", tone: "quiet", nav: true, onSelect: onStrata });
   if (onFreePlay) more.push({ key: "free", label: "Descent", tone: "quiet", nav: true, onSelect: onFreePlay });
   return (
     <>
