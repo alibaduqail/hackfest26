@@ -45,7 +45,6 @@ export function JourneyApp({ onTowerDown, onStrata, onFreePlay }: JourneyAppProp
   if (!s) {
     return (
       <>
-        <div className="j-title-bg" aria-hidden="true" />
         <TitleScreen
           onBegin={() => play(startJourney(freshSeed()))}
           onContinue={saved ? () => setS(saved) : undefined}
