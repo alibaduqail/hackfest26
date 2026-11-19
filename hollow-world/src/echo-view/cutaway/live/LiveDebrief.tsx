@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { runBaseline, type RunOutcome } from "../../../echo/baseline";
 import { explainRun } from "../../../echo/explain";
 import type { Command, Mission } from "../../../echo/types";
-import { displayLocations } from "../run";
+import { plainText } from "./names";
 
 export interface LiveDebriefProps {
   mission: Mission;
@@ -43,7 +43,7 @@ function nextStep(stars: number, mission: Mission, commands: Command[], o: RunOu
 
 export function LiveDebrief({ mission, commands, stars, onRetry, onNext, onWatchSolution, onContinue, retryLabel = "Retry", nextLabel = "Next level", endReason, note }: LiveDebriefProps) {
   const base = useMemo(() => runBaseline(mission, commands), [mission, commands]);
-  const lines = useMemo(() => explainRun(base.you.log, mission).map((l) => displayLocations(l).replace(/^./, (c) => c.toUpperCase())), [base, mission]);
+  const lines = useMemo(() => explainRun(base.you.log, mission).map((l) => plainText(l).replace(/^./, (c) => c.toUpperCase())), [base, mission]);
   const why = lines.filter((l) => !isMargin(l));
   const margin = lines.find(isMargin);
   const hint = nextStep(stars, mission, commands, base.you);

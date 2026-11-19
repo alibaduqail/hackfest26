@@ -265,7 +265,7 @@ export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasEleme
         const track = tracks.get(p.path[p.at]);
         const facesLeft = !!track && p.status !== "arrived" && track.b[0] < track.a[0];
         let label = p.label;
-        if (p.ghost && fake) label = p.id + " · forged · treated as passenger";
+        if (p.ghost && fake) label = "Forged medical pod · queued as passenger";
         else if (p.id === "PAX-1") label = "PAX-1 · passengers";
         return {
           id: p.id,
