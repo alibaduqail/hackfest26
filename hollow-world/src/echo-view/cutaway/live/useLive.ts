@@ -4,7 +4,7 @@ import { descentLive } from "../../../echo/descent";
 import { DESCENT_LEVELS } from "../../../echo/descent-levels";
 import type { Command, LogEvent, Mission, Observation, Pod } from "../../../echo/types";
 
-type Speed = 1 | 2;
+type Speed = 1 | 2 | 4;
 type Result = { ok: boolean; reason?: string };
 
 type LiveState = {
