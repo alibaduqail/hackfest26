@@ -9,7 +9,7 @@ import { TrailRecord } from "./TrailMap";
 import { useParallax } from "./useParallax";
 
 /** The ending: the verdict, the score, the supplies, and the whole descent drawn as one trail line with Mara at its end. Begin again (Enter). */
-export function EndingScreen({ ending, res, limit = LIMIT, log, choiceNames, onAgain }: EndingScreenProps) {
+export function EndingScreen({ ending, res, limit = LIMIT, log, choiceNames, ghosts, onAgain }: EndingScreenProps) {
   useEnterKey(onAgain);
   const bg = useRef<HTMLDivElement>(null), trail = useRef<HTMLDivElement>(null);
   useParallax(bg, trail);
@@ -24,9 +24,10 @@ export function EndingScreen({ ending, res, limit = LIMIT, log, choiceNames, onA
         <h2 id="j-end-title">{ending.title}</h2>
         <p className="j-score2"><b>{ending.score}</b><span>points</span></p>
         <SupplyLine res={res} limit={limit} />
+        {ghosts && ghosts.claimed > 0 && <p className="j-claim">tower claimed <b>{ghosts.claimed}</b> · <b className="bad">{ghosts.actual}</b> ran</p>}
         <div className="j-again"><RelayButton size="lg" label="Begin again" tone="primary" nav autoFocus onSelect={onAgain} /></div>
       </section>
-      <div className="j-er" ref={trail}><TrailRecord log={log} choiceNames={choiceNames} /></div>
+      <div className="j-er" ref={trail}><TrailRecord log={log} choiceNames={choiceNames} ghosts={ghosts?.paths} /></div>
     </div>
   );
 }
