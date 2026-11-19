@@ -1,12 +1,16 @@
 import { useEffect, useRef } from "react";
 import { RelayBar, type RelayItem } from "../relay/Relay";
+import { beginTransition } from "./beginTransition";
 import { useEnterKey } from "./keys";
 import type { TitleProps } from "./props";
 import { useParallax } from "./useParallax";
 
 /** The front door: the name and Relay nodes over the 2D Descent still (.j-title-bg: the far parallax layer; the wordmark is the mid layer; the Relay nodes stay still). Nothing else. */
 export function TitleScreen({ onBegin, onContinue, onTowerDown, onStrata, onFreePlay }: TitleProps) {
-  useEnterKey(onContinue ?? onBegin);
+  // Begin / Continue / New journey leave through the sonar burst + fade to black (beginTransition); repeat activations while it plays are ignored.
+  const leave = (go: () => void, from?: Element | null) => beginTransition(from ?? document.querySelector(".g-title-main .rl-node[data-tone=primary] .rl-dot"), go);
+  const dotOf = (e?: { currentTarget: EventTarget | null }) => (e?.currentTarget instanceof Element ? e.currentTarget.querySelector(".rl-dot") : null);
+  useEnterKey(() => leave(onContinue ?? onBegin));
   const bg = useRef<HTMLDivElement>(null), mark = useRef<HTMLHeadingElement>(null);
   useParallax(bg, mark);
   // If focus has fallen to the page (a click on the backdrop, a late autofocus), an arrow key would do nothing and the next Enter would hit the
@@ -26,10 +30,10 @@ export function TitleScreen({ onBegin, onContinue, onTowerDown, onStrata, onFree
   }, []);
   const main: RelayItem[] = onContinue
     ? [
-        { key: "continue", label: "Continue", tone: "primary", nav: true, autoFocus: true, onSelect: onContinue },
-        { key: "begin", label: "New journey", tone: "secondary", nav: true, onSelect: onBegin },
+        { key: "continue", label: "Continue", tone: "primary", autoFocus: true, onSelect: (e) => leave(onContinue, dotOf(e)) },
+        { key: "begin", label: "New journey", tone: "secondary", onSelect: (e) => leave(onBegin, dotOf(e)) },
       ]
-    : [{ key: "begin", label: "Begin", tone: "primary", nav: true, autoFocus: true, onSelect: onBegin }];
+    : [{ key: "begin", label: "Begin", tone: "primary", autoFocus: true, onSelect: (e) => leave(onBegin, dotOf(e)) }];
   const more: RelayItem[] = [];
   if (onTowerDown) more.push({ key: "tower", label: "Tower Down", tone: "quiet", nav: true, onSelect: onTowerDown });
   if (onStrata) more.push({ key: "strata", label: "Strata city", tone: "quiet", nav: true, onSelect: onStrata });
