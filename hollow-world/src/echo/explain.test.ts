@@ -64,7 +64,7 @@ test("runBaseline: tower and no-beacon never deliver, you do; tower claim vs rea
   assert.equal(b.you.stars, 3);
   assert.equal(b.none.stars, 0);
   assert.ok(b.tower.claimed > b.tower.actual);
-  assert.match(b.towerSays, /Tower says: \d+ flights authorized; actual: \d+ flew\. Mara never arrives\./);
+  assert.match(b.towerSays, /Tower says: \d+ pod runs authorized; actual: \d+ ran\. Mara never arrives\./);
 });
 
 test("deterministic: same placements, same baseline", () => {

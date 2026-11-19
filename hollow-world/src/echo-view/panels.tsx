@@ -14,7 +14,7 @@ export function TowerBanner({ obs }: { obs: Observation }) {
         <div className="echo-tower-online">clearing every flight</div>
       ) : (
         <div className="echo-tower-lie">
-          <div className="echo-claimed">{s.towerClaimed} flights authorized</div>
+          <div className="echo-claimed">{s.towerClaimed} pod runs authorized</div>
           <div className="echo-real">{s.realFlights} actually moving</div>
         </div>
       )}

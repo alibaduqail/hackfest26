@@ -32,7 +32,7 @@ test("debrief, no beacons: 0 stars, readable cause, tower / none / you all never
   assert.match(html, /had no beacon/);
   assert.match(html, /Tower<\/th><th[^>]*>No beacons<\/th><th[^>]*>You/);
   assert.equal((html.match(/<td class="[^"]*never"/g) ?? []).length, 6); // 3 columns x (Mara, medicine)
-  assert.match(html, /Tower says: \d+ flights authorized; actual: \d+ flew\. Mara never arrives\./);
+  assert.match(html, /Tower says: \d+ pod runs authorized; actual: \d+ ran\. Mara never arrives\./);
   assert.match(html, /Next star:<\/strong> Beacon the shafts on Mara/);
   assert.doesNotMatch(html, /main[01]\b/); // sector ids are shown by name
 });

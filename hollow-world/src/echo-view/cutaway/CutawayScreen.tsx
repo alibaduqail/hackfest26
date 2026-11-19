@@ -235,7 +235,7 @@ export function CutawayScreen({ onExit }: { onExit?: MouseEventHandler<HTMLAncho
           </ol>
           <dl className="stats">
             <div>
-              <dt>flights authorized</dt>
+              <dt>pod runs authorized</dt>
               <dd id="claim" className={obs.towerUp ? "" : "offline"}>{obs.score.towerClaimed}</dd>
             </div>
             <div>

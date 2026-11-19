@@ -106,9 +106,9 @@ function fromStory(id: keyof typeof TEXT.missions) {
 // ---- in-run beats: the Directorate's ticker lines (the game's own; missions override some) ----
 const TICKER: Story["ticker"] = {
   before: "TOWER ONLINE · ALL FLIGHTS CLEARED BY THE DIRECTORATE",
-  down: "ALL FLIGHTS REMAIN AUTHORIZED",
+  down: "ALL POD RUNS REMAIN AUTHORIZED",
   seal: "TUNNEL CLOSED FOR YOUR SAFETY",
-  mid: "NETWORK STABLE · {claimed} FLIGHTS AUTHORIZED",
+  mid: "NETWORK STABLE · {claimed} POD RUNS AUTHORIZED",
 };
 export const storyFor = (cm: CampaignMission): Story => ({ ticker: { ...TICKER, ...cm.ticker }, mara: cm.mara ?? {} });
 
@@ -129,7 +129,7 @@ export const CAMPAIGN: CampaignMission[] = [
     id: "dead-zones", number: 2, name: "Dead Zones",
     hook: "Not enough beacons for every tunnel. Choose.",
     ...fromStory("dead-zones"),
-    ticker: { mid: "UNLICENSED RADIOS ENDANGER FLIGHTS · {claimed} FLIGHTS AUTHORIZED" },
+    ticker: { mid: "UNLICENSED RADIOS ENDANGER FLIGHTS · {claimed} POD RUNS AUTHORIZED" },
     objectives: goals("dead-zones"),
     allowDispatch: true, defaultSpeed: 10, build: builder("deadZones"),
   },
@@ -137,7 +137,7 @@ export const CAMPAIGN: CampaignMission[] = [
     id: "grounding", number: 3, name: "The Grounding",
     hook: "Weeks, not hours. The Directorate keeps cutting.",
     ...fromStory("grounding"),
-    ticker: { down: "THE GROUNDING IS TEMPORARY", mid: "ORDER IS RETURNING · {claimed} FLIGHTS AUTHORIZED" },
+    ticker: { down: "THE GROUNDING IS TEMPORARY", mid: "ORDER IS RETURNING · {claimed} POD RUNS AUTHORIZED" },
     objectives: goals("grounding"),
     allowDispatch: false, defaultSpeed: 300, build: builder("grounding"),
   },
@@ -145,7 +145,7 @@ export const CAMPAIGN: CampaignMission[] = [
     id: "ghost-flight", number: 4, name: "Ghost Flight",
     hook: "A medical pod with a forged signature wants the front of the queue.",
     ...fromStory("ghost-flight"),
-    ticker: { mid: "A MEDICAL CONVOY HAS PRIORITY · {claimed} FLIGHTS AUTHORIZED" },
+    ticker: { mid: "A MEDICAL CONVOY HAS PRIORITY · {claimed} POD RUNS AUTHORIZED" },
     objectives: goals("ghost-flight"),
     allowDispatch: true, defaultSpeed: 10, build: builder("ghostFlight"),
   },

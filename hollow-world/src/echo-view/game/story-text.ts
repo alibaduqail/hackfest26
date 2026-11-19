@@ -14,7 +14,7 @@ export const STORY = {
         "Last year, residents bolted a battery beacon into every tunnel. The Directorate calls them unlicensed. Tonight they are all that stands between the tunnels and silence.",
         "At minute twenty, the tower goes dark. Send Mara when you are ready, then watch what the beacons do.",
       ],
-      broadcast: "ALL FLIGHTS REMAIN AUTHORIZED. THE NETWORK IS STABLE. REMAIN IN YOUR SECTOR.",
+      broadcast: "ALL POD RUNS REMAIN AUTHORIZED. THE NETWORK IS STABLE. REMAIN IN YOUR SECTOR.",
       prepTip: "Every tunnel already has a beacon. Nothing to place. Send Mara and watch.",
       maraLines: [
         { event: "tower-down", text: "Tower's gone quiet. I'm still in Sector 07. The beacons are lit." },
@@ -24,7 +24,7 @@ export const STORY = {
         { event: "arrive", text: "Lagos Deep. I'm here. Point me to the wards." },
       ],
       verdicts: {
-        0: "Mara never reached Lagos. The tower kept announcing flights. None of them flew.",
+        0: "Mara never reached Lagos. The tower kept announcing pod runs. None of them ran.",
         1: "Mara made it. The rest of the Hollow is still waiting in the tunnels.",
         2: "Mara made it, and so did every nurse. The medicine is still on the way.",
         3: "Mara made it, and every nurse and every crate with her. The passengers waited. That was the price.",
