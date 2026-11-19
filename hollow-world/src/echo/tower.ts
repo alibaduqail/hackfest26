@@ -3,6 +3,9 @@ import { say, sealsOf } from "./engine";
 import type { Sim } from "./engine";
 import type { Pod, Sector } from "./types";
 
+/** standby mode: minutes after the primary tower fails that the backup tower comes online. */
+export const STANDBY_AFTER = 20;
+
 export const isFree = (s: Sim, sec: Sector) => sec.holder === null && !sec.sealed && (s.released.get(sec.id) ?? -1) < s.tick;
 
 /** Put `p` into `sec` (caller checked it is free). */
@@ -26,16 +29,23 @@ export function towerPhase(s: Sim) {
         say(s, "seal", `Directorate seals ${sectorId}`, undefined, sectorId);
       }
 
-  if (s.towerUp && s.mode !== "normal" && s.tick >= m.towerDownAt) {
+  if (s.towerUp && !s.standbyBack && s.mode !== "normal" && s.tick >= m.towerDownAt) {
     s.towerUp = false;
     say(s, "tower-down", "Directorate tower offline");
     for (const p of s.pods) if (p.status === "moving") s.flown.add(p.id); // pods already mid-sector when it fails still fly
-    if (s.mode === "tower")
+    if (s.mode === "tower" || s.mode === "standby")
       for (const p of s.pods)
         if (p.status === "waiting" && p.at >= 0) {
           p.status = "holding";
           say(s, "hold", `${p.label} holds at the boundary`, p.id);
         }
+  }
+  // The backup tower: a second CENTRAL tower. It clears flights again (the same grant rate) but has no beacons and cannot carry the seal news,
+  // so pods it clears walk straight to the flooded shaft and wait there for ever. That is the point of the comparison with Echo.
+  if (s.mode === "standby" && !s.towerUp && s.tick >= m.towerDownAt + STANDBY_AFTER) {
+    s.towerUp = true;
+    s.standbyBack = true;
+    for (const p of s.pods) if (p.status === "holding") p.status = "waiting";
   }
   if (!s.towerUp) return;
 

@@ -3,7 +3,7 @@
 export const CONTRACT_VERSION = 2; // v2 (game): beacons, multiple seals, beacon budget, ghost pods. Additive over v1.
 
 export type Priority = "medical" | "supply" | "passenger";
-export type Mode = "tower" | "echo" | "normal"; // normal = tower never fails (reference run)
+export type Mode = "tower" | "echo" | "normal" | "standby"; // normal = tower never fails (reference run); standby (additive) = a backup tower comes online after the primary fails: still central, so it clears flights but cannot carry news
 
 export interface City {
   id: string;
