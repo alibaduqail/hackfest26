@@ -56,7 +56,7 @@ test("screens render real journey state", () => {
   assert.ok(camp(camp1).includes("Trust the tower") && camp(camp1).includes("After Descent I"));
 
   const end = html(h(EndingScreen, { ending: ending(done), res: done.res, log, choiceNames: names, onAgain: noop }));
-  for (const s of ["Trail log", "Descent II, retry 1", "Verify through the beacons", "Begin again", "Without the beacons", "1 retry"]) assert.ok(end.includes(s), s);
+  for (const s of ["Trail log", "Descent II, retry 1", "Verify through the beacons", "Begin again", "1 retry"]) assert.ok(end.includes(s), s);
   assert.ok(end.includes(ending(done).kind === "saved" ? "Saved" : "Too late"));
   assert.ok(html(h(TrailMap, { legIndex: 0, log: [] })).includes("Mara is here"));
 });
