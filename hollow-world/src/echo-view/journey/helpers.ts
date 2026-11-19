@@ -1,4 +1,5 @@
 // Pure helpers for the Journey screens (render-free so they can be tested without a DOM).
+import { forgedClaim, LEGS, outfitting, retry, towerLies } from "../../echo/journey-events";
 import type { Effect, LegId, LogEntry, Resources, Stars } from "./props";
 
 export const LEG_IDS: LegId[] = ["descent1", "descent2", "descent3"];
@@ -67,16 +68,27 @@ export function trailRows(log: LogEntry[], names: Record<string, string> = {}): 
     }
     const r = l.result, failed = r.stars === 0 || r.maraAt === null;
     return {
-      kind: "leg", title: LEG_NAMES[l.legId] + (l.attempt > 1 ? `, retry ${l.attempt - 1}` : ""), stars: r.stars, failed,
+      kind: "leg", title: LEG_NAMES[l.legId] + (l.attempt > 0 ? `, retry ${l.attempt}` : ""), stars: r.stars, failed,
       detail: `${r.ticks} min · ${plural(r.beaconsPlaced, "beacon")} placed${failed ? " · failed, retried" : ""}`,
     };
   });
 }
 
-/** Retries per leg, from the log (attempts beyond the first). */
-export const retriesOf = (log: LogEntry[]) => log.filter((l) => l.kind === "leg" && l.attempt > 1).length;
+/** Retries so far (state.attempt is 0-based: attempts beyond the first). */
+export const retriesOf = (log: LogEntry[]) => log.filter((l) => l.kind === "leg" && l.attempt > 0).length;
 
 function humanize(id: string) {
   const s = id.replace(/[-_]+/g, " ").trim();
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/** Readable names for the trail log: event id -> title, and `${eventId}/${choiceId}` -> label, for every real event of this seed. */
+export function choiceNamesFor(seed: number): Record<string, string> {
+  const events = [
+    { id: "outfitting", ...outfitting() }, { id: "tower-lies", ...towerLies(seed) }, { id: "forged-claim", ...forgedClaim(seed) },
+    ...LEGS.map((l) => ({ id: `retry-${l.id}`, ...retry(l.name) })),
+  ];
+  const out: Record<string, string> = {};
+  for (const e of events) { out[e.id] = e.title; for (const c of e.choices) out[`${e.id}/${c.id}`] = c.label; }
+  return out;
 }

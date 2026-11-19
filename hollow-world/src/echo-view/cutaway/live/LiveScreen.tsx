@@ -1,9 +1,12 @@
-import { type MouseEventHandler, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { DESCENT_LIVE_GOALS, descentLiveStars } from "../../../echo/descent";
-import type { LogEvent, Observation } from "../../../echo/types";
+import { type MouseEventHandler, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { DESCENT_LEVELS } from "../../../echo/descent-levels";
+import { LEGS } from "../../../echo/journey-events";
+import type { LegId, LegResult } from "../../../echo/journey";
+import type { LogEvent, Mission, Observation, Pod } from "../../../echo/types";
 import { play } from "../../game/audio";
 import { THEME } from "../../theme";
 import { SoundToggle } from "../../game/SoundToggle";
+import { applyLayout } from "../layouts";
 import { along, displayLocations, type Frame, podPose, tracks } from "../run";
 import { createScene, lamp } from "../scene";
 import "../style.css";
@@ -13,11 +16,13 @@ import * as fx from "./fx";
 import * as sfx from "./sfx";
 import trim from "./art/shaft-trim.png";
 import { heldAtFlood, useLive } from "./useLive";
-import { blindWindows, deadlineMargin } from "./result";
+import { LiveDebrief } from "./LiveDebrief";
+import { LiveIntro } from "./LiveIntro";
+import { LEVEL_HINTS, nextHint } from "./hints";
 import "./live.css";
+import "./intro-debrief.css";
 
 const alertKinds = new Set(["blind", "beacon-placed", "credential-reject", "seal", "seal-heard", "hold", "reroute"]);
-const sectionOrder = [...tracks.keys()];
 const logLocation = (id: string) => displayLocations(id);
 
 function sceneFrame(obs: Observation, rejected = new Map<string, LogEvent>()): Frame {
@@ -32,17 +37,42 @@ function atMidpoint(id: string) {
   const [x, y] = along(tracks.get(id)!, 0.5);
   return { left: x * 100 + "%", top: y * 100 + "%" };
 }
+// The hint a leg's intro card shows: Descent I the click-a-rail rule, II the flood, III the priority queue.
+const INTRO_HINTS = [LEVEL_HINTS[1], LEVEL_HINTS[4], LEVEL_HINTS[3]];
+const HINT_MS = 6000;
+function starsOf(goals: { stars: 1 | 2 | 3; maraBy: number; medicineBy?: number }[], pods: Pick<Pod, "id" | "arriveTick">[]): 0 | 1 | 2 | 3 {
+  const by = (id: string, t = Infinity) => (pods.find((p) => p.id === id)?.arriveTick ?? Infinity) <= t;
+  return goals.reduce<0 | 1 | 2 | 3>((n, g) => (by("MED-1", g.maraBy) && (g.medicineBy === undefined || by("SUP-3", g.medicineBy)) ? g.stars : n), 0);
+}
 function arrival(tick: number | null) {
   return tick === null ? "En route" : "Minute " + tick;
 }
 
-export function LiveScreen({ onExit }: { onExit?: MouseEventHandler<HTMLAnchorElement> }) {
-  const live = useLive();
+export interface LiveScreenProps {
+  onExit?: MouseEventHandler<HTMLAnchorElement>;
+  /** Journey leg mode: the mission to play (already budget-capped), reported through onLegEnd. Omit all of these for free play. */
+  mission?: Mission;
+  legId?: LegId;
+  journeyMode?: boolean;
+  onLegEnd?: (result: LegResult) => void;
+}
+
+export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = false, onLegEnd }: LiveScreenProps) {
+  applyLayout(legMission?.id ?? "descent-live"); // the shared track map must match this level before anything reads it
+  const levelIndex = Math.max(0, DESCENT_LEVELS.findIndex((l) => l.id === legMission?.id));
+  const level = DESCENT_LEVELS[levelIndex];
+  const spec = useMemo(() => legMission ? { build: () => structuredClone(legMission), solution: level.solution } : undefined, [legMission, level]);
+  const live = useLive(spec);
   const { mission, observation: obs, previous, playing, queued, remaining, solution, feedback } = live;
-  const [intro, setIntro] = useState(true);
+  const goals = level.goals;
+  const [introDone, setIntroDone] = useState(false);
+  const [hintText, setHintText] = useState<string | null>(null);
+  const seenHints = useRef(new Set<number>([1])); // level 1's hint is on the intro card
+  const finished = useRef(false);
+  const starterId = mission.world.sectors.find((s) => s.beacon === false)?.id ?? "link0";
   const [attempt, setAttempt] = useState(0);
   const [cursor, setCursor] = useState({ x: 0, y: 0 });
-  const [selected, setSelected] = useState("link0");
+  const [selected, setSelected] = useState(starterId);
   const [hover, setHover] = useState<string | null>(null);
   const [firstPlacement, setFirstPlacement] = useState(false);
   const ground = useRef<HTMLCanvasElement>(null);
@@ -55,8 +85,13 @@ export function LiveScreen({ onExit }: { onExit?: MouseEventHandler<HTMLAnchorEl
   const mara = obs.pods.find((p) => p.id === "MED-1")!;
   const medicine = obs.pods.find((p) => p.id === "SUP-3")!;
   const primary = obs.sectors.find((s) => s.id === selected)!;
-  const flood = obs.sectors.find((s) => s.id === mission.sealSectorId)!;
-  const untilFlood = mission.sealAt! - obs.tick;
+  // Levels with several floods: the first is telegraphed; a later one is shown only once it has landed (Descent II's second flood is a surprise).
+  const seals = [{ at: mission.sealAt!, sectorId: mission.sealSectorId! }, ...(mission.seals ?? [])];
+  const shown = seals.filter((sl, i) => i === 0 || obs.sectors.find((s) => s.id === sl.sectorId)?.sealed);
+  const floodNow = shown[shown.length - 1];
+  const flood = obs.sectors.find((s) => s.id === floodNow.sectorId)!;
+  const untilFlood = floodNow.at - obs.tick;
+  const sectionOrder = [...tracks.keys()];
   const warning = !flood.sealed && untilFlood <= 10;
   const activeSector = tracks.get(mara.path[mara.at]);
   const over = live.ended;
@@ -65,12 +100,6 @@ export function LiveScreen({ onExit }: { onExit?: MouseEventHandler<HTMLAnchorEl
     obs.sectors.find((s) => s.routeId === flood.routeId && s.index === flood.index - 1)?.id,
   ];
   const held = obs.pods.filter((p) => heldAtFlood(p, obs));
-  const best = DESCENT_LIVE_GOALS[DESCENT_LIVE_GOALS.length - 1];
-  const clinics = [{ pod: mara, label: "Nurse Mara", deadline: best.maraBy }, {
-    pod: medicine,
-    label: "Medicine",
-    deadline: best.medicineBy!,
-  }];
   const placementsOpen = !over && !solution && remaining > 0;
   const canPlace = (id: string) =>
     placementsOpen && !queued.has(id) && obs.sectors.find((s) => s.id === id)?.beacon === false;
@@ -80,7 +109,8 @@ export function LiveScreen({ onExit }: { onExit?: MouseEventHandler<HTMLAnchorEl
     (e.kind !== "credential-reject" ||
       live.events.find((first) => first.kind === e.kind && first.podId === e.podId) === e)
   ).slice(-3);
-  const stars = descentLiveStars(obs.pods);
+  const stars = starsOf(goals, obs.pods);
+  const won = stars > 0 && mara.arriveTick !== null;
 
   useLayoutEffect(() => {
     const world = createScene(canvas.current!, ground.current!, trim);
@@ -115,6 +145,19 @@ export function LiveScreen({ onExit }: { onExit?: MouseEventHandler<HTMLAnchorEl
     );
   }, [obs, previous, playing, activeSector, warning, live.stepMs]);
 
+  useEffect(() => {
+    if (!introDone || over) return;
+    const h = nextHint(obs, seenHints.current);
+    if (!h) return;
+    seenHints.current.add(h.level);
+    setHintText(h.text);
+  }, [obs, introDone, over]);
+  useEffect(() => {
+    if (!hintText) return;
+    const t = setTimeout(() => setHintText(null), HINT_MS);
+    return () => clearTimeout(t);
+  }, [hintText]);
+  useEffect(() => () => applyLayout("descent-live"), []); // the other cutaway screens expect level 1's tracks
   useEffect(() => {
     const title = document.title;
     document.title = "Play the Descent · Echo";
@@ -155,9 +198,10 @@ export function LiveScreen({ onExit }: { onExit?: MouseEventHandler<HTMLAnchorEl
   useEffect(() => {
     function keys(e: KeyboardEvent) {
       if (e.altKey || e.ctrlKey || e.metaKey || e.repeat) return;
+      if (!introDone) return; // the intro card owns the keyboard until Start
       if (e.key.toLowerCase() === "r" && over) {
         e.preventDefault();
-        restart(false);
+        if (journeyMode) { if (!won) endLeg(); } else restart(false);
       } else if ((e.key === " " && !(e.target as HTMLElement).closest?.("button, a")) || e.key.toLowerCase() === "p") {
         e.preventDefault();
         toggleRun();
@@ -168,7 +212,7 @@ export function LiveScreen({ onExit }: { onExit?: MouseEventHandler<HTMLAnchorEl
   });
 
   function tryPlace(id: string) {
-    if (intro) return;
+    if (!introDone) return;
     setSelected(id);
     setAttempt((n) => n + 1);
     const result = live.place(id);
@@ -185,16 +229,27 @@ export function LiveScreen({ onExit }: { onExit?: MouseEventHandler<HTMLAnchorEl
     }
   }
   function toggleRun() {
-    if (intro) setIntro(false);
-    live.togglePause();
+    if (introDone) live.togglePause();
+  }
+  function start() { // the intro's Start: dismiss and run in one click
+    setIntroDone(true);
+    live.start();
+  }
+  /** Journey mode: hand the finished leg to the journey (a win moves on; a loss applies its cost and goes to the retry camp). Once only. */
+  function endLeg() {
+    if (finished.current || !onLegEnd || !legId) return;
+    finished.current = true;
+    onLegEnd({ legId, stars, maraAt: mara.arriveTick, medicineAt: medicine.arriveTick, beaconsPlaced: live.commands.length, ticks: obs.tick });
   }
   function restart(watch: boolean) {
-    setIntro(false);
+    setIntroDone(true);
+    seenHints.current = new Set([1]);
+    setHintText(null);
     fx.reset();
     setAttempt(0);
     if (watch) live.watchSolution();
     else live.retry();
-    setSelected("link0");
+    setSelected(starterId);
     setHover(null);
     setFirstPlacement(false);
   }
@@ -209,7 +264,7 @@ export function LiveScreen({ onExit }: { onExit?: MouseEventHandler<HTMLAnchorEl
       <header>
         <div>
           <a className="brand" href="?screen=title" onClick={onExit} aria-label="Back to the Echo title">← Back</a>
-          <h1>The Descent</h1>
+          <h1>{journeyMode && legId ? LEGS.find((l) => l.id === legId)?.story.title : "The Descent"}</h1>
         </div>
         <div className="live-status">
           <div className="live-pack" aria-live="polite" aria-atomic="true">
@@ -257,7 +312,7 @@ export function LiveScreen({ onExit }: { onExit?: MouseEventHandler<HTMLAnchorEl
             aria-label="Relay track map"
             aria-describedby="live-rail-help live-selection"
             onPointerMove={(event) => {
-              if (intro || over || solution) return;
+              if (!introDone || over || solution) return;
               const point = railPoint(event);
               setCursor(point);
               setHover(hitSector(point.x, point.y, tracks));
@@ -269,7 +324,7 @@ export function LiveScreen({ onExit }: { onExit?: MouseEventHandler<HTMLAnchorEl
               if (id && !over && !solution) tryPlace(id);
             }}
             onKeyDown={(event) => {
-              if (intro || over || solution || (event.repeat && event.key === "Enter")) return;
+              if (!introDone || over || solution || (event.repeat && event.key === "Enter")) return;
               const move = event.key === "ArrowRight" || event.key === "ArrowDown"
                 ? 1
                 : event.key === "ArrowLeft" || event.key === "ArrowUp"
@@ -304,7 +359,7 @@ export function LiveScreen({ onExit }: { onExit?: MouseEventHandler<HTMLAnchorEl
                       )
                       ? " just-placed"
                       : "") +
-                    (!firstPlacement && s.id === "link0" ? " starter" : "")}
+                    (!firstPlacement && s.id === starterId ? " starter" : "")}
                   style={atMidpoint(s.id)}
                 >
                   {queued.has(s.id) || s.beacon ? "✓" : "+"}
@@ -324,7 +379,7 @@ export function LiveScreen({ onExit }: { onExit?: MouseEventHandler<HTMLAnchorEl
             <canvas ref={canvas} role="img" aria-label="Five tunnel levels with moving pods and trackside beacons" />
             <canvas ref={fxCanvas} className="live-overlay" aria-hidden="true" />
             {warning && <span className="live-flood-chip">Flood in {Math.max(0, untilFlood)}</span>}
-            {hover && !over && !intro && (
+            {hover && !over && introDone && (
               <span
                 className={"live-cursor " + (canPlace(hover) ? "valid" : "invalid")}
                 style={{ left: Math.min(.79, cursor.x) * 100 + "%", top: Math.min(.92, cursor.y) * 100 + "%" }}
@@ -348,69 +403,18 @@ export function LiveScreen({ onExit }: { onExit?: MouseEventHandler<HTMLAnchorEl
                 <ul>{held.map((p) => <li key={p.id}>{p.label}</li>)}</ul>
               </details>
             )}
-            {intro && (
-              <div className="live-intro">
-                <p>
-                  The tower goes dark at t+{mission.towerDownAt}. You have {mission.beaconBudget}{" "}
-                  beacons. Warn the main shaft before the flood at t+{mission.sealAt}.
-                </p>
-                <button className="live-primary" onClick={toggleRun}>
-                  Start run <kbd>Space</kbd>
-                </button>
-              </div>
-            )}
+            {hintText && !over && <p className="live-hint-caption" role="status">{hintText}</p>}
           </div>
         </div>
         <aside aria-label="Relay controls and goals">
           {over
             ? (
-              <section className="live-debrief" aria-label="Run result">
-                <div className="eyebrow">RUN COMPLETE</div>
-                <h2>{stars ? "Clinic supplied" : "Deadline missed"}</h2>
-                <p className="live-stars" aria-label={stars + " of 3 stars"}>
-                  {"★".repeat(stars)}
-                  {"☆".repeat(3 - stars)}
-                </p>
-                <dl className="live-arrivals live-margins">
-                  {clinics.map(({ pod, label, deadline }) => (
-                    <div key={pod.id}>
-                      <dt>{label}</dt>
-                      <dd>
-                        {pod.arriveTick === null ? "Did not arrive" : arrival(pod.arriveTick)}
-                        <small>{deadlineMargin(pod.arriveTick, deadline)}</small>
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-                {stars < 3 && clinics.map(({ pod, label }) => {
-                  const waits = blindWindows(pod.id, live.events, obs.tick);
-                  return waits.length > 0 && (
-                    <details key={pod.id} className="live-blind">
-                      <summary>
-                        {label} · {waits.reduce((minutes, wait) => minutes + wait.minutes, 0)} min in blind waits
-                      </summary>
-                      <ul>
-                        {waits.map((wait) => (
-                          <li key={wait.sectorId}>{logLocation(wait.sectorId)} · {wait.minutes} min</li>
-                        ))}
-                      </ul>
-                    </details>
-                  );
-                })}
-                <p className="live-next-star">
-                  {stars === 3
-                    ? "Best possible run."
-                    : held.length
-                    ? "A delivery was held at the sealed shaft. Beacon both main shaft sections before the pods reach the fork."
-                    : "For the next star, beacon the relay track early to cut blind waits."}
-                </p>
-                <div className="live-button-row">
-                  <button onClick={() => restart(false)} autoFocus>
-                    Retry <kbd>R</kbd>
-                  </button>
-                  <button onClick={() => restart(true)}>Watch the solution</button>
-                </div>
-              </section>
+              journeyMode
+                ? won
+                  ? <LiveDebrief mission={mission} commands={live.commands} stars={stars} onNext={endLeg} nextLabel="Continue the journey" />
+                  : <LiveDebrief mission={mission} commands={live.commands} stars={stars} onRetry={endLeg} retryLabel="Retry leg"
+                      note={`Retrying costs ${obs.tick + 15} minutes on the clock, 1 dose${live.commands.length ? `, and the ${live.commands.length} beacon${live.commands.length === 1 ? "" : "s"} you placed` : ""}.`} />
+                : <LiveDebrief mission={mission} commands={live.commands} stars={stars} onRetry={() => restart(false)} onWatchSolution={() => restart(true)} />
             )
             : (
               <>
@@ -438,14 +442,14 @@ export function LiveScreen({ onExit }: { onExit?: MouseEventHandler<HTMLAnchorEl
                         : "No beacon"}
                     </span>
                   </p>
-                  <button disabled={intro || !canPlace(hover ?? selected)} onClick={() => tryPlace(hover ?? selected)}>
+                  <button disabled={!introDone || !canPlace(hover ?? selected)} onClick={() => tryPlace(hover ?? selected)}>
                     Place beacon <kbd>Enter</kbd>
                   </button>
                   <p className="live-feedback" role="status">{feedback && <span key={attempt}>{feedback}</span>}</p>
                 </div>
                 <h3>Clinic deadlines</h3>
                 <ol className="live-goals">
-                  {DESCENT_LIVE_GOALS.map((goal) => {
+                  {goals.map((goal) => {
                     const held = stars >= goal.stars;
                     const missed = !held && ((mara.arriveTick ?? obs.tick - 1) > goal.maraBy ||
                       (goal.medicineBy !== undefined && (medicine.arriveTick ?? obs.tick - 1) > goal.medicineBy));
@@ -496,13 +500,14 @@ export function LiveScreen({ onExit }: { onExit?: MouseEventHandler<HTMLAnchorEl
               </button>
             ))}
           </div>
-          <button onClick={() => restart(false)}>Restart</button>
-          {!over && (
+          {!journeyMode && <button onClick={() => restart(false)}>Restart</button>}
+          {!journeyMode && !over && (
             <button onClick={() => restart(!solution)}>{solution ? "Play yourself" : "Watch the solution"}</button>
           )}
         </nav>
         <p className="fine">Simulated run · deterministic engine</p>
       </footer>
+      {!introDone && <LiveIntro mission={mission} goal={goals[0].text} hint={INTRO_HINTS[levelIndex]} onStart={start} />}
     </div>
   );
 }

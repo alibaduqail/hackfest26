@@ -15,7 +15,7 @@ export function ResourceBar({ res, limit, preview }: { res: Resources; limit: nu
         <span className="j-res-ico"><BeaconIcon /></span>
         <span className="j-res-body">
           <b>{now.beacons}</b>
-          <span className="j-res-name">beacons</span>
+          <span className="j-res-name">{now.beacons === 1 ? "beacon" : "beacons"}</span>
         </span>
         {dBeacons !== 0 && <i className={`j-delta ${dBeacons > 0 ? "good" : "bad"}`}>{sign(dBeacons)}</i>}
       </div>

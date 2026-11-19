@@ -1,7 +1,7 @@
 # Journey screens: wiring (#110)
 
-Props-only components in `src/echo-view/journey/`. No engine calls, no storage, no import of `src/echo/journey.ts`.
-Prop types are in `props.ts` and mirror the #107 contract field for field, so state passes straight through.
+Props-only components in `src/echo-view/journey/`, wired by `JourneyApp.tsx` (the only file that calls `choose()`/`completeLeg()` and touches localStorage, key `echo.journey.v1`).
+`props.ts` re-exports the real types from `src/echo/journey.ts`, so a contract change breaks `tsc` here.
 
 ```tsx
 import { TitleScreen, CampScreen, EndingScreen, TrailMap } from "./journey"; // index.ts also imports journey.css
@@ -17,9 +17,9 @@ Mount the existing `<Backdrop />` behind them (as GameApp does for the Title). T
 ## CampScreen
 ```tsx
 <CampScreen
-  key={`${s.legIndex}-${s.attempt}`}   // remounts per camp (it also resets itself when these change)
+  key={s.log.length}   // Scavenge stays in camp: a new log entry is a new card (it also resets itself on these)
   event={campEvent(s)}                 // CampEvent
-  res={s.res}  limit={300}  legIndex={s.legIndex}  attempt={s.attempt}  log={s.log}
+  res={s.res}  legIndex={s.legIndex}  attempt={s.attempt}  log={s.log}   // limit defaults to LIMIT (360)
   onPick={(id) => sfx()}               // optional: a choice was locked in; state is NOT advanced yet
   onContinue={(id) => setS(choose(s, id))}  // "Continue down" / Enter: apply the choice, go to the leg
 />
@@ -27,12 +27,12 @@ Mount the existing `<Backdrop />` behind them (as GameApp does for the Title). T
 - The player picks a choice (click, or keys 1-9), sees its reveal line and the supplies preview the effect, then presses *Continue down* (button or Enter).
 - `onContinue` is the only place to call `choose()`. Picking is final; a new `event.id`/`legIndex`/`attempt` resets the screen.
 - Each choice shows its cost from `choice.effect` (beacons, doses, minutes lost/saved, `nextRevealLead: 0` as "no flood warning").
-- `legIndex` = legs finished (0 is outfitting), so the trail map shows legs before it as done and the next leg in amber. Stars come from `log`.
+- `attempt` is 0-based (failed tries so far); retries = attempt. `legIndex` = legs finished (0 is outfitting), so the trail map shows legs before it as done and the next leg in amber. Stars come from `log`.
 
 ## EndingScreen
 ```tsx
-<EndingScreen ending={ending(s)} res={s.res} limit={300} log={s.log}
-  choiceNames={{ camp1: "The tower lies", "camp1/verify": "Verified through the beacons" }} // optional
+<EndingScreen ending={ending(s)} res={s.res} log={s.log}
+  choiceNames={choiceNamesFor(s.seed)} // helpers.ts: real event/choice ids -> titles/labels
   onAgain={() => setS(startJourney())} />
 ```
 - `ending` is `{ kind, score, title, lines }`. All `lines` render as paragraphs; the **last line is styled as the closing line**, so put the tower comparison last.

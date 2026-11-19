@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { LIMIT } from "../../echo/journey";
 import { applyEffect, formatEffect, LEG_IDS, LEG_NAMES } from "./helpers";
 import { useEnterKey } from "./keys";
 import type { CampScreenProps } from "./props";
@@ -6,10 +7,10 @@ import { ResourceBar } from "./ResourceBar";
 import { TrailMap } from "./TrailMap";
 
 /** Camp: supplies, the story card, and the choices with their costs. Pick (click or 1-3), read the reveal, Continue down (button or Enter). */
-export function CampScreen({ event, res, limit, legIndex, attempt, log, onPick, onContinue }: CampScreenProps) {
+export function CampScreen({ event, res, limit = LIMIT, legIndex, attempt, log, onPick, onContinue }: CampScreenProps) {
   const [picked, setPicked] = useState<string | null>(null);
   const next = useRef<HTMLButtonElement>(null);
-  useEffect(() => setPicked(null), [event.id, legIndex, attempt]);
+  useEffect(() => setPicked(null), [event.id, legIndex, attempt, log.length]); // log.length: Scavenge stays in camp, so the card must reset on any new choice
   useEffect(() => { if (picked) next.current?.focus(); }, [picked]);
 
   const choice = event.choices.find((c) => c.id === picked);
@@ -27,7 +28,7 @@ export function CampScreen({ event, res, limit, legIndex, attempt, log, onPick, 
   useEnterKey(() => picked && onContinue(picked), !!picked);
 
   const leg = LEG_NAMES[LEG_IDS[Math.min(legIndex, LEG_IDS.length - 1)]];
-  const where = attempt > 1 ? `Before ${leg}, try ${attempt}` : legIndex === 0 ? "Before the first leg" : `After ${LEG_NAMES[LEG_IDS[legIndex - 1]]}`;
+  const where = attempt > 0 ? `${leg}, retry ${attempt}` : legIndex === 0 ? "Before the first leg" : `After ${LEG_NAMES[LEG_IDS[legIndex - 1]]}`;
 
   return (
     <div className="g-screen j-camp-screen">
@@ -62,7 +63,7 @@ export function CampScreen({ event, res, limit, legIndex, attempt, log, onPick, 
             </div>
             <div className="g-row j-actions">
               <button ref={next} className="g-btn primary" disabled={!picked} onClick={() => picked && onContinue(picked)}>Continue down</button>
-              <span className="j-hint">{picked ? "Enter to continue" : `Press 1–${event.choices.length} to choose`}</span>
+              <span className="j-hint">{picked ? "Enter to continue" : (event.choices.length === 1 ? "Press 1 to choose" : `Press 1–${event.choices.length} to choose`)}</span>
             </div>
           </section>
           <aside className="j-side"><TrailMap legIndex={legIndex} log={log} /></aside>

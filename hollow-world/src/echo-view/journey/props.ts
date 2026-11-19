@@ -1,18 +1,10 @@
-// Prop types for the Journey screens. Field names mirror the #107 contract (src/echo/journey.ts) structurally,
-// so the wiring can pass JourneyState / CampEvent / ending() output straight through. Deliberately no import of journey.ts.
+// Prop types for the Journey screens.
 
-export type LegId = "descent1" | "descent2" | "descent3";
-export type Stars = 0 | 1 | 2 | 3;
-
-export interface Resources { beacons: number; clock: number; doses: number }
-export interface Effect { beacons?: number; clock?: number; doses?: number; nextRevealLead?: number }
-export interface Choice { id: string; label: string; detail: string; effect: Effect; reveal?: string }
-export interface CampEvent { id: string; title: string; body: string; choices: Choice[] }
-export interface LegResult { legId: LegId; stars: Stars; maraAt: number | null; medicineAt: number | null; beaconsPlaced: number; ticks: number }
-export type LogEntry =
-  | { kind: "leg"; legId: LegId; attempt: number; result: LegResult }
-  | { kind: "choice"; eventId: string; choiceId: string };
-export interface Ending { kind: "saved" | "late"; score: number; title: string; lines: string[] }
+// The journey types come straight from src/echo/journey.ts (type-only imports), so a contract change breaks tsc here instead of drifting.
+import type { CampEvent, ending as endingFn, LegResult, LogEntry, Resources } from "../../echo/journey";
+export type { CampEvent, Choice, Effect, JourneyState, LegId, LegResult, LogEntry, Resources } from "../../echo/journey";
+export type Stars = LegResult["stars"];
+export type Ending = ReturnType<typeof endingFn>;
 
 export interface TitleProps {
   onBegin: () => void;
@@ -25,9 +17,9 @@ export interface TitleProps {
 export interface CampScreenProps {
   event: CampEvent; // campEvent(state)
   res: Resources; // state.res
-  limit: number; // the patient's clock limit (~300)
+  limit?: number; // the patient's clock limit; defaults to LIMIT from journey.ts
   legIndex: number; // state.legIndex: legs finished so far (0 = outfitting)
-  attempt: number; // state.attempt (1 = first try of this leg)
+  attempt: number; // state.attempt: failed tries of this leg so far (0 = first try)
   log: LogEntry[]; // state.log (drives the trail map's stars)
   onPick?: (choiceId: string) => void; // fires when a choice is locked in (sound hook); the state is NOT advanced yet
   onContinue: (choiceId: string) => void; // "Continue down": call choose(state, choiceId) here
@@ -42,7 +34,7 @@ export interface TrailMapProps {
 export interface EndingScreenProps {
   ending: Ending; // ending(state)
   res: Resources;
-  limit: number;
+  limit?: number; // defaults to LIMIT from journey.ts
   log: LogEntry[];
   choiceNames?: Record<string, string>; // `${eventId}/${choiceId}` -> readable label; falls back to the ids
   onAgain: () => void;

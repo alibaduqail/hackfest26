@@ -1,3 +1,4 @@
+import { LIMIT } from "../../echo/journey";
 import { retriesOf, trailRows } from "./helpers";
 import { useEnterKey } from "./keys";
 import type { EndingScreenProps } from "./props";
@@ -7,7 +8,7 @@ import { TrailMap } from "./TrailMap";
 const STAR_TEXT = (n: number) => "★".repeat(n) + "☆".repeat(3 - n);
 
 /** The ending: Saved or Too late, the score, the closing lines (the last is the tower comparison), the trail log, Begin again. */
-export function EndingScreen({ ending, res, limit, log, choiceNames, onAgain }: EndingScreenProps) {
+export function EndingScreen({ ending, res, limit = LIMIT, log, choiceNames, onAgain }: EndingScreenProps) {
   useEnterKey(onAgain);
   const saved = ending.kind === "saved";
   const rows = trailRows(log, choiceNames);

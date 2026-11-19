@@ -46,8 +46,12 @@ function blindApproach(obs: Observation): boolean {
   });
 }
 
-export function createLive() {
-  let mission = descentLive();
+/** Which level to run: defaults to Descent I. A journey leg passes its own (budget-capped) mission and that level's solution. */
+export interface LiveSpec { build: () => Mission; solution: Command[] }
+const LEVEL_1: LiveSpec = { build: descentLive, solution: DESCENT_LIVE_SOLUTION };
+
+export function createLive(spec: LiveSpec = LEVEL_1) {
+  let mission = spec.build();
   let engine = createEngine(mission, "echo");
   let observation = engine.observe();
   let previous = observation;
@@ -93,7 +97,7 @@ export function createLive() {
     if (state.slow) override = true;
   }
   function reset(watch: boolean) {
-    mission = descentLive();
+    mission = spec.build();
     engine = createEngine(mission, "echo");
     observation = engine.observe();
     previous = observation;
@@ -132,7 +136,7 @@ export function createLive() {
     if (state.ended) return;
     if (state.slow) slowTicks++;
     if (solution) {
-      for (const command of DESCENT_LIVE_SOLUTION) {
+      for (const command of spec.solution) {
         if (command.atTick !== observation.tick) continue;
         const result = engine.act(command);
         if (result.ok) commands = [...commands, command];
@@ -149,6 +153,10 @@ export function createLive() {
       (!warning(mission, observation) && !blindApproach(observation))
     ) override = false;
     if (complete(observation)) playing = false;
+    publish();
+  }
+  function start() { // the intro's Start button: unpause in one click
+    if (!state.ended) { playing = true; started = true; }
     publish();
   }
   function togglePause() {
@@ -174,14 +182,15 @@ export function createLive() {
     place,
     step,
     togglePause,
+    start,
     setSpeed,
     retry: () => reset(false),
     watchSolution: () => reset(true),
   };
 }
 
-export function useLive() {
-  const [run] = useState(createLive);
+export function useLive(spec?: LiveSpec) {
+  const [run] = useState(() => createLive(spec));
   const state = useSyncExternalStore(run.subscribe, run.getSnapshot, run.getSnapshot);
   useEffect(() => {
     if (!state.playing) return;
@@ -205,6 +214,7 @@ export function useLive() {
     ...state,
     place: run.place,
     togglePause: run.togglePause,
+    start: run.start,
     setSpeed: run.setSpeed,
     retry: run.retry,
     watchSolution: run.watchSolution,
