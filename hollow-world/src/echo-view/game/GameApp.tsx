@@ -8,7 +8,6 @@ import { createEngine } from "../../echo/engine";
 import type { Mission } from "../../echo/types";
 import { MissionScreen } from "../MissionScreen";
 import { byId, CAMPAIGN, EPILOGUE, PROLOGUE, starsFor, storyFor, type CampaignMission } from "./campaign";
-import { Backdrop } from "./Backdrop";
 import { Briefing, Interlude } from "./Briefing";
 import { Debrief, type RunResult } from "./Debrief";
 import { MissionSelect } from "./MissionSelect";
@@ -60,9 +59,6 @@ function initial(): State {
   if (screen === "prepare" && !hasBudget(base)) return { screen: "run", cm, base, placed: base, run: 0 };
   return { screen, cm, base, placed: base, run: 0 };
 }
-
-// The Strata scene sits behind every screen except the map screens (prepare, run).
-const withBackdrop = (screen: Screen) => screen !== "run";
 
 export function GameApp() {
   const [st, setSt] = useState<State>(initial);
@@ -150,7 +146,7 @@ export function GameApp() {
       />
     );
   }
-  return <>{withBackdrop(st.screen) && <Backdrop deep={st.screen === "prepare"} />}{screenFor()}<SoundToggle /></>;
+  return <>{screenFor()}<SoundToggle /></>; // flat Descent slate: no Strata scene behind any screen
 
   function screenFor() {
   const { cm } = st;

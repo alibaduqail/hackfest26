@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Observation } from "../../echo/types";
 import { EndCard } from "../EndCard";
-import { RelayBar } from "../relay/Relay";
 import { play } from "./audio";
 import { verdict, type CampaignMission } from "./campaign";
 
@@ -36,6 +35,7 @@ export function Debrief({ cm, result, onRetry, onNext, nextLabel = "Next mission
         tower={tower} echo={echo} normal={normal} title={cm.name}
         top={
           <div className="g-debrief-top">
+            <div className="d-kicker">Run complete</div>
             <StarReveal n={stars} />
             {cm.verdicts?.[stars] && <div className="verdict">{cm.verdicts[stars]}</div>}
             <div className={cm.verdicts?.[stars] ? "g-muted" : "verdict"}>{verdict(echo, normal)}</div>
@@ -45,11 +45,11 @@ export function Debrief({ cm, result, onRetry, onNext, nextLabel = "Next mission
           </div>
         }
       >
-        <RelayBar size="lg" label="After the mission" items={[
-          { key: "missions", label: "Missions", nav: true, onSelect: onMissions },
-          { key: "retry", label: "Retry", tone: onNext ? "secondary" : "primary", nav: true, autoFocus: !onNext, onSelect: onRetry },
-          ...(onNext ? [{ key: "next", label: nextLabel, tone: "primary" as const, nav: true, autoFocus: true, onSelect: onNext }] : []),
-        ]} />
+        <div className="d-btn-row" role="group" aria-label="After the mission">
+          <button type="button" className="d-btn d-btn--secondary" onClick={onMissions}>Missions</button>
+          <button type="button" className={onNext ? "d-btn d-btn--secondary" : "d-btn"} autoFocus={!onNext} onClick={onRetry}>Retry</button>
+          {onNext && <button type="button" className="d-btn" autoFocus onClick={onNext}>{nextLabel}</button>}
+        </div>
       </EndCard>
     </div>
   );
