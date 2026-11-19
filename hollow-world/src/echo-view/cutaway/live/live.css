@@ -1,0 +1,57 @@
+.descent-live { --relay-panel: #17242a; }
+.descent-live .live-status, .descent-live .live-button-row { display: flex; align-items: center; gap: clamp(12px, 2vw, 32px); }
+.descent-live .live-pack { display: grid; gap: 7px; color: var(--text2); font: 600 13px var(--mono); }
+.descent-live .live-pack strong { color: var(--amberHi); }
+.descent-live .live-pips { display: flex; gap: 5px; }
+.descent-live .live-pips i { width: 16px; height: 6px; background: var(--line); border-radius: 1px; }
+.descent-live .live-pips .charged { background: var(--amber); box-shadow: 0 0 9px #d2a76a55; }
+.descent-live .live-time { display: grid; gap: 4px; text-align: right; min-width: 7ch; }
+.descent-live .live-time span { color: var(--text2); font: 11px var(--mono); }
+.descent-live .live-world { outline-offset: -3px; }
+.descent-live .live-world.placeable { cursor: copy; }
+.descent-live .live-markers { position: absolute; inset: 0; pointer-events: none; }
+.descent-live .live-socket {
+  position: absolute; transform: translate(-50%, -50%); width: 21px; height: 21px; border: 1px dashed var(--amberHi);
+  display: grid; place-items: center; border-radius: 50%; background: #10191ed9; color: var(--amberHi);
+  font: 650 14px/1 var(--mono); z-index: 1;
+}
+.descent-live .live-socket.selected, .descent-live .live-socket.queued { border-style: solid; border-color: var(--good); color: var(--good); box-shadow: 0 0 0 4px #7ec8b343; z-index: 3; }
+.descent-live .live-socket.starter { outline: 1px solid var(--amber); outline-offset: 3px; }
+.descent-live .live-socket.queued { background: #244541; }
+.descent-live .live-water {
+  width: 14%; height: 8%; position: absolute; transform: translate(-50%,-93%); z-index: 0;
+  border-bottom: 2px solid var(--red); background: linear-gradient(0deg,#b244414f,transparent);
+}
+.descent-live .live-water.sealed { background: linear-gradient(0deg,#29708284,transparent); }
+.descent-live .live-water span { position: absolute; top: 6px; right: 0; padding: 3px 6px; background: var(--redBg); color: var(--redText); font: 700 11px var(--mono); }
+.descent-live .live-instructions { color: var(--text2); font-size: clamp(14px, 1vw, 19px); line-height: 1.4; }
+.descent-live .live-alert { display: grid; gap: 4px; margin: 14px 0; background: var(--relay-panel); border-left: 3px solid var(--amber); padding: 9px 10px; }
+.descent-live .live-alert small { color: var(--amberHi); font: 650 11px var(--mono); text-transform: uppercase; }
+.descent-live .live-alert strong { font-size: 14px; }
+.descent-live .live-alert.danger { border-color: var(--red); background: var(--redBg); }
+.descent-live .live-alert.danger small { color: var(--redText); }
+.descent-live .live-placement { min-width: 0; display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: start; gap: 5px 8px; }
+.descent-live #live-selection strong { display: block; font-size: 13px; text-transform: capitalize; }
+.descent-live #live-selection span, .descent-live .live-feedback { color: var(--text2); font-size: 12px; }
+.descent-live .live-feedback { grid-column: 1 / -1; color: var(--redText); min-height: 18px; }
+.descent-live kbd { font: 500 .77em var(--mono); color: inherit; opacity: .78; margin-left: 3px; }
+.descent-live .live-placement button { padding: .48em .54em; }
+.descent-live .live-goals, .descent-live .live-arrivals { padding: 0; font-size: 13px; margin: 0 0 12px; }
+.descent-live .live-goals li, .descent-live .live-arrivals div { display: flex; gap: 8px; align-items: baseline; padding: 5px 0; border-top: 1px solid var(--line); }
+.descent-live .live-goals li > :first-child { color: var(--amberHi); width: 42px; flex: none; }
+.descent-live .live-goals li.met, .descent-live .live-goals li.met > :first-child { color: var(--good); }
+.descent-live .live-goals li.missed { color: var(--redText); }
+.descent-live .live-arrivals { margin-top: 10px; }
+.descent-live .live-arrivals div { justify-content: space-between; color: var(--text2); }
+.descent-live .live-arrivals dd { color: var(--head); font-weight: 650; }
+.descent-live .live-debrief p { color: var(--text2); }
+.descent-live .live-debrief .live-stars { color: var(--amberHi); font-size: 27px; letter-spacing: .15em; margin: 12px 0; }
+.descent-live .live-button-row { flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.descent-live footer nav { flex-direction: row; flex-wrap: wrap; gap: 8px; }
+.descent-live .live-primary { background: var(--amber); color: var(--ink); }
+@media (max-width: 570px) {
+  .descent-live .live-status { gap: 10px; }
+  .descent-live .live-pack { font-size: 11px; }
+  .descent-live h1 { font-size: 30px; }
+  .descent-live .live-pips i { width: 11px; }
+}
