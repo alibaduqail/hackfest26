@@ -37,9 +37,15 @@ export function ghostData(seed: number, log: LogEntry[]): GhostData {
   return { paths: [...paths, you], claimed, actual };
 }
 
-/** The label at the end of a path, in 1-4 mono words. */
-export function ghostLabel(g: GhostPath): string {
-  if (g.reached === LEG_IDS.length) return `${g.label} · min ${g.minute}`;
-  if (g.you) return `${g.label} · stopped`;
-  return g.stuckAt !== null ? `${g.label} · min ${g.stuckAt}, late` : `${g.label} · never`;
+/** The column header: the label split over two short mono lines at its last space ("no beacons" -> no / beacons) so four columns fit side by side. */
+export function ghostHead(g: GhostPath): string[] {
+  const i = g.label.lastIndexOf(" ");
+  return i < 0 ? [g.label] : [g.label.slice(0, i), g.label.slice(i + 1)];
+}
+
+/** The outcome at the foot of the column, one or two short lines: "never", "min 92" + "late" (Mara arrived, but without a star), "min 270", "stopped". */
+export function ghostOutcome(g: GhostPath): string[] {
+  if (g.reached === LEG_IDS.length) return [`min ${g.minute}`];
+  if (g.you) return ["stopped"];
+  return g.stuckAt !== null ? [`min ${g.stuckAt}`, "late"] : ["never"];
 }

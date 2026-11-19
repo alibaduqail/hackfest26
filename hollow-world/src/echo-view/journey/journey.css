@@ -209,21 +209,23 @@
 .j-rec li.mara:nth-last-child(2)::after { background: none; border-left: 2px dotted var(--muted); width: 0; opacity: .6; }
 @media (prefers-reduced-motion: reduce) { .j-el, .j-er, .j-rec li { animation: none; } }
 
-/* ending ghosts: what the same three legs do without you. Dotted, faint, neutral; a red cross where a run stops, a teal dot where one arrives. */
+/* ending ghosts: the same three legs without you, as columns of a race beside the real trail. Dotted and neutral; a red cross where a run died; headers on top, outcomes in one row below. */
+.j-recw.has-ghosts { padding: 52px 0 56px; }
+.j-recw.has-ghosts .j-rec li::after { background: var(--amber); opacity: .75; } /* the real path is amber: it is the player's */
 .j-ghosts { position: absolute; top: 0; right: calc(100% - 7px); overflow: visible; pointer-events: none; }
-.j-ghosts circle, .j-ghosts .x, .j-ghosts text { animation: j-ghost .3s var(--d, 0ms) ease-out both; }
-.j-ghosts .gh circle { fill: var(--muted); opacity: .55; }
-.j-ghosts .gh .x { fill: none; stroke: var(--red); stroke-width: 2; stroke-linecap: round; }
+.j-ghosts circle, .j-ghosts .x, .j-ghosts text.out { animation: j-ghost .3s var(--d, 0ms) ease-out both; }
+.j-ghosts .shade { -webkit-mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent); mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent); }
+.j-ghosts .gh circle { fill: var(--text2); opacity: .6; }
+.j-ghosts .gh .x { fill: none; stroke: var(--red); stroke-width: 2.4; stroke-linecap: round; }
 .j-ghosts .gh circle.end { fill: #0a1013; stroke: var(--good); stroke-width: 2; opacity: 1; }
-.j-ghosts text { font: 400 12px/1 var(--label, var(--mono)); fill: var(--muted); text-shadow: 0 1px 8px rgba(6,11,14,.9); paint-order: stroke; stroke: rgba(6,11,14,.7); stroke-width: 3px; }
-.j-ghosts .gh.dead text { fill: var(--redText); }
-.j-ghosts text.you { fill: var(--amberText); animation: j-ghost .3s calc(var(--g, 0ms) + 700ms) ease-out both; font-weight: 600; }
-.j-recw.has-ghosts .j-ghosts text.you { animation-delay: 1.5s; }
+.j-ghosts text { font: 500 12px/1 var(--label, var(--mono)); fill: var(--text2); }
+.j-ghosts .gh.dead text.out { fill: var(--redText); }
+.j-ghosts .gh.you text { fill: var(--amberText); font-weight: 600; }
 .j-claim { margin: 10px 0 0; font: 400 13px/1.5 var(--label, var(--mono)); color: var(--muted); font-variant-numeric: tabular-nums; }
 .j-claim b { font-weight: 600; color: var(--text2); }
 .j-claim b.bad { color: var(--redText); }
 @keyframes j-ghost { from { opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .j-ghosts circle, .j-ghosts .x, .j-ghosts text { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .j-ghosts circle, .j-ghosts .x, .j-ghosts text.out { animation: none; } }
 
 /* camp consequence: drawn on the picked branch. Red = failure (dotted spur, dead end), teal = signal (beacons lit along the branch). */
 .j-csq circle, .j-csq path, .j-csq text { animation: j-ghost .28s var(--d, 0ms) ease-out both; }
