@@ -45,6 +45,7 @@ function starsOf(goals: { stars: 1 | 2 | 3; maraBy: number; medicineBy?: number 
   const by = (id: string, t = Infinity) => (pods.find((p) => p.id === id)?.arriveTick ?? Infinity) <= t;
   return goals.reduce<0 | 1 | 2 | 3>((n, g) => (by("MED-1", g.maraBy) && (g.medicineBy === undefined || by("SUP-3", g.medicineBy)) ? g.stars : n), 0);
 }
+const pillPos = (p: { x: number; y: number }) => ({ left: Math.min(.79, p.x) * 100 + "%", top: Math.min(.92, p.y) * 100 + "%" });
 function arrival(tick: number | null) {
   return tick === null ? "En route" : "Minute " + tick;
 }
@@ -75,7 +76,9 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
   const finished = useRef(false);
   const starterId = mission.world.sectors.find((s) => s.beacon === false)?.id ?? "link0";
   const [attempt, setAttempt] = useState(0);
-  const [cursor, setCursor] = useState({ x: 0, y: 0 });
+  // The hover pill follows the pointer by direct style writes: a React render per pointermove re-rendered the whole screen.
+  const cursor = useRef({ x: 0, y: 0 });
+  const pill = useRef<HTMLSpanElement>(null);
   const [selected, setSelected] = useState(starterId);
   const [hover, setHover] = useState<string | null>(null);
   const [firstPlacement, setFirstPlacement] = useState(false);
@@ -325,8 +328,9 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
             onPointerMove={(event) => {
               if (!introDone || over || solution) return;
               const point = railPoint(event);
-              setCursor(point);
-              setHover(hitSector(point.x, point.y, tracks));
+              cursor.current = point;
+              if (pill.current) Object.assign(pill.current.style, pillPos(point));
+              setHover(hitSector(point.x, point.y, tracks)); // same id: React bails out, no render
             }}
             onPointerLeave={() => setHover(null)}
             onClick={(event) => {
@@ -400,8 +404,9 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
             {warning && <span className="live-flood-chip">Flood in {Math.max(0, untilFlood)}</span>}
             {hover && !over && introDone && (
               <span
+                ref={pill}
                 className={"live-cursor " + (canPlace(hover) ? "valid" : "invalid")}
-                style={{ left: Math.min(.79, cursor.x) * 100 + "%", top: Math.min(.92, cursor.y) * 100 + "%" }}
+                style={pillPos(cursor.current)}
               >
                 {canPlace(hover)
                   ? "Place beacon · " + remaining + " left"
