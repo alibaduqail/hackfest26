@@ -100,3 +100,16 @@ export function choiceNamesFor(seed: number): Record<string, string> {
   for (const e of events) { out[e.id] = e.title; for (const c of e.choices) out[`${e.id}/${c.id}`] = c.label; }
   return out;
 }
+
+export interface Consequence { tone: "good" | "bad"; tag: string }
+// What the camp shows on the picked branch once a choice is made: the cause and effect that the old reveal sentence spelled out.
+// Only the choices that carry a `reveal` in journey-events.ts have one; tone follows their effect (a withheld flood warning or minutes lost = bad).
+const CONSEQUENCE_TAGS: Record<string, string> = { "trust-tower": "flood · unannounced", "verify-beacons": "flood · warned", yield: "cargo · not medical", "check-credential": "forgery · refused" };
+
+/** The visual consequence of a choice, or null when it has none (outfitting, retry, scavenge). */
+export function consequenceOf(c: { id: string; effect: Effect; reveal?: string }): Consequence | null {
+  const tag = CONSEQUENCE_TAGS[c.id];
+  if (!c.reveal || !tag) return null;
+  const bad = c.effect.nextRevealLead === 0 || (c.effect.clock ?? 0) > 0;
+  return { tone: bad ? "bad" : "good", tag };
+}

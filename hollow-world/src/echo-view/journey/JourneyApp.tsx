@@ -6,6 +6,7 @@ import { Backdrop } from "../game/Backdrop";
 import { SettingsGear } from "../game/SettingsGear";
 import { CampScreen } from "./CampScreen";
 import { EndingScreen } from "./EndingScreen";
+import { ghostData } from "./ghosts";
 import { choiceNamesFor } from "./helpers";
 import { TitleScreen } from "./TitleScreen";
 import "./journey.css";
@@ -40,6 +41,7 @@ export interface JourneyAppProps { onTowerDown: () => void; onStrata: () => void
 export function JourneyApp({ onTowerDown, onStrata, onFreePlay }: JourneyAppProps) {
   const [saved, setSaved] = useState(load); // the save on disk, for "Continue the journey"
   const [s, setS] = useState<JourneyState | null>(null); // null = on the title screen
+  const ghosts = useMemo(() => (s?.phase === "ending" ? ghostData(s.seed, s.log) : undefined), [s]); // the ending's counterfactual paths
   const play = (next: JourneyState) => { save(next); setSaved(next); setS(next); };
 
   if (!s) {
@@ -66,7 +68,7 @@ export function JourneyApp({ onTowerDown, onStrata, onFreePlay }: JourneyAppProp
         />
       ) : (
         <EndingScreen
-          ending={tower(ending(s))} res={s.res} limit={LIMIT} log={s.log} choiceNames={choiceNamesFor(s.seed)}
+          ending={tower(ending(s))} res={s.res} limit={LIMIT} log={s.log} choiceNames={choiceNamesFor(s.seed)} ghosts={ghosts}
           onAgain={() => { save(null); setSaved(null); setS(startJourney(freshSeed())); }}
         />
       )}
