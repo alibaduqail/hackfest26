@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Premise intro v3</title>
+<!-- MOCKUP ONLY, not wired into the app. Autoplay by default. Freeze a beat with ?s=1 | 1b | 2 | 3a | 3b | 3c | 4, or ?t=<ms>. ?rm=1 forces the reduced-motion path.
+     v3 rules: no boxes. Every word is set into the cutaway at the place it is about, in art pixels, so it stays pinned to the shaft.
+     Round = people and beacons (amber). Square = the tower (red). Light comes from relighting the art, never from CSS glow. -->
+<style>
+@font-face { font-family:"Fraunces"; font-weight:800; src:url("../hollow-world/public/fonts/Fraunces-800.woff2") format("woff2"); }
+@font-face { font-family:"IBM Plex Mono"; font-weight:500; src:url("../hollow-world/public/fonts/IBMPlexMono-500.woff2") format("woff2"); }
+@font-face { font-family:"IBM Plex Mono"; font-weight:600; src:url("../hollow-world/public/fonts/IBMPlexMono-600.woff2") format("woff2"); }
+:root {
+  --bg:#0d1216; --head:#e9e0c8; --text:#ddd8c1; --text2:#b4c4ba; --muted:#90a59f;
+  --cold:#c3cbcd;                 /* the Director: the only cold white on screen */
+  --amber:#d2a76a; --amberHi:#e4c494; --amberText:#edcd95; --teal:#7ec8b3; --red:#e0634f;
+}
+* { box-sizing:border-box; }
+html, body { margin:0; height:100%; background:var(--bg); color:var(--text); overflow:hidden; font-family:"IBM Plex Mono", ui-monospace, Menlo, monospace; }
+.stage { position:absolute; left:50%; top:50%; width:max(100vw, calc(100vh * 1672 / 941)); aspect-ratio:1672/941; transform:translate(-50%,-50%); transition:opacity .3s cubic-bezier(.23,1,.32,1); }
+.art, #dark, .shade, .world { position:absolute; inset:0; width:100%; height:100%; }
+.art { background:url("../hollow-world/src/echo-view/cutaway/art/descent.webp") center/100% 100% no-repeat; image-rendering:pixelated; }
+.shade { background:radial-gradient(ellipse 55% 45% at 50% 46%, rgba(13,18,22,.55), rgba(13,18,22,.82) 70%, rgba(13,18,22,.94)); opacity:0; }
+.world { pointer-events:none; overflow:visible; }
+.world text { font-family:"IBM Plex Mono", monospace; font-weight:500; letter-spacing:0; }
+.world image { image-rendering:pixelated; }
+
+/* 4. the title: unchanged from the game */
+.title { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; opacity:0; pointer-events:none; }
+.title h1 { margin:0; font:800 clamp(96px,15vw,220px)/.92 "Fraunces", Georgia, serif; font-variation-settings:"opsz" 144; letter-spacing:.07em; margin-right:-.07em; color:var(--head); text-shadow:0 0 60px rgba(126,200,179,.22), 0 2px 24px rgba(6,11,14,.8); }
+.bar { display:flex; justify-content:center; gap:clamp(8px,3vw,56px); margin-top:clamp(40px,7vh,72px); opacity:0; } .more { margin-top:clamp(8px,2vh,20px); gap:clamp(0px,2vw,32px); }
+.node { display:flex; flex-direction:column; align-items:center; gap:14px; padding:12px 30px; min-height:44px; background:none; border:0; color:var(--text); font:600 19px/1.15 "IBM Plex Mono", monospace; letter-spacing:.16em; cursor:pointer; transition:color .15s cubic-bezier(.23,1,.32,1); }
+.node .d { width:16px; height:16px; border-radius:50%; border:2px solid var(--text2); background:#0a1013; }
+.node.primary .d { background:var(--amber); border-color:var(--amberHi); box-shadow:0 0 12px rgba(210,167,106,.55); } .node.primary .l { color:var(--head); }
+.node.quiet { font-size:15px; font-weight:500; letter-spacing:.08em; color:var(--text2); gap:9px; padding:8px 18px; } .node.quiet .d { width:9px; height:9px; margin:1.5px 0; }
+.node:hover { color:var(--amberText); } .node:focus-visible { outline:2px solid var(--amberHi); outline-offset:4px; border-radius:8px; }
+
+/* skip: quiet text plus a keycap, bottom-left on the rock */
+.skip { position:fixed; left:32px; bottom:28px; display:flex; align-items:center; gap:12px; padding:8px 0; background:none; border:0; font:500 14px/1 "IBM Plex Mono", monospace; color:var(--muted); cursor:pointer; transition:color .15s cubic-bezier(.23,1,.32,1), opacity .4s; }
+.skip kbd { font:inherit; font-size:12px; color:var(--muted); padding:4px 8px; border:1px solid rgba(221,216,193,.16); border-bottom-width:2px; border-radius:4px; }
+.skip:hover { color:var(--amberText); }
+
+/* the game's amber glow cursor (relay/cursor.css), fine pointers only */
+html[data-glow], html[data-glow] * { cursor:none !important; }
+.gl-cursor { position:fixed; left:0; top:0; z-index:9; width:0; height:0; pointer-events:none; opacity:0; transition:opacity .2s; }
+.gl-cursor[data-on] { opacity:1; }
+.gl-cursor i { position:absolute; left:-3.5px; top:-3.5px; width:7px; height:7px; border-radius:50%; background:#fff4d6; box-shadow:0 0 0 2px rgba(228,196,148,.5), 0 0 14px 4px var(--amber); transition:transform .2s cubic-bezier(.23,1,.32,1); }
+.gl-cursor[data-hot] i { transform:scale(1.5); }
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <div class="art"></div>
+  <canvas id="dark"></canvas>
+  <div class="shade" id="shade"></div>
+
+  <svg class="world" id="world" viewBox="0 0 1672 941" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <mask id="mRoute" maskUnits="userSpaceOnUse" x="0" y="0" width="1672" height="941"><path id="mrP" d="M430 196 H857 V888 H1150" fill="none" stroke="#fff" stroke-width="6"/></mask>
+      <mask id="mDet" maskUnits="userSpaceOnUse" x="0" y="0" width="1672" height="941"><path id="mdP" d="M857 545 H700 V720 H857" fill="none" stroke="#fff" stroke-width="6"/></mask>
+    </defs>
+
+    <!-- 1. the Director: one cold line per level, cut in as each level dies -->
+    <g id="dir" fill="#c3cbcd" font-size="28" role="group" aria-label="Tower address from the Director">
+      <rect id="dirMark" x="996" y="118" width="12" height="12" fill="#e0634f"/>
+      <text id="d1" x="1024" y="136">This is the Director.</text>
+      <text id="d2" x="1024" y="320">All transit is suspended.</text>
+      <text id="d3" x="1024" y="492">I am shutting the tower down.</text>
+    </g>
+
+    <!-- the route Mara needs: top of the Hollow to the bottom -->
+    <g id="route" mask="url(#mRoute)"><path d="M430 196 H857 V888 H1150" fill="none" stroke="#7ec8b3" stroke-width="2" stroke-dasharray="2 8" stroke-linecap="round"/></g>
+    <g id="det" mask="url(#mDet)"><path d="M857 545 H700 V720 H857" fill="none" stroke="#7ec8b3" stroke-width="2" stroke-dasharray="2 8" stroke-linecap="round"/></g>
+    <g id="seal"><rect x="825" y="626" width="64" height="12" fill="#1c0d0c" stroke="#e0634f" stroke-width="2"/></g>
+
+    <!-- 2. Mara and her plea, hung from her on a cord -->
+    <g id="mara">
+      <image href="../hollow-world/src/echo-view/cutaway/art/mara.png" x="396" y="140" width="48" height="72"/>
+      <text x="420" y="124" text-anchor="middle" fill="#d9c49c" font-size="16">Mara</text>
+    </g>
+    <g id="plea" font-size="20" fill="#e9e0c8" role="group" aria-label="Radio message from level 1">
+      <line id="cord" x1="420" y1="224" x2="420" y2="420" stroke="#e9e0c8" stroke-opacity=".28" stroke-width="1.5"/>
+      <text id="ptag" x="420" y="444" font-size="16" fill="#90a59f">Level 1, open channel</text>
+      <text id="pl0" x="420" y="484">Anyone on the relay?</text>
+      <text id="pl1" x="420" y="516">Nurse Mara and the medicine</text>
+      <text id="pl2" x="420" y="548">have to reach the Deep Clinic.</text>
+      <text id="pl3" x="420" y="580" fill="#edcd95">You have to help.</text>
+    </g>
+
+    <g id="clinic"><circle cx="1150" cy="888" r="9" fill="#0a1013" stroke="#7ec8b3" stroke-width="2"/><circle id="clinicFill" cx="1150" cy="888" r="6" fill="#7ec8b3" opacity="0"/><text x="1150" y="864" text-anchor="middle" fill="#b4c4ba" font-size="16">Deep Clinic</text></g>
+    <g id="beacons"></g>
+    <g id="pulse"><circle r="10" fill="none" stroke="#7ec8b3" stroke-width="1.5" opacity=".5"/><circle r="5" fill="#7ec8b3"/></g>
+    <g id="pod"><image href="../hollow-world/src/echo-view/cutaway/art/med-1.webp" x="-36" y="-14" width="72" height="27"/></g>
+
+    <!-- 3. captions: each hangs off the thing it names on a hairline leader, clear of the shaft girders -->
+    <g id="cap1" font-size="20" fill="#e9e0c8"><line x1="876" y1="196" x2="972" y2="196" stroke="#e9e0c8" stroke-opacity=".4" stroke-width="1.5"/><text x="980" y="203">Bolt a beacon to the track</text></g>
+    <g id="cap2" font-size="20" fill="#e9e0c8"><line x1="876" y1="545" x2="972" y2="545" stroke="#e9e0c8" stroke-opacity=".4" stroke-width="1.5"/><text x="980" y="552">News hops beacon to beacon</text></g>
+    <g id="cap3" font-size="20" fill="#e9e0c8"><line x1="640" y1="632" x2="664" y2="632" stroke="#e9e0c8" stroke-opacity=".4" stroke-width="1.5"/><text x="632" y="639" text-anchor="end">The pod reroutes itself. No tower</text></g>
+  </svg>
+
+  <div class="title" id="title">
+    <h1 aria-label="Echo"><span aria-hidden="true">ECHO</span></h1>
+    <div class="bar" id="bar1"><button class="node primary"><span class="d"></span><span class="l">Begin</span></button></div>
+    <div class="bar more" id="bar2"><button class="node quiet"><span class="d"></span>Tower Down</button><button class="node quiet"><span class="d"></span>Strata city</button><button class="node quiet"><span class="d"></span>Descent</button></div>
+  </div>
+</div>
+<button class="skip" id="skip">Skip<kbd>Any key</kbd></button>
+
+<script>
+// ---- timeline (ms). Everything on screen is a pure function of t, so any frame can be frozen. ----
+// 1 Director 0-3.7 | 2 plea 3.7-8.6 | 3a 8.6-10.3 | 3b 10.3-12.3 | 3c 12.3-14.0 | the echo 14.0-14.6 | ECHO 14.6
+const DIR = [250, 1450, 2100], DARK = [900, 1250, 1900, 2550, 3000], PAOFF = 3600;
+const B2 = 3700, LAMP = 3950, PL = [4300, 5300, 5900, 7000], CLINIC = 6000, ROUTE = 6100;
+const B3A = 8600, BOLT1 = 8900, B3B = 10300, B3C = 12300, POD0 = 12400, POD1 = 14000, TITLE = 14600, DONE = 16800;
+const BEATS = { "1":1600, "1b":3400, "2":7900, "3a":9700, "3b":11500, "3c":13250, "4":17200 };
+const BX = 857, BY = [196, 372, 545, 720, 888];
+const BOLT = [BOLT1, B3B, B3B + 100, B3B + 200, B3B + 300];
+const HOP0 = 10800, HOP = [HOP0, 11100, 11400, 11700, 12000];   // the news reaches beacon i
+const ECHO0 = POD1, ECHO1 = TITLE - 50;                         // the clinic answers, back up the shaft
+const BANDS = [[0,235],[235,400],[400,575],[575,740],[740,941]];
+const WP = [[430,200],[857,200],[857,545],[700,545],[700,720],[857,720],[857,888],[1120,888]];
+const SEG = WP.slice(1).map((p, i) => Math.hypot(p[0] - WP[i][0], p[1] - WP[i][1])), LEN = SEG.reduce((a, b) => a + b);
+
+const $ = id => document.getElementById(id), q = new URLSearchParams(location.search);
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const ease = x => 1 - Math.pow(1 - clamp(x), 3), inout = x => { x = clamp(x); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+const reduced = q.get("rm") === "1" || matchMedia("(prefers-reduced-motion: reduce)").matches;
+const stage = $("stage"), cv = $("dark"), ctx = cv.getContext("2d"), NS = "http://www.w3.org/2000/svg";
+const set = (el, o) => { for (const k in o) el.setAttribute(k, o[k]); };
+const op = (el, v) => { el.style.opacity = v; };
+const fadeIn = (t, s, d = 240) => clamp((t - s) / d);
+
+// beacons: the Relay dot. amber, a hairline ring, no glow; the light is the art coming back on
+const beac = BY.map(y => { const g = document.createElementNS(NS, "g"); g.innerHTML = `<circle cx="${BX}" cy="${y}" r="11" fill="none" stroke-width="1.5"/><circle cx="${BX}" cy="${y}" r="6" fill="#d2a76a"/>`; $("beacons").appendChild(g); return g; });
+const mr = $("mrP"), md = $("mdP"), LR = mr.getTotalLength(), LD = md.getTotalLength();
+mr.style.strokeDasharray = LR; md.style.strokeDasharray = LD;
+
+function lights(t) {                      // [artX, artY, radius] holes cut back into the dark
+  const L = [];
+  if (t > LAMP) L.push([430, 150, 170 * ease((t - LAMP) / 700)]);                 // Mara's work lamp, the first light after the PA
+  BY.forEach((y, i) => {
+    if (t < BOLT[i]) return;
+    const full = i === 0 ? ease((t - BOLT[i] - 100) / 800) : ease((t - HOP[i]) / 500);  // one light returns, then each level as the news lands
+    const echo = (t > ECHO0 && t < TITLE + 400) ? clamp(1 - Math.abs(pulseY(t) - y) / 90) * 24 : 0;
+    L.push([BX, y, 44 * ease((t - BOLT[i]) / 300) + 112 * full + echo]);
+  });
+  if (t > POD1) L.push([1300, 812, 220 * ease((t - POD1) / 700)]);                  // the clinic answers
+  return L;
+}
+function bandAlpha(t, i) {                // a level losing power: one hard drop, one stutter, then dark
+  const u = t - DARK[i]; if (u < 0) return 0;
+  if (reduced) return .94 * clamp(u / 200);
+  return u < 70 ? .94 : u < 140 ? .5 : .94;
+}
+function drawDark(t) {
+  const w = stage.clientWidth, h = stage.clientHeight, d = devicePixelRatio || 1;
+  if (cv.width !== Math.round(w * d)) { cv.width = Math.round(w * d); cv.height = Math.round(h * d); }
+  const k = cv.width / 1672; ctx.globalCompositeOperation = "source-over"; ctx.clearRect(0, 0, cv.width, cv.height);
+  const lift = 1 - ease((t - TITLE) / 1800);
+  BANDS.forEach(([a, b], i) => { const al = bandAlpha(t, i) * lift; if (al > 0) { ctx.fillStyle = `rgba(4,7,9,${al})`; ctx.fillRect(0, a * k, cv.width, (b - a) * k + 1); } });
+  ctx.globalCompositeOperation = "destination-out";
+  lights(t).forEach(([x, y, r]) => { if (r < 2) return; const g = ctx.createRadialGradient(x * k, y * k, 0, x * k, y * k, r * k); g.addColorStop(0, "rgba(0,0,0,1)"); g.addColorStop(.5, "rgba(0,0,0,.82)"); g.addColorStop(1, "rgba(0,0,0,0)"); ctx.fillStyle = g; ctx.fillRect((x - r) * k, (y - r) * k, 2 * r * k, 2 * r * k); });
+}
+function podAt(t) {                       // constant speed along the waypoints, eased at both ends
+  let s = inout((t - POD0) / (POD1 - POD0)) * LEN;
+  for (let i = 0; i < SEG.length; i++) { if (s <= SEG[i]) { const a = WP[i], b = WP[i + 1], f = s / SEG[i]; return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, Math.sign(b[0] - a[0]) || 1, i]; } s -= SEG[i]; }
+  return [WP.at(-1)[0], WP.at(-1)[1], 1, SEG.length];
+}
+function pulseY(t) {                      // the echo: clinic floor back up to the top beacon
+  return BY[4] + (BY[0] - BY[4]) * inout((t - ECHO0) / (ECHO1 - ECHO0));
+}
+
+function render(t) {
+  drawDark(t);
+  const rec = ease((t - TITLE) / 1400), keep = 1 - rec;
+
+  // 1 the Director: cut in, no fade. the PA clicks off all at once
+  const on = s => t >= s && t < PAOFF ? 1 : 0;
+  op($("dirMark"), on(DIR[0])); DIR.forEach((s, i) => op($("d" + (i + 1)), on(s)));
+
+  // 2 Mara: the lamp first, then her words in radio phrases
+  op($("mara"), fadeIn(t, LAMP + 200, 400) * (1 - fadeIn(t, POD0 - 50, 150)));
+  const pleaOut = 1 - fadeIn(t, B3A, 400);
+  op($("cord"), fadeIn(t, PL[0] - 200, 300) * pleaOut); op($("ptag"), fadeIn(t, PL[0] - 200, 300) * pleaOut);
+  PL.forEach((s, i) => { const e = $("pl" + i), f = fadeIn(t, s, 240); op(e, f * pleaOut); e.setAttribute("transform", `translate(0,${reduced ? 0 : 4 * (1 - ease(f))})`); });
+  op($("clinic"), fadeIn(t, CLINIC, 400) * keep); $("clinicFill").setAttribute("opacity", fadeIn(t, POD1, 300));
+  mr.style.strokeDashoffset = LR * (1 - inout((t - ROUTE) / 1000));
+  op($("route"), (t >= ROUTE ? 1 : 0) * (t > B3A ? .45 : .8) * keep);
+
+  // 3a / 3b beacons: dot settles, ring closes onto it like a bolt tightening; teal flash when news lands
+  beac.forEach((g, i) => {
+    const b = t - BOLT[i], [ring, dot] = g.children;
+    op(g, (b >= 0 ? 1 : 0) * keep);
+    dot.setAttribute("r", 6 * ease(b / 160));
+    const flash = Math.max(i > 0 && t >= HOP[i] ? clamp(1 - (t - HOP[i]) / 500) : 0, t > ECHO0 && t < TITLE ? clamp(1 - Math.abs(pulseY(t) - BY[i]) / 60) : 0);
+    set(ring, { r: 11 + 16 * (1 - ease(b / 300)), stroke: flash > .05 ? "#7ec8b3" : "#e4c494", "stroke-opacity": .5 + .5 * flash });
+  });
+  // the news: one teal pulse hopping down, beacon to beacon. then the echo back up
+  const pulse = $("pulse"); let py = null;
+  for (let i = 1; i < 5; i++) if (t >= HOP[i] - 280 && t < HOP[i]) py = BY[i - 1] + (BY[i] - BY[i - 1]) * inout((t - (HOP[i] - 280)) / 280);
+  if (t > ECHO0 && t < ECHO1) py = pulseY(t);
+  if (py != null && !reduced) { pulse.setAttribute("transform", `translate(${BX},${py})`); op(pulse, 1); } else op(pulse, 0);
+
+  // 3c the pod leaves Mara's room, meets the Director's seal, finds the side passage
+  op($("seal"), (t >= B3C ? 1 : 0) * keep);
+  const [px, py2, dir, seg] = podAt(t); $("pod").setAttribute("transform", `translate(${px},${py2}) scale(${dir},1)`);
+  op($("pod"), (t >= POD0 - 50 ? 1 : 0) * keep);
+  const sDet = SEG.slice(0, 2).reduce((a, b) => a + b), dTrav = clamp((inout((t - POD0) / (POD1 - POD0)) * LEN - sDet) / LD);
+  md.style.strokeDashoffset = LD * (1 - dTrav); op($("det"), keep);
+
+  // captions: 3a on the first beacon, 3b on the middle beacon, 3c on the detour
+  op($("cap1"), fadeIn(t, BOLT1 + 200, 300) * (1 - fadeIn(t, B3B - 250, 250)));
+  op($("cap2"), fadeIn(t, B3B + 150, 300) * (1 - fadeIn(t, B3C - 250, 250)));
+  op($("cap3"), fadeIn(t, B3C + 150, 300) * keep);
+
+  // 4 title
+  op($("shade"), rec);
+  const ti = $("title"); op(ti, clamp((t - TITLE - 300) / 1200)); ti.style.pointerEvents = t > TITLE + 900 ? "auto" : "none";
+  op($("bar1"), clamp((t - TITLE - 1100) / 1200)); op($("bar2"), clamp((t - TITLE - 1100) / 1200));
+  op($("skip"), t < TITLE ? 1 : 0); $("skip").style.pointerEvents = t < TITLE ? "auto" : "none";
+}
+
+// ---- driving it ----
+const frozen = q.get("s") && BEATS[q.get("s")] != null ? BEATS[q.get("s")] : (q.get("t") ? +q.get("t") : null);
+let t0 = performance.now(), bonus = 0, skipped = false;
+const finish = () => { if (frozen != null || skipped) return; skipped = true; bonus = TITLE - (performance.now() - t0); };
+addEventListener("keydown", e => { if (!e.metaKey && !e.ctrlKey && !e.altKey) finish(); });
+$("skip").addEventListener("click", finish);
+if (frozen != null) { document.fonts.ready.then(() => render(frozen)); }
+else if (reduced) {                       // stills, crossfaded through the stage opacity: no flicker, pulse, rise or bolt
+  const STILLS = [1600, 3400, 7900, 9800, 12100, 14000], HOLD = 2000;
+  let i = 0; render(STILLS[0]);
+  const next = () => { if (skipped || i >= STILLS.length - 1) { stage.style.opacity = 0; setTimeout(() => { render(TITLE + 2600); stage.style.opacity = 1; }, 300); return; }
+    stage.style.opacity = 0; setTimeout(() => { render(STILLS[++i]); stage.style.opacity = 1; tm = setTimeout(next, HOLD); }, 300); };
+  let tm = setTimeout(next, HOLD);
+  const jump = () => { clearTimeout(tm); next(); }; addEventListener("keydown", jump); $("skip").addEventListener("click", jump);
+} else { const loop = () => { render(Math.min(performance.now() - t0 + bonus, DONE + 600)); requestAnimationFrame(loop); }; loop(); }
+
+// the amber glow cursor, as in the game: fine hovering pointers only, never under reduced motion
+if (!reduced && matchMedia("(hover: hover) and (pointer: fine)").matches) {
+  document.documentElement.dataset.glow = ""; const c = document.createElement("div"); c.className = "gl-cursor"; c.innerHTML = "<i></i>"; document.body.appendChild(c);
+  addEventListener("pointermove", e => { c.style.transform = `translate(${e.clientX}px,${e.clientY}px)`; c.toggleAttribute("data-on", true); c.toggleAttribute("data-hot", !!e.target.closest("button")); });
+  document.addEventListener("pointerleave", () => c.removeAttribute("data-on"));
+}
+</script>
+</body>
+</html>
