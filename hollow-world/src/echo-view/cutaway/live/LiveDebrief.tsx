@@ -18,6 +18,7 @@ export interface LiveDebriefProps {
   nextLabel?: string; // journey mode: "Continue the journey"
   endReason?: string; // why the run ended (observation.endReason), shown under the result
   note?: string; // a line above the buttons (the cost of a retry)
+  replay?: boolean; // "Watch the solution" playback: no stars, no credit, no next-level; only a way back to play
 }
 
 const when = (t: number | null) => (t === null ? "never" : `minute ${t}`);
@@ -41,7 +42,7 @@ function nextStep(stars: number, mission: Mission, commands: Command[], o: RunOu
   return stars === 0 ? "Light Mara's route." : "Beat the next deadline.";
 }
 
-export function LiveDebrief({ mission, commands, stars, onRetry, onNext, onWatchSolution, onContinue, retryLabel = "Retry", nextLabel = "Next level", endReason, note }: LiveDebriefProps) {
+export function LiveDebrief({ mission, commands, stars, onRetry, onNext, onWatchSolution, onContinue, retryLabel = "Retry", nextLabel = "Next level", endReason, note, replay = false }: LiveDebriefProps) {
   const base = useMemo(() => runBaseline(mission, commands), [mission, commands]);
   const lines = useMemo(() => explainRun(base.you.log, mission).map((l) => plainText(l).replace(/^./, (c) => c.toUpperCase())), [base, mission]);
   const why = lines.filter((l) => !isMargin(l));
@@ -54,8 +55,10 @@ export function LiveDebrief({ mission, commands, stars, onRetry, onNext, onWatch
       <div className="eyebrow">RUN COMPLETE</div>
       <h2>{headline}</h2>
       {endReason && <p className="live-end-reason">{endReason}</p>}
-      <p className="live-stars" aria-label={stars + " of 3 stars"}>{"★".repeat(stars)}{"☆".repeat(3 - stars)}</p>
-      {margin && <p className="live-margin">{margin}</p>}
+      {replay
+        ? <p className="live-stars live-replay-tag">Solution replay</p>
+        : <p className="live-stars" aria-label={stars + " of 3 stars"}>{"★".repeat(stars)}{"☆".repeat(3 - stars)}</p>}
+      {margin && !replay && <p className="live-margin">{margin}</p>}
       <h3>What happened</h3>
       <ol className="live-why">{why.map((l) => <li key={l}>{l}</li>)}</ol>
       <h3>The same run, three ways</h3>
@@ -71,13 +74,13 @@ export function LiveDebrief({ mission, commands, stars, onRetry, onNext, onWatch
         </tbody>
       </table>
       <p className="live-tower-says">{base.towerSays}</p>
-      {hint && <p className="live-next"><strong>Next star:</strong> {hint}</p>}
-      {stars >= 3 && <p className="live-next"><strong>Best possible run.</strong></p>}
+      {hint && !replay && <p className="live-next"><strong>Next star:</strong> {hint}</p>}
+      {stars >= 3 && !replay && <p className="live-next"><strong>Best possible run.</strong></p>}
       {note && <p className="live-next">{note}</p>}
       <div className="live-button-row">
         {onRetry && <button className="live-primary" onClick={onRetry} autoFocus={!onNext}>{retryLabel} <kbd>R</kbd></button>}
-        {onNext && <button className="live-primary" onClick={onNext} autoFocus>{nextLabel}</button>}
-        {onContinue && <button onClick={onContinue}>Continue anyway</button>}
+        {onNext && !replay && <button className="live-primary" onClick={onNext} autoFocus>{nextLabel}</button>}
+        {onContinue && !replay && <button onClick={onContinue}>Continue anyway</button>}
         {onWatchSolution && <button onClick={onWatchSolution}>Watch the solution</button>}
       </div>
     </section>

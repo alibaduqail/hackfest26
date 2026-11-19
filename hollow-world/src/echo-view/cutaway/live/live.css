@@ -44,6 +44,7 @@
 .descent-live .live-arrivals div { justify-content: space-between; color: var(--text2); }
 .descent-live .live-arrivals dd { color: var(--head); font-weight: 650; }
 .descent-live .live-debrief p { color: var(--text2); }
+.descent-live .live-debrief .live-stars.live-replay-tag { font: 600 13px/1 var(--mono, ui-monospace, monospace); font-size: 13px; letter-spacing: .18em; margin: 10px 0; text-transform: uppercase; }
 .descent-live .live-debrief .live-stars { color: var(--amberHi); font-size: 27px; letter-spacing: .15em; margin: 12px 0; }
 .descent-live .live-button-row { flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .descent-live footer nav { flex-direction: row; flex-wrap: wrap; gap: 8px; }

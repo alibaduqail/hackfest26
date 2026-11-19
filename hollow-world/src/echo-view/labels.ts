@@ -10,8 +10,8 @@ const LABEL_SIDE: Record<string, "l" | "r" | "t" | "b"> = { ny: "r", s07: "l", l
 export const LABEL_FONT = `12px ${FONT_SANS}`;
 export const overlaps = (a: Box, b: Box) => a[0] < b[0] + b[2] && b[0] < a[0] + a[2] && a[1] < b[1] + b[3] && b[1] < a[1] + a[3];
 
-/** "London Deep" -> "London": every city is a Deep, so the suffix is noise on the map. */
-export const shortName = (c: City) => c.name.replace(/ Deep$/, "");
+/** The map label is the city's Hollow name ("London Deep"), never its surface name ("London"): the data's own `name`, display-only. */
+export const shortName = (c: City) => c.name;
 
 /** Where a city's name goes: left edge, middle line, width. */
 export function labelAt(ctx: CanvasRenderingContext2D, c: City, [x, y]: XY, prepare: boolean): [number, number, number] {
