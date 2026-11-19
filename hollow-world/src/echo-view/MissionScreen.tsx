@@ -25,12 +25,16 @@ html,body,#root{margin:0;height:100%;background:var(--bg);color:var(--text);font
 .echo-side{background:var(--bg);padding:12px;min-height:0;overflow:hidden}
 .echo-side .echo-panels{height:100%}
 .echo-bar{background:var(--panel);display:flex;flex-wrap:wrap;gap:4px 20px;align-items:center;padding:2px 14px;border-top:1px solid var(--line)}
-.echo-bar .grow{flex:1;min-width:0;color:var(--text2)}
+.echo-bar .grow{flex:1;min-width:0;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.echo-speed{display:flex;align-items:center;gap:8px}
+.echo-speed-l{font-family:var(--label,var(--mono));font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.echo-speed .rl-node[data-selected] .rl-label{font-weight:700;text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:2px}
+.echo-speed .rl-node[data-selected] .rl-dot{background:var(--amber);border-color:var(--amberHi)}
 .echo-bar .echo-clock{font-family:var(--label,var(--mono));font-variant-numeric:tabular-nums;color:var(--text2)}
 .echo-ticker{display:flex;gap:8px;align-items:center;margin-bottom:8px;padding:5px 10px;background:var(--redBg);border:1px solid var(--redLine);border-radius:4px;color:var(--red);font-size:12px;letter-spacing:.06em;animation:echo-tick .5s ease-out}
 .echo-ticker b{flex:none;background:var(--red);color:var(--redBg);padding:0 6px;font-size:10px;letter-spacing:.25em}
 @keyframes echo-tick{from{opacity:0;transform:translateY(4px)}}
-.echo-hint{position:absolute;left:14px;bottom:104px;z-index:3;max-width:calc(100% - 28px);display:flex;flex-direction:column;gap:2px;text-align:left;background:var(--amberBg);color:var(--amberText);border:1px solid var(--amber);border-radius:6px;padding:10px 14px;font:inherit;font-size:16px;line-height:1.35;cursor:pointer;animation:echo-hint .35s ease-out;text-wrap:balance;hyphens:none}
+.echo-hint{position:absolute;left:14px;bottom:104px;z-index:3;max-width:calc(100% - 28px);display:flex;flex-direction:column;gap:2px;text-align:left;background:linear-gradient(var(--amberBg),var(--amberBg)),var(--panel);color:var(--amberText);border:1px solid var(--amber);border-radius:6px;padding:10px 14px;font:inherit;font-size:16px;line-height:1.35;cursor:pointer;animation:echo-hint .35s ease-out;text-wrap:balance;hyphens:none}
 .echo-hint small{color:var(--amberDim);font-size:11px;letter-spacing:.08em}
 @keyframes echo-hint{from{opacity:0;transform:translateY(6px)}}
 .echo-flash{position:absolute;inset:0;z-index:4;pointer-events:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(90,8,6,.38);box-shadow:inset 0 0 160px rgba(255,59,59,.55);animation:echo-flash 2s forwards}
@@ -69,7 +73,7 @@ const SCENE_KINDS = new Set<LogKind>(["tower-down", "credential-reject"]); // Ma
 const forMara = (e: LogEvent, yieldTo: string) =>
   SCENE_KINDS.has(e.kind) || (e.kind === "yield" ? yieldTo === DISPATCH_POD : e.podId === DISPATCH_POD);
 const SOUND: Record<string, Sound> = { down: "down", seal: "seal", yield: "yield", "yield-med": "yield", "arrive-med": "chime" };
-// Mission 1 is the tutorial: one hint card at a time, 5 s or click (2.5 s when another is waiting). Dismissal lasts for the page session.
+// Mission 1 is the tutorial: one hint card at a time; a newer beat replaces it after 2.5 s (5 s otherwise, or click). Dismissal lasts for the page session.
 const HINTS: Record<string, string> = {
   start: "Run the clock. Watch the tower on the left.",
   down: "The tower is dark. On the right, Echo takes over.",
@@ -210,8 +214,9 @@ export function MissionScreen({ mission: missionProp, allowDispatch = true, spee
   const pushHints = useCallback((ids: string[], idle: boolean) => {
     const fresh = ids.filter((id, i) => HINTS[id] && !hintsSeen.has(id) && ids.indexOf(id) === i);
     fresh.forEach((id) => hintsSeen.add(id));
-    hintQ.current.push(...fresh);
-    if (idle && fresh.length) nextHint();
+    if (!fresh.length) return;
+    hintQ.current = [fresh[fresh.length - 1]]; // one at a time: the newest beat replaces any waiting one
+    if (idle || performance.now() - hintAt.current >= HINT_MIN_MS) nextHint();
   }, [nextHint]);
   const hintOn = useRef(false);
   hintOn.current = !!hint;
@@ -291,7 +296,7 @@ export function MissionScreen({ mission: missionProp, allowDispatch = true, spee
     const w = world.current;
     const atTick = Math.max(DISPATCH_MIN_TICK, echo.tick + 1);
     const res = [w.tower, w.echo].map((e) => e.act({ type: "dispatchMedical", podId: DISPATCH_POD, atTick })); // same tick on both engines
-    setNote(res.every((r) => r.ok) ? `Nurse Mara Vale dispatched for t+${atTick}` : `Dispatch refused: ${res.find((r) => !r.ok)?.reason}`);
+    setNote(res.every((r) => r.ok) ? `Mara dispatched · t+${atTick}` : `Refused: ${res.find((r) => !r.ok)?.reason}`);
   };
 
   return (
@@ -311,7 +316,7 @@ export function MissionScreen({ mission: missionProp, allowDispatch = true, spee
         <div className="echo-side">
           <div className="echo-panels">
             <EchoLog obs={echo} log={historyRef.current} />
-            <Scoreboard obs={echo} normal={world.current.normal} />
+            <Scoreboard obs={echo} tower={tower} normal={world.current.normal} />
           </div>
         </div>
       </div>
@@ -320,9 +325,9 @@ export function MissionScreen({ mission: missionProp, allowDispatch = true, spee
         <RelayBar label="Run controls" items={[
           { key: "run", label: echo.over ? "Replay" : running ? "Pause" : "Run", tone: "primary", onSelect: () => (echo.over ? reset() : setRunning((r) => !r)) },
           { key: "reset", label: "Reset", tone: "danger", hold: true, onSelect: reset },
-          ...(allowDispatch ? [{ key: "dispatch", label: "Dispatch Nurse Mara Vale", disabled: !nurse || nurse.status !== "scheduled" || echo.over, onSelect: dispatch }] : []),
+          ...(allowDispatch ? [{ key: "dispatch", label: "Dispatch Mara", disabled: !nurse || nurse.status !== "scheduled" || echo.over, onSelect: dispatch }] : []),
         ]} />
-        <RelayBar label="Speed" value={String(speed)} items={speeds.map((s) => ({ key: String(s), label: `${s}×`, onSelect: () => setSpeed(s) }))} />
+        <div className="echo-speed"><span className="echo-speed-l" aria-hidden>Speed</span><RelayBar label="Speed" value={String(speed)} items={speeds.map((s) => ({ key: String(s), label: `${s}×`, onSelect: () => setSpeed(s) }))} /></div>
         <span className="grow">{note}</span>
         <RelayBar size="md" label="Elsewhere" rest={null} items={[{ key: "strata", label: "Sector 07 city sim", tone: "secondary", nav: true, href: STRATA_URL, onSelect: () => location.assign(STRATA_URL) }]} />
         <span className="echo-clock">t+{echo.tick} / {echo.endTick}</span>

@@ -38,7 +38,7 @@ export function EndCard({ tower, echo, normal, onReplay, title = "TOWER DOWN", t
       {top}
       <div className="echo-end-grid">
         <div />
-        <div className="h">Directorate alone</div>
+        <div className="h">Directorate</div>
         <div className="h">Echo</div>
         {row("Nurses arrived", `${t.nursesArrived}/${t.nursesTotal}`, `${e.nursesArrived}/${e.nursesTotal}`)}
         {row("Water, food, medicine delivered", `${t.suppliesDelivered}/${t.suppliesTotal}`, `${e.suppliesDelivered}/${e.suppliesTotal}`)}
@@ -47,7 +47,7 @@ export function EndCard({ tower, echo, normal, onReplay, title = "TOWER DOWN", t
         {row("Network capacity vs normal day", `${t.capacityPct}%`, `${e.capacityPct}%`, true)}
       </div>
       <div className="echo-end-note">
-        Echo costs time: passengers wait {n.passengerDelayMin > 0 ? `${(e.passengerDelayMin / n.passengerDelayMin).toFixed(1)}× as long as` : "longer than"} on a normal day and the network runs at {e.capacityPct}% of normal. Echo is a fallback protocol, not a replacement for the tower. Nurse credentials are a simulated signature.
+        Echo costs time: passengers wait {n.passengerDelayMin > 0 ? `${(e.passengerDelayMin / n.passengerDelayMin).toFixed(1)}× as long as` : "longer than"} on a normal day and the network runs at {e.capacityPct}% of normal. Nurse credentials are a simulated signature.
       </div>
       {onReplay && <RelayBar size="lg" label="Replay" items={[{ key: "replay", label: "Replay", tone: "primary", onSelect: onReplay }]} />}
       {children}

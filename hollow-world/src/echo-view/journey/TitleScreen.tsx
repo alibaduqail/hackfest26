@@ -30,7 +30,7 @@ export function TitleScreen({ onBegin, onContinue, onTowerDown, onStrata, onFree
   const more: RelayItem[] = [];
   if (onTowerDown) more.push({ key: "tower", label: "Tower Down", tone: "quiet", nav: true, onSelect: onTowerDown });
   if (onStrata) more.push({ key: "strata", label: "Strata city", tone: "quiet", nav: true, onSelect: onStrata });
-  if (onFreePlay) more.push({ key: "free", label: "Free play", tone: "quiet", nav: true, onSelect: onFreePlay });
+  if (onFreePlay) more.push({ key: "free", label: "Descent", tone: "quiet", nav: true, onSelect: onFreePlay });
   return (
     <div className="g-screen g-title j-title">
       <h1 aria-label="Echo"><span aria-hidden>ECHO</span><i aria-hidden>ECHO</i></h1>

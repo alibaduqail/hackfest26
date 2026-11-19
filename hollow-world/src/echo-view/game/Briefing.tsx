@@ -5,9 +5,9 @@ import type { CampaignMission } from "./campaign";
 import { RelayBar } from "../relay/Relay";
 import { Stars } from "./MissionSelect";
 
-const CHARS_PER_FRAME = 2;
+const CHARS_PER_FRAME = 5;
 
-/** Types `paras` out a couple of characters per frame; instant with reduced motion. */
+/** Types `paras` out five characters per frame; instant with reduced motion. */
 export function useTypewriter(paras: string[]) {
   const total = paras.reduce((n, p) => n + p.length, 0);
   const instant = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -18,6 +18,16 @@ export function useTypewriter(paras: string[]) {
     const id = requestAnimationFrame(() => setShown((n) => Math.min(total, n + CHARS_PER_FRAME)));
     return () => cancelAnimationFrame(id);
   }, [shown, done, total]);
+  useEffect(() => { // Space finishes the text (a focused button keeps its own Space)
+    if (done) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== " " || e.target instanceof HTMLButtonElement || e.target instanceof HTMLAnchorElement) return;
+      e.preventDefault();
+      setShown(total);
+    };
+    addEventListener("keydown", onKey);
+    return () => removeEventListener("keydown", onKey);
+  }, [done, total]);
   let left = shown;
   const visible = paras.map((p) => { const t = p.slice(0, Math.max(0, left)); left -= p.length; return t; }).filter((p, i) => p || i === 0);
   return { visible, paras, done, skip: () => setShown(total) };
@@ -93,7 +103,10 @@ export function Interlude({ kicker, title, paras, onDone }: { kicker: string; ti
         </div>
         <Typed tw={tw} />
         <div className="g-actions end">
-          <RelayBar label={title} items={[{ key: "go", label: tw.done ? "Continue" : "Skip", tone: "primary", nav: tw.done, autoFocus: true, onSelect: onDone }]} />
+          <RelayBar label={title} items={[
+            ...(tw.done ? [] : [{ key: "skip", label: "Skip", tone: "quiet" as const, onSelect: tw.skip }]),
+            { key: "go", label: "Continue", tone: "primary", nav: true, autoFocus: true, onSelect: onDone },
+          ]} />
         </div>
       </div>
     </div>
