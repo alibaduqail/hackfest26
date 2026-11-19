@@ -78,7 +78,7 @@ test("pause, speed, and slow override control the advertised cadence", () => {
   run.togglePause();
   run.setSpeed(2);
   assert.equal(run.getSnapshot().stepMs, 300);
-  while (run.getSnapshot().observation.tick < 31) run.step();
+  while (run.getSnapshot().observation.tick < 33) run.step(); // the telegraph (t33 for the first flood) starts the slow-motion window
   assert.equal(run.getSnapshot().slow, true);
   assert.equal(run.getSnapshot().stepMs, 300 / 0.35);
   run.togglePause();
@@ -108,7 +108,7 @@ test("slow motion is capped and reserves time for the flood telegraph", () => {
   while (!run.getSnapshot().ended && !run.getSnapshot().observation.over) {
     const state = run.getSnapshot();
     if (state.slow) slowTicks++;
-    if (state.observation.tick >= 31 && state.observation.tick <= 41) assert.equal(state.slow, true);
+    if (state.observation.tick >= 33 && state.observation.tick <= 41) assert.equal(state.slow, true);
     run.step();
   }
   assert.ok(slowTicks > 0 && slowTicks <= 16);

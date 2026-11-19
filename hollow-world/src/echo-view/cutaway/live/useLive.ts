@@ -1,6 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { createEngine } from "../../../echo/engine";
-import { DESCENT_LIVE_SOLUTION, descentLive } from "../../../echo/descent";
+import { descentLive } from "../../../echo/descent";
+import { DESCENT_LEVELS } from "../../../echo/descent-levels";
 import type { Command, LogEvent, Mission, Observation, Pod } from "../../../echo/types";
 
 type Speed = 1 | 2;
@@ -18,6 +19,8 @@ type LiveState = {
   commands: Command[];
   queued: ReadonlySet<string>;
   solution: boolean;
+  attempt: number; // retries so far: free play picks the flood candidate from it
+  building: ReadonlySet<string>; // beacons ordered and ticking toward live (the engine's build delay)
   feedback: string | null;
   stepMs: number;
   slow: boolean;
@@ -32,8 +35,9 @@ function complete(obs: Observation): boolean {
     .every((p) => p.status === "arrived" || heldAtFlood(p, obs));
 }
 
-function warning(mission: Mission, obs: Observation): boolean {
-  return mission.sealAt !== null && obs.tick >= mission.sealAt - 10 && obs.tick <= mission.sealAt;
+/** A flood telegraph (sector and minute) is on screen. Read from the observation, never from the mission, so nothing shows before the reveal. */
+export function warning(_mission: Mission, obs: Observation): boolean {
+  return !!obs.floodWarnings?.some((w) => w.sectorId !== undefined);
 }
 
 function blindApproach(obs: Observation): boolean {
@@ -47,11 +51,12 @@ function blindApproach(obs: Observation): boolean {
 }
 
 /** Which level to run: defaults to Descent I. A journey leg passes its own (budget-capped) mission and that level's solution. */
-export interface LiveSpec { build: () => Mission; solution: Command[] }
-const LEVEL_1: LiveSpec = { build: descentLive, solution: DESCENT_LIVE_SOLUTION };
+export interface LiveSpec { build: (attempt: number) => Mission; solution: (attempt: number) => Command[] }
+const LEVEL_1: LiveSpec = { build: (a) => descentLive({ attempt: a }), solution: (a) => DESCENT_LEVELS[0].solutionFor(a) };
 
 export function createLive(spec: LiveSpec = LEVEL_1) {
-  let mission = spec.build();
+  let attempt = 0;
+  let mission = spec.build(attempt);
   let engine = createEngine(mission, "echo");
   let observation = engine.observe();
   let previous = observation;
@@ -66,8 +71,8 @@ export function createLive(spec: LiveSpec = LEVEL_1) {
 
   function snapshot(): LiveState {
     const ended = complete(observation);
-    // Reserve 11 slow ticks for the flood countdown.
-    const limit = mission.sealAt !== null && observation.tick < mission.sealAt - 10 ? 5 : 16;
+    // Reserve 11 slow ticks for the flood countdown (only once its telegraph is visible).
+    const limit = warning(mission, observation) ? 16 : 5;
     const remaining = Math.max(0, (mission.beaconBudget ?? 0) - commands.length);
     const slow = !ended && !override && slowTicks < limit &&
       (warning(mission, observation) || (remaining > 0 && blindApproach(observation)));
@@ -82,6 +87,8 @@ export function createLive(spec: LiveSpec = LEVEL_1) {
       commands,
       queued,
       solution,
+      attempt,
+      building: new Set((observation.building ?? []).map((b) => b.sectorId)),
       feedback,
       remaining,
       slow,
@@ -96,8 +103,8 @@ export function createLive(spec: LiveSpec = LEVEL_1) {
   function suppressSlow() {
     if (state.slow) override = true;
   }
-  function reset(watch: boolean) {
-    mission = spec.build();
+  function reset(watch: boolean) { // watching the solution replays the same flood; a retry draws the next one
+    mission = spec.build(attempt);
     engine = createEngine(mission, "echo");
     observation = engine.observe();
     previous = observation;
@@ -136,7 +143,7 @@ export function createLive(spec: LiveSpec = LEVEL_1) {
     if (state.ended) return;
     if (state.slow) slowTicks++;
     if (solution) {
-      for (const command of spec.solution) {
+      for (const command of spec.solution(attempt)) {
         if (command.atTick !== observation.tick) continue;
         const result = engine.act(command);
         if (result.ok) commands = [...commands, command];
@@ -146,7 +153,8 @@ export function createLive(spec: LiveSpec = LEVEL_1) {
     previous = observation;
     engine.step();
     observation = engine.observe();
-    queued = new Set([...queued].filter((id) => !observation.sectors.find((sector) => sector.id === id)?.beacon));
+    // queued = accepted this tick, not stepped yet; once stepped a beacon is `building` (observation.building) until it is live
+    queued = new Set([...queued].filter((id) => !observation.sectors.find((sector) => sector.id === id)?.beacon && !observation.building?.some((b) => b.sectorId === id)));
     events = [...events, ...observation.log.filter((e) => e.tick === previous.tick)];
     if (
       (!warning(mission, previous) && warning(mission, observation)) ||
@@ -184,7 +192,7 @@ export function createLive(spec: LiveSpec = LEVEL_1) {
     togglePause,
     start,
     setSpeed,
-    retry: () => reset(false),
+    retry: () => { attempt++; reset(false); },
     watchSolution: () => reset(true),
   };
 }

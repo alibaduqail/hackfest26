@@ -54,17 +54,19 @@ export interface LiveScreenProps {
   mission?: Mission;
   legId?: LegId;
   journeyMode?: boolean;
+  attempt?: number; // journey mode: the leg's failed tries so far (the flood candidate was picked from it when the mission was built)
   onLegEnd?: (result: LegResult) => void;
 }
 
-export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = false, onLegEnd }: LiveScreenProps) {
+export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = false, attempt: journeyAttempt = 0, onLegEnd }: LiveScreenProps) {
   applyLayout(legMission?.id ?? "descent-live"); // the shared track map must match this level before anything reads it
   const levelIndex = Math.max(0, DESCENT_LEVELS.findIndex((l) => l.id === legMission?.id));
   const level = DESCENT_LEVELS[levelIndex];
-  const spec = useMemo(() => legMission ? { build: () => structuredClone(legMission), solution: level.solution } : undefined, [legMission, level]);
+  const spec = useMemo(() => legMission ? { build: () => structuredClone(legMission), solution: () => level.solutionFor(journeyAttempt) } : undefined, [legMission, level, journeyAttempt]);
   const live = useLive(spec);
   const { mission, observation: obs, previous, playing, queued, remaining, solution, feedback } = live;
-  const goals = level.goals;
+  const runAttempt = legMission ? journeyAttempt : live.attempt;
+  const goals = level.goalsFor(runAttempt); // the flood candidate has its own star table
   const [introDone, setIntroDone] = useState(false);
   const [hintText, setHintText] = useState<string | null>(null);
   const seenHints = useRef(new Set<number>([1])); // level 1's hint is on the intro card
@@ -85,25 +87,26 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
   const mara = obs.pods.find((p) => p.id === "MED-1")!;
   const medicine = obs.pods.find((p) => p.id === "SUP-3")!;
   const primary = obs.sectors.find((s) => s.id === selected)!;
-  // Levels with several floods: the first is telegraphed; a later one is shown only once it has landed (Descent II's second flood is a surprise).
-  const seals = [{ at: mission.sealAt!, sectorId: mission.sealSectorId! }, ...(mission.seals ?? [])];
-  const shown = seals.filter((sl, i) => i === 0 || obs.sectors.find((s) => s.id === sl.sectorId)?.sealed);
-  const floodNow = shown[shown.length - 1];
-  const flood = obs.sectors.find((s) => s.id === floodNow.sectorId)!;
-  const untilFlood = floodNow.at - obs.tick;
+  // The flood comes only from the observation: a telegraph (sector + minute) inside the reveal window, else a sealed sector, else just the risk line.
+  const telegraph = obs.floodWarnings?.find((w) => w.sectorId !== undefined);
+  const risk = obs.floodWarnings?.[0]?.risk ?? "flood risk";
+  const sealedNow = obs.sectors.filter((s) => s.sealed);
+  const flood = (telegraph ? obs.sectors.find((s) => s.id === telegraph.sectorId) : sealedNow[sealedNow.length - 1]) ?? null;
+  const untilFlood = telegraph ? telegraph.at! - obs.tick : 0;
+  const warning = !!telegraph;
+  const sealed = !warning && !!flood?.sealed;
+  const building = new Map((obs.building ?? []).map((b) => [b.sectorId, b.readyAt]));
   const sectionOrder = [...tracks.keys()];
-  const warning = !flood.sealed && untilFlood <= 10;
   const activeSector = tracks.get(mara.path[mara.at]);
   const over = live.ended;
-  const warnSections = [
-    flood.id,
-    obs.sectors.find((s) => s.routeId === flood.routeId && s.index === flood.index - 1)?.id,
-  ];
+  const warnSections = flood && warning
+    ? [flood.id, obs.sectors.find((s) => s.routeId === flood.routeId && s.index === flood.index - 1)?.id]
+    : [];
   const held = obs.pods.filter((p) => heldAtFlood(p, obs));
   const placementsOpen = !over && !solution && remaining > 0;
   const canPlace = (id: string) =>
-    placementsOpen && !queued.has(id) && obs.sectors.find((s) => s.id === id)?.beacon === false;
-  const pressure = warning ? "Flood imminent" : flood.sealed ? "Main shaft flooded" : "Monitoring main shaft";
+    placementsOpen && !queued.has(id) && !building.has(id) && obs.sectors.find((s) => s.id === id)?.beacon === false;
+  const pressure = warning ? "Flood imminent" : sealed ? "Shaft flooded" : "Monitoring the shafts";
   const events = live.events.filter((e) =>
     alertKinds.has(e.kind) &&
     (e.kind !== "credential-reject" ||
@@ -167,8 +170,8 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
   }, []);
   useEffect(sfx.unlockOnFirstGesture, []);
   useEffect(() => {
-    if (obs.tick === mission.sealAt! - 10) play("down");
-    if (!previous.sectors.find((s) => s.id === flood.id)?.sealed && flood.sealed) {
+    if (warning && !previous.floodWarnings?.some((w) => w.sectorId !== undefined)) play("down");
+    if (sealedNow.length > previous.sectors.filter((s) => s.sealed).length) {
       sfx.playFloodSplash();
       fx.shake(.5);
     }
@@ -194,7 +197,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
     if (!over) return;
     const tones = Array.from({ length: stars }, (_, i) => setTimeout(() => sfx.playStarDing(i), i * 180));
     return () => tones.forEach(clearTimeout);
-  }, [obs, previous, flood, mission.sealAt, over, stars, solution, live.events, mara, medicine]);
+  }, [obs, previous, warning, sealedNow.length, over, stars, solution, live.events, mara, medicine]);
   useEffect(() => {
     function keys(e: KeyboardEvent) {
       if (e.altKey || e.ctrlKey || e.metaKey || e.repeat) return;
@@ -350,7 +353,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
               ).map((s) => (
                 <span
                   key={s.id}
-                  className={"live-socket" + (queued.has(s.id) ? " queued" : "") +
+                  className={"live-socket" + (queued.has(s.id) ? " queued" : "") + (building.has(s.id) ? " building" : "") +
                     ((hover ?? selected) === s.id ? " selected" : "") +
                     (hover === s.id && !canPlace(s.id) ? " invalid" : "") +
                     (warning && warnSections.includes(s.id) ? " warn-here" : "") +
@@ -362,15 +365,15 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
                     (!firstPlacement && s.id === starterId ? " starter" : "")}
                   style={atMidpoint(s.id)}
                 >
-                  {queued.has(s.id) || s.beacon ? "✓" : "+"}
+                  {building.has(s.id) ? Math.max(1, building.get(s.id)! - obs.tick) : queued.has(s.id) || s.beacon ? "✓" : "+"}
                 </span>
               ))}
-              {(warning || flood.sealed) && (
+              {flood && (warning || sealed) && (
                 <span
-                  className={"live-water " + (flood.sealed ? "sealed" : "warning")}
+                  className={"live-water " + (sealed ? "sealed" : "warning")}
                   style={{
                     ...atMidpoint(flood.id),
-                    height: (flood.sealed ? 8 : 1 + (10 - Math.max(0, untilFlood)) * 0.65) + "%",
+                    height: (sealed ? 8 : 1 + (10 - Math.max(0, untilFlood)) * 0.65) + "%",
                   }}
                 >
                 </span>
@@ -388,6 +391,8 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
                   ? "Place beacon · " + remaining + " left"
                   : queued.has(hover)
                   ? "Placement queued"
+                  : building.has(hover)
+                  ? "Building · live in " + Math.max(1, building.get(hover)! - obs.tick)
                   : remaining === 0
                   ? "No beacons left"
                   : "Beacon online"}
@@ -411,10 +416,10 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
             ? (
               journeyMode
                 ? won
-                  ? <LiveDebrief mission={mission} commands={live.commands} stars={stars} onNext={endLeg} nextLabel="Continue the journey" />
-                  : <LiveDebrief mission={mission} commands={live.commands} stars={stars} onRetry={endLeg} retryLabel="Retry leg"
+                  ? <LiveDebrief mission={mission} commands={live.commands} stars={stars} endReason={obs.endReason} onNext={endLeg} nextLabel="Continue the journey" />
+                  : <LiveDebrief mission={mission} commands={live.commands} stars={stars} endReason={obs.endReason} onRetry={endLeg} retryLabel="Retry leg"
                       note={`Retrying costs ${obs.tick + 15} minutes on the clock, 1 dose${live.commands.length ? `, and the ${live.commands.length} beacon${live.commands.length === 1 ? "" : "s"} you placed` : ""}.`} />
-                : <LiveDebrief mission={mission} commands={live.commands} stars={stars} onRetry={() => restart(false)} onWatchSolution={() => restart(true)} />
+                : <LiveDebrief mission={mission} commands={live.commands} stars={stars} endReason={obs.endReason} onRetry={() => restart(false)} onWatchSolution={() => restart(true)} />
             )
             : (
               <>
@@ -424,11 +429,12 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
                   Click a + on the track to place a beacon. News travels only between neighbors. Focus the map to use
                   arrow keys and Enter.
                 </p>
-                <div className={"live-alert" + (flood.sealed ? " danger" : warning ? " warning" : "")}>
+                <div className={"live-alert" + (sealed ? " danger" : warning ? " warning" : "")}>
                   <small>{pressure}</small>
                   <strong>
-                    {flood.sealed ? "Flooded · " + logLocation(flood.id) : logLocation(flood.id) + " floods " +
-                      (warning ? "in " + untilFlood : "at minute " + mission.sealAt)}
+                    {warning && flood ? logLocation(flood.id) + " floods in " + Math.max(0, untilFlood)
+                      : sealed && flood ? "Flooded · " + logLocation(flood.id)
+                      : risk.charAt(0).toUpperCase() + risk.slice(1)}
                   </strong>
                 </div>
                 <div className="live-placement">
@@ -437,6 +443,8 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
                     <span>
                       {queued.has(hover ?? selected)
                         ? "Placement queued"
+                        : building.has(hover ?? selected)
+                        ? "Building · live in " + Math.max(1, building.get(hover ?? selected)! - obs.tick)
                         : (obs.sectors.find((s) => s.id === (hover ?? selected)) ?? primary).beacon
                         ? "Beacon online"
                         : "No beacon"}
@@ -507,7 +515,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
         </nav>
         <p className="fine">Simulated run · deterministic engine</p>
       </footer>
-      {!introDone && <LiveIntro mission={mission} goal={goals[0].text} hint={INTRO_HINTS[levelIndex]} onStart={start} />}
+      {!introDone && <LiveIntro mission={mission} goal={`Nurse Mara reaches the deep clinic by minute ${goals[0].maraBy}.`} hint={INTRO_HINTS[levelIndex]} onStart={start} />}
     </div>
   );
 }

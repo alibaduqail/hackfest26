@@ -102,3 +102,7 @@
 @keyframes flood-shimmer { to { background-position: 30px 10px; opacity: .62; } }
 @media (prefers-reduced-motion: reduce) { .descent-live .live-water.sealed::after { animation: none; } }
 .descent-live .live-hint-caption { position: absolute; left: 50%; bottom: 3%; transform: translateX(-50%); z-index: 4; margin: 0; max-width: min(70%, 640px); padding: 8px 14px; background: var(--stage); border-left: 3px solid var(--amber); color: var(--amberHi); font-size: 14px; line-height: 1.4; pointer-events: none; }
+.descent-live .live-end-reason { margin: 0; color: var(--text2); font-size: 14px; }
+.descent-live .live-socket.building { border-style: dashed; border-color: var(--amberHi); color: var(--amberHi); font: 700 13px var(--mono); animation: socket-build 1s ease-in-out infinite alternate; }
+@keyframes socket-build { to { box-shadow: 0 0 0 5px #e4c49433; } }
+@media (prefers-reduced-motion: reduce) { .descent-live .live-socket.building { animation: none; } }

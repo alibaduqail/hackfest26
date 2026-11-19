@@ -22,11 +22,11 @@ export function LiveIntro({ mission, hint = LEVEL_HINTS[1], goal: goalText, onSt
         <h2 id="live-intro-title">Get Nurse {name} to the clinic</h2>
         <p>
           {mara ? `${name} leaves ${city(mara.origin)} for ${city(mara.dest)}. ` : ""}
-          The tower goes dark at minute {mission.towerDownAt}. {mission.sealAt !== null && `The Directorate floods a shaft at minute ${mission.sealAt}.`}
+          The tower goes dark at minute {mission.towerDownAt}. {mission.floodReveal ? "The Directorate will flood a shaft; you see which one only moments before it seals." : mission.sealAt !== null && `The Directorate floods a shaft at minute ${mission.sealAt}.`}
         </p>
         <ul className="live-intro-rules">
           <li><strong>The tower is dark.</strong> News only hops beacon to beacon.</li>
-          <li><strong>You have {mission.beaconBudget ?? 0} beacons.</strong> Click a rail to bolt one in while the pods move.</li>
+          <li><strong>You have {mission.beaconBudget ?? 0} beacons.</strong> Click a rail to bolt one in while the pods move.{mission.beaconBuildTicks ? ` A beacon takes ${mission.beaconBuildTicks} minutes to go live.` : ""}</li>
           <li><strong>Deadline:</strong> {goal.text}</li>
         </ul>
         {hint && <p className="live-intro-hint">{hint}</p>}

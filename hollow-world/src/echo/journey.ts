@@ -57,7 +57,7 @@ export function choose(s: JourneyState, choiceId: string): JourneyState {
 export function currentLeg(s: JourneyState): { legId: LegId; mission: Mission; mods: LegMods; story: { title: string; body: string } } {
   if (s.legIndex < 0 || s.legIndex >= LEGS.length) throw new Error(`currentLeg: no leg to play (phase "${s.phase}", legIndex ${s.legIndex}); check phase === "leg" first`);
   const leg = LEGS[s.legIndex];
-  const base = DESCENT_LEVELS[s.legIndex].build();
+  const base = DESCENT_LEVELS[s.legIndex].build({ attempt: s.attempt, revealLead: s.pending.revealLead }); // the attempt seeds level 1's flood; revealLead 0 (trust the tower) gives no advance reveal
   const mods: LegMods = { budget: Math.min(base.beaconBudget ?? 0, s.res.beacons), ...(s.pending.revealLead === undefined ? {} : { revealLead: s.pending.revealLead }) };
   return { legId: leg.id, mission: { ...base, beaconBudget: mods.budget }, mods, story: leg.story };
 }

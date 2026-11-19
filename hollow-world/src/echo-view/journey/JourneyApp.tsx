@@ -82,7 +82,7 @@ function Leg({ s, play, toTitle }: { s: JourneyState; play: (s: JourneyState) =>
     <Suspense fallback={<p role="status" className="g-muted">Loading the Descent…</p>}>
       <LiveScreen
         key={`${s.legIndex}-${s.attempt}-${s.log.length}`}
-        mission={cur.mission} legId={cur.legId} journeyMode
+        mission={cur.mission} legId={cur.legId} attempt={s.attempt} journeyMode
         onLegEnd={(r: LegResult) => play(completeLeg(s, r))}
         onExit={(e: MouseEvent<HTMLAnchorElement>) => { e.preventDefault(); toTitle(); }}
       />
