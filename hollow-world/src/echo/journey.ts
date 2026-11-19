@@ -55,6 +55,7 @@ export function choose(s: JourneyState, choiceId: string): JourneyState {
 
 /** The mission to play now, with the leg's budget (min of the leg cap and the beacons carried) and any carried-over reveal. */
 export function currentLeg(s: JourneyState): { legId: LegId; mission: Mission; mods: LegMods; story: { title: string; body: string } } {
+  if (s.legIndex < 0 || s.legIndex >= LEGS.length) throw new Error(`currentLeg: no leg to play (phase "${s.phase}", legIndex ${s.legIndex}); check phase === "leg" first`);
   const leg = LEGS[s.legIndex];
   const base = DESCENT_LEVELS[s.legIndex].build();
   const mods: LegMods = { budget: Math.min(base.beaconBudget ?? 0, s.res.beacons), ...(s.pending.revealLead === undefined ? {} : { revealLead: s.pending.revealLead }) };
@@ -66,6 +67,8 @@ export function currentLeg(s: JourneyState): { legId: LegId; mission: Mission; m
 export function completeLeg(s: JourneyState, r: LegResult): JourneyState {
   if (s.phase !== "leg") return s;
   const leg = LEGS[s.legIndex];
+  const num = [r.ticks, r.beaconsPlaced, ...(r.maraAt === null ? [] : [r.maraAt]), ...(r.medicineAt === null ? [] : [r.medicineAt])];
+  if (r.legId !== leg.id || !num.every(Number.isFinite)) return s; // a stale or malformed result must never move the clock (or make it NaN)
   const log: LogEntry[] = [...s.log, { kind: "leg", legId: leg.id, attempt: s.attempt, result: r }];
   const beacons = at0(s.res.beacons - r.beaconsPlaced);
   if (r.stars === 0 || r.maraAt === null) {
