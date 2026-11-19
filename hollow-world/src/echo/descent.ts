@@ -94,40 +94,122 @@ export function descent(): Mission {
 
 // ---- Live play: the Relay places beacons during the run (placeBeacon commands). See DESCENT.md "Live play". ----
 
-const LIVE_START = ["ramp0", "ramp1", "ramp2"]; // the L1 depot ramp and the first relay sector
-// The flood seals main1, not main0. A pod that does not know goes into main0 and is trapped at main1 for good: the engine never
-// backs a pod out. News reaches pods at the fork only over beacons on main1 (the seal) and main0, so the warning is worth two beacons.
-const LIVE_SEAL = "main1";
+/** Options every live level builder accepts. `attempt` seeds the flood location; `revealLead` is how many ticks before a seal its
+ * telegraph (sector and minute) becomes visible (default DEFAULT_REVEAL_LEAD; 0 = no advance reveal, the seal is first visible when it fires). */
+export interface LevelOpts {
+  attempt?: number;
+  revealLead?: number;
+}
+export const DEFAULT_REVEAL_LEAD = 8;
+export const BEACON_BUILD_TICKS = 2; // a placed beacon goes live this many ticks after the command
+/** A builder argument is either an attempt number or an options object. */
+export const levelOpts = (a: number | LevelOpts = {}): Required<LevelOpts> => {
+  const o = typeof a === "number" ? { attempt: a } : a;
+  return { attempt: Math.max(0, Math.floor(o.attempt ?? 0)), revealLead: Math.max(0, Math.floor(o.revealLead ?? DEFAULT_REVEAL_LEAD)) };
+};
+/** Deterministic pick of one of `n` candidates from the attempt number (attempt 0 is always candidate 0; no Math.random). */
+export const pickCandidate = (attempt: number, n: number): number => (attempt === 0 ? 0 : (Math.imul(attempt, 2654435761) >>> 16) % n);
 
-/** Same world, pods and seal as descent(), but only LIVE_START has a beacon. Every other sector is a dead zone: a pod waits 3 minutes
- * blind before entering it. Run is longer than descent() so slow, unbeaconed runs can still arrive late and score. */
-export function descentLive(): Mission {
+export type Goals = { stars: 1 | 2 | 3; maraBy: number; medicineBy?: number; text: string }[];
+export interface LiveCandidate {
+  id: string;
+  sectorId: string; // where the flood seals
+  at: number; // and when
+  goals: Goals; // star table, calibrated for this candidate by scenarios/live-search.ts
+  solution: Command[]; // a replayable 3-star run; it reacts to the flood telegraph (a placement at or after sealAt - DEFAULT_REVEAL_LEAD)
+}
+
+const LIVE_START = ["ramp0", "ramp1", "ramp2"]; // the L1 depot ramp and the first relay sector
+// News reaches pods at the fork only over beacons on the sealed sector and every sector between it and the fork. A pod that does not know
+// goes into main0 and is trapped at the seal for good: the engine never backs a pod out. main0 itself needs no news (a pod at the fork sees it).
+
+/** Candidates for descentLive(attempt). Star tables come from the exhaustive search in scenarios/live-search.ts. Ladders were chosen so that no
+ * single placement set earns stars on every candidate (placing everything at t0 averages at most 1 star across them): a set that warns for one
+ * flood leaves the others untouched, and the speed beacons of one are wasted on the others. */
+export const DESCENT_LIVE_CANDIDATES: LiveCandidate[] = [
+  {
+    // main1 at t41: the warning is the gate (main1 and main0); the other three beacons buy route speed. Best: Mara t83, medicine t88.
+    id: "main1", sectorId: "main1", at: 41,
+    goals: [
+      { stars: 1, maraBy: 92, text: "Warn the shaft: Nurse Mara reaches the deep clinic by minute 92." },
+      { stars: 2, maraBy: 86, medicineBy: 91, text: "Mara by minute 86 and the medicine by minute 91." },
+      { stars: 3, maraBy: 83, medicineBy: 88, text: "Mara by minute 83 and the medicine by minute 88." },
+    ],
+    solution: [
+      { type: "placeBeacon", sectorId: "link0", atTick: 16 },
+      { type: "placeBeacon", sectorId: "link1", atTick: 20 },
+      { type: "placeBeacon", sectorId: "link2", atTick: 24 },
+      { type: "placeBeacon", sectorId: "main1", atTick: 33 }, // the flood telegraph appears at t33 (8 ticks before the seal)
+      { type: "placeBeacon", sectorId: "main0", atTick: 34 },
+    ],
+  },
+  {
+    // main2 at t44: the news must hop main2, main1, main0 to reach the fork (3 beacons, no route speed left to spare), or round the long way:
+    // main2 then the whole bypass, which is also the road Mara reroutes onto. Only that chain beats minute 86, so the two upper stars share one run: Mara t80, medicine t85.
+    id: "main2", sectorId: "main2", at: 44,
+    goals: [
+      { stars: 1, maraBy: 92, text: "Warn the shaft all the way down: Nurse Mara reaches the deep clinic by minute 92." },
+      { stars: 2, maraBy: 80, medicineBy: 90, text: "Mara by minute 80 and the medicine by minute 90." },
+      { stars: 3, maraBy: 80, medicineBy: 85, text: "Mara by minute 80 and the medicine by minute 85." },
+    ],
+    solution: [
+      { type: "placeBeacon", sectorId: "main2", atTick: 36 }, // the telegraph appears at t36
+      { type: "placeBeacon", sectorId: "byp3", atTick: 37 },
+      { type: "placeBeacon", sectorId: "byp2", atTick: 38 },
+      { type: "placeBeacon", sectorId: "byp1", atTick: 39 },
+      { type: "placeBeacon", sectorId: "byp0", atTick: 40 },
+    ],
+  },
+  {
+    // main0 at t38: the seal is right at the fork mouth, so Mara sees it and reroutes with no news at all. No warning is needed; the whole budget
+    // is route speed, and only the full set of five reaches a star (the two upper stars share one run): Mara t77, medicine t82.
+    id: "main0", sectorId: "main0", at: 38,
+    goals: [
+      { stars: 1, maraBy: 79, text: "Speed her down: Nurse Mara reaches the deep clinic by minute 79." },
+      { stars: 2, maraBy: 77, medicineBy: 84, text: "Mara by minute 77 and the medicine by minute 84." },
+      { stars: 3, maraBy: 77, medicineBy: 82, text: "Mara by minute 77 and the medicine by minute 82." },
+    ],
+    solution: [
+      { type: "placeBeacon", sectorId: "link0", atTick: 16 },
+      { type: "placeBeacon", sectorId: "link1", atTick: 20 },
+      { type: "placeBeacon", sectorId: "link2", atTick: 24 },
+      { type: "placeBeacon", sectorId: "trunk0", atTick: 28 },
+      { type: "placeBeacon", sectorId: "trunk1", atTick: 33 }, // the telegraph appears at t30
+    ],
+  },
+];
+
+/** Candidate 0 (main1 at t41), the flood every first attempt gets: its star table and its 3-star run. Kept for callers that predate the candidates. */
+export const DESCENT_LIVE_GOALS: Goals = DESCENT_LIVE_CANDIDATES[0].goals;
+export const DESCENT_LIVE_SOLUTION: Command[] = DESCENT_LIVE_CANDIDATES[0].solution;
+/** The 3-star run of every candidate, by candidate id. */
+export const DESCENT_LIVE_SOLUTIONS: Record<string, Command[]> = Object.fromEntries(DESCENT_LIVE_CANDIDATES.map((c) => [c.id, c.solution]));
+
+export function descentLiveCandidateIndex(attempt = 0): number {
+  return pickCandidate(attempt, DESCENT_LIVE_CANDIDATES.length);
+}
+
+/** Same world and pods as descent(), but only LIVE_START has a beacon. Every other sector is a dead zone: a pod waits 3 minutes blind before
+ * entering it. The flood seals one of DESCENT_LIVE_CANDIDATES, picked from the attempt number; its sector and minute show in the observation
+ * only `revealLead` ticks before the seal (before that: "flood risk: main shaft"). Beacons take BEACON_BUILD_TICKS to go live and the run ends
+ * as soon as it is decided (observation.endReason). Run is longer than descent() so slow, unbeaconed runs can still arrive late and score. */
+export function descentLive(a: number | LevelOpts = 0): Mission {
+  const { attempt, revealLead } = levelOpts(a);
+  const c = DESCENT_LIVE_CANDIDATES[descentLiveCandidateIndex(attempt)];
   const m = descent();
   for (const s of m.world.sectors) s.beacon = LIVE_START.includes(s.id);
-  return { ...m, id: "descent-live", title: "The Descent (live)", endTick: 120, sealSectorId: LIVE_SEAL, beaconBudget: 5 };
+  return {
+    ...m, id: "descent-live", title: "The Descent (live)", endTick: 120, sealAt: c.at, sealSectorId: c.sectorId, beaconBudget: 5,
+    floodReveal: { lead: revealLead, risk: ["flood risk: main shaft"] }, beaconBuildTicks: BEACON_BUILD_TICKS, earlyEnd: true,
+  };
 }
 
-/** Star table, calibrated by exhaustive search over every placement set (scripts: scenarios/live-search.ts). Unwarned pods are trapped at
- * the flooded main1 and never arrive, so the warning (beacons on main1 and main0, 2 of the 5) is the gate to any star; route beacons
- * (3 minutes each) decide how many. No warning: 0 stars. Warning only: Mara t92, medicine t97. Warning + 2 route: t86 / t91.
- * Warning + 3 route, the best possible: t83 / t88. Deadlines are arrive-by ticks. */
-export const DESCENT_LIVE_GOALS: { stars: 1 | 2 | 3; maraBy: number; medicineBy?: number; text: string }[] = [
-  { stars: 1, maraBy: 92, text: "Warn the shaft: Nurse Mara reaches the deep clinic by minute 92." },
-  { stars: 2, maraBy: 86, medicineBy: 91, text: "Mara by minute 86 and the medicine by minute 91." },
-  { stars: 3, maraBy: 83, medicineBy: 88, text: "Mara by minute 83 and the medicine by minute 88." },
-];
-
-/** Stars earned by a finished live run: the highest goal whose deadlines were all met (each star includes the one below). */
-export function descentLiveStars(pods: Pick<Pod, "id" | "arriveTick">[]): 0 | 1 | 2 | 3 {
+/** Stars earned by a finished run: the highest goal whose deadlines were all met (each star includes the one below). */
+export function starsFor(goals: Goals, pods: Pick<Pod, "id" | "arriveTick">[]): 0 | 1 | 2 | 3 {
   const by = (id: string, t = Infinity) => (pods.find((p) => p.id === id)?.arriveTick ?? Infinity) <= t;
-  return DESCENT_LIVE_GOALS.reduce<0 | 1 | 2 | 3>((n, g) => (by("MED-1", g.maraBy) && (g.medicineBy === undefined || by("SUP-3", g.medicineBy)) ? g.stars : n), 0);
+  return goals.reduce<0 | 1 | 2 | 3>((n, g) => (by("MED-1", g.maraBy) && (g.medicineBy === undefined || by("SUP-3", g.medicineBy)) ? g.stars : n), 0);
 }
 
-/** A replayable run worth 3 stars (Mara t83, medicine t88): three route beacons just ahead of Mara, then the flood warning (main1, main0) before the seal lands at t41. */
-export const DESCENT_LIVE_SOLUTION: Command[] = [
-  { type: "placeBeacon", sectorId: "link0", atTick: 16 },
-  { type: "placeBeacon", sectorId: "link1", atTick: 20 },
-  { type: "placeBeacon", sectorId: "link2", atTick: 24 },
-  { type: "placeBeacon", sectorId: "main1", atTick: 30 },
-  { type: "placeBeacon", sectorId: "main0", atTick: 34 },
-];
+/** Stars of a finished live run of `descentLive(attempt)`. */
+export const descentLiveStars = (pods: Pick<Pod, "id" | "arriveTick">[], attempt = 0): 0 | 1 | 2 | 3 =>
+  starsFor(DESCENT_LIVE_CANDIDATES[descentLiveCandidateIndex(attempt)].goals, pods);

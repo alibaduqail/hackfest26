@@ -88,22 +88,40 @@ test("route-only play (all 7 beacons, no warning) never beats 0 stars: speed can
   assert.equal(descentLiveStars2(routeOnly.obs.pods), 0);
 });
 
-test("flood B is not telegraphed early: nothing before its own seal event reveals it", () => {
-  const m = descentLive2();
+test("flood B is not telegraphed early: with revealLead 0 nothing before its own seal event reveals it", () => {
+  const m = descentLive2({ revealLead: 0 });
   const sealB = m.seals![0];
   assert.equal(sealB.sectorId, "mainB1");
   const e = createEngine(m, "echo");
+  for (const c of [place("link0", 12), place("link1", 16), place("link2", 20), place("mainA1", 24), place("mainA0", 26)]) e.act(c); // flood A warned, so the run lives to t55
   for (let tick = 0; tick < sealB.at; tick++) {
     e.step();
     const o = e.observe();
     assert.equal(o.sectors.find((s) => s.id === "mainB1")!.sealed, false, `t${tick}: mainB1 shows sealed before its own seal tick`);
     assert.ok(!o.log.some((l) => l.sectorId === "mainB1"), `t${tick}: a log entry already mentions mainB1`);
     assert.ok(!o.pulses.some((p) => p.sectorId === "mainB1"), `t${tick}: a pulse already mentions mainB1`);
+    assert.ok(!o.floodWarnings!.some((w) => w.sectorId === "mainB1"), `t${tick}: a flood warning already names mainB1`);
   }
   const after = e.observe();
   e.step();
   assert.ok(e.observe().log.some((l) => l.kind === "seal" && l.sectorId === "mainB1"), "the seal event itself is the first and only signal");
   assert.equal(after.sectors.find((s) => s.id === "mainB1")!.sealed, false, "still unsealed the tick right before it fires");
+});
+
+test("flood B is telegraphed revealLead ticks ahead by default, and flood A before it", () => {
+  const m = descentLive2();
+  assert.equal(m.floodReveal!.lead, 8);
+  const e = createEngine(m, "echo");
+  for (const c of [place("link0", 12), place("link1", 16), place("link2", 20), place("mainA1", 24), place("mainA0", 26)]) e.act(c);
+  const seen: Record<number, string> = {};
+  for (let t = 0; t < 56; t++) {
+    e.step();
+    seen[t + 1] = JSON.stringify(e.observe().floodWarnings);
+  }
+  assert.equal(seen[21], '[{"risk":"flood risk: shaft A"},{"risk":"flood risk: shaft B"}]');
+  assert.equal(seen[22], '[{"risk":"flood risk: shaft A","sectorId":"mainA1","at":30},{"risk":"flood risk: shaft B"}]', "flood A names itself at t22 (30 - 8)");
+  assert.equal(seen[47], '[{"risk":"flood risk: shaft B","sectorId":"mainB1","at":55}]', "flood A has fired; flood B names itself at t47 (55 - 8)");
+  assert.equal(seen[46], '[{"risk":"flood risk: shaft B"}]');
 });
 
 test("flood B needs no advance knowledge: reacting to its seal log event, not pre-committing, still reaches 3 stars", () => {

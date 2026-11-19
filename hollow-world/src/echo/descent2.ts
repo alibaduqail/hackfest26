@@ -4,12 +4,12 @@
 // the pod first, so the budget must be split between both warnings, and placement order (which flood gets lit, and when)
 // decides whether either pod ever reaches the second fork at all. descent() and descentLive() (level 1) are untouched.
 //
-// Flood B is a mid-run surprise, not a plan made at t0: nothing in an Observation before T2.sealB (the "seal" log event
-// itself, and the only point `sectors[].sealed` flips for mainB1) distinguishes this mission from one with a single
-// flood — see live2.test.ts's "flood B is not telegraphed early" test. The 3-star solution
-// below places flood B's relay (mainB0, mainB1) reactively, right as that log event fires, and still reaches the same
-// ceiling as placing it earlier: there is no mechanical reward for pre-committing to flood B before seeing it happen.
+// Live-play mechanics (descent.ts LevelOpts): each flood's sector and minute show in the observation only `revealLead` ticks
+// before its seal (default 8; before that "flood risk: shaft A/B"), beacons take 2 ticks to go live, and the run ends as soon as
+// it is decided. With revealLead 0 flood B is a pure mid-run surprise: the first sign is the "seal" log event itself.
 import { sign } from "./credential";
+import { BEACON_BUILD_TICKS, levelOpts } from "./descent";
+import type { LevelOpts } from "./descent";
 import type { City, Command, Mission, Pod, Sector, World } from "./types";
 import { findPath } from "./world";
 
@@ -60,7 +60,8 @@ const LIVE_START_2 = ["ramp0", "ramp1", "ramp2"]; // the depot ramp, same free s
 
 /** The Descent II mission: Nurse Mara and the medicine run through two sealed shafts in sequence. Only LIVE_START_2 has
  * a beacon; everywhere else is a dead zone (3-minute blind wait before a pod enters it, same as level 1). */
-export function descentLive2(): Mission {
+export function descentLive2(a: number | LevelOpts = 0): Mission {
+  const { revealLead } = levelOpts(a); // one flood location only: the attempt number does not move these floods
   const world: World = structuredClone({ cities, sectors });
   for (const s of world.sectors) s.beacon = LIVE_START_2.includes(s.id);
   const pods: Pod[] = [
@@ -72,6 +73,7 @@ export function descentLive2(): Mission {
     towerDownAt: T2.towerDown, towerRatePerHour: 30, towerInflation: 14,
     sealAt: T2.sealA, sealSectorId: "mainA1", seals: [{ at: T2.sealB, sectorId: "mainB1" }],
     beaconBudget: 7, pods,
+    floodReveal: { lead: revealLead, risk: ["flood risk: shaft A", "flood risk: shaft B"] }, beaconBuildTicks: BEACON_BUILD_TICKS, earlyEnd: true,
   };
 }
 
@@ -98,9 +100,8 @@ export function descentLiveStars2(pods: Pick<Pod, "id" | "arriveTick">[]): 0 | 1
 /** A replayable run worth 3 stars (Mara t111, medicine t116): all three link beacons ahead of Mara on the ramp-to-fork
  * run, then the one-hop relay for flood A (mainA0, mainA1) before the first seal — the one flood the player can
  * legitimately plan for in advance (the same convention as level 1). Flood B's relay (mainB0, mainB1) goes in
- * reactively, at and just after T2.sealB (55), the tick its own "seal" log event fires: that event is the only place a
- * player (or this solution) can learn flood B exists at all, and reacting to it still reaches the same 3-star ceiling
- * as a layout that somehow knew in advance. Verified by scenarios/live-search2.ts (one of 364 7-beacon layouts tied for
+ * reactively, at t47-48, the tick its telegraph appears: the flood is not known before then, and reacting to it still reaches the
+ * same 3-star ceiling as a layout that somehow knew in advance (also verified at t55-59, after the seal itself). Verified by scenarios/live-search2.ts (one of 364 7-beacon layouts tied for
  * best; also verified reactive at t55-59 inclusive, not just this exact pair of ticks). */
 export const DESCENT_LIVE_SOLUTION_2: Command[] = [
   { type: "placeBeacon", sectorId: "link0", atTick: 12 },
@@ -108,6 +109,6 @@ export const DESCENT_LIVE_SOLUTION_2: Command[] = [
   { type: "placeBeacon", sectorId: "link2", atTick: 20 },
   { type: "placeBeacon", sectorId: "mainA1", atTick: 24 },
   { type: "placeBeacon", sectorId: "mainA0", atTick: 26 },
-  { type: "placeBeacon", sectorId: "mainB0", atTick: 55 },
-  { type: "placeBeacon", sectorId: "mainB1", atTick: 56 },
+  { type: "placeBeacon", sectorId: "mainB0", atTick: 47 }, // flood B's telegraph appears at t47 (8 ticks before its seal)
+  { type: "placeBeacon", sectorId: "mainB1", atTick: 48 },
 ];
