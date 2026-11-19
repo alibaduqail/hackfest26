@@ -45,9 +45,9 @@ export function Debrief({ cm, result, onRetry, onNext, nextLabel = "Next mission
         }
       >
         <div className="g-row">
-          <button className="g-btn" onClick={onMissions}>Missions</button>
-          <button className="g-btn" autoFocus={!onNext} onClick={onRetry}>Retry</button>
-          {onNext && <button className="g-btn primary" autoFocus onClick={onNext}>{nextLabel}</button>}
+          <button className="g-btn lg" onClick={onMissions}>Missions</button>
+          <button className={`g-btn lg${onNext ? "" : " primary"}`} autoFocus={!onNext} onClick={onRetry}>Retry</button>
+          {onNext && <button className="g-btn lg primary" autoFocus onClick={onNext}>{nextLabel}</button>}
         </div>
       </EndCard>
     </div>

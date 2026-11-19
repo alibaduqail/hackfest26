@@ -31,13 +31,14 @@ export function MissionSelect({ progress, onPick, onBack, onStory }: {
             const ready = !!cm.build;
             const stars = progress[cm.id] ?? 0;
             const state = !ready ? "Coming soon" : !open ? `Locked · earn a star in mission ${i}` : stars ? "Replay" : "New";
+            const tone = !ready || !open ? "locked" : stars ? "done" : "new";
             return (
-              <button key={cm.id} className="g-card" disabled={!open || !ready} autoFocus={i === 0} onClick={() => onPick(cm.id)}>
+              <button key={cm.id} className={`g-card ${tone}`} disabled={!open || !ready} autoFocus={i === 0} onClick={() => onPick(cm.id)}>
                 <span className="num">{String(cm.number).padStart(2, "0")}</span>
                 <span className="name">{cm.name}</span>
                 <span className="hook">{cm.hook}</span>
                 <Stars n={stars} />
-                <span className="state">{state}</span>
+                <span className="state"><i aria-hidden />{state}</span>
               </button>
             );
           })}

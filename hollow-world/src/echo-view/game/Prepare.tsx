@@ -109,10 +109,10 @@ export function Prepare({ cm, mission, onBegin, onBack }: { cm: CampaignMission;
         <div className="g-meter" aria-live="polite">
           <b key={bump.n} className={`${placed > budget ? "over" : ""} ${bump.n ? bump.kind : ""}`}>{placed} / {budget}</b>
           <div className="track" aria-hidden><div className="fill" style={{ width: `${Math.min(100, (placed / Math.max(1, budget)) * 100)}%` }} /></div>
-          <span className="g-muted">beacons</span>
+          <span className="lbl">beacons</span>
         </div>
         <span className="g-legend"><span><i />beacon</span><span><s />dead zone</span></span>
-        <span style={{ flex: 1 }} className="g-muted">{note}</span>
+        <span className="g-note" role="status">{note}</span>
         <div className="g-row">
           <button className="g-btn" onClick={onBack}>Back</button>
           <button className="g-btn" disabled={placed === 0} onClick={() => { play("remove"); setSectors(sectors.map((s) => ({ ...s, beacon: false }))); }}>Clear all</button>
@@ -138,6 +138,7 @@ export function Prepare({ cm, mission, onBegin, onBack }: { cm: CampaignMission;
             },
           }}
         />
+        <div className="g-prep-info">
         {dead !== null && (
           <div className={`g-prep-route${dead > 0 ? " bad" : ""}`} aria-live="polite">
             Mara's route crosses <b>{dead === 0 ? "no" : dead}</b> dead {dead === 1 ? "tunnel" : "tunnels"}
@@ -147,6 +148,7 @@ export function Prepare({ cm, mission, onBegin, onBack }: { cm: CampaignMission;
           {hovered
             ? `${names.get(hovered.from)} → ${names.get(hovered.to)} · section ${hovered.index + 1} · ${hovered.beacon !== false ? "beacon (click to remove)" : "dead zone (click to place)"}`
             : cm.prepTip ?? "Click a tunnel to bolt in a beacon. Each direction is its own tunnel. News only hops between beacons."}
+        </div>
         </div>
         <div className="g-sr" role="status">{focused && kf ? label(sectors.find((s) => s.id === kf)!) : ""}</div>
       </div>
