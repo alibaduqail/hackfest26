@@ -28,7 +28,7 @@
 .rl-node[data-selected] .rl-dot { border-color: var(--amberHi); }
 .rl-node[aria-disabled="true"] { cursor: default; }
 .rl-node[aria-disabled="true"] .rl-label { opacity: .58; }
-.rl-node[aria-disabled="true"] .rl-dot { background: transparent; border: 2px dashed var(--muted); box-shadow: none; opacity: .7; }
+.rl-node[aria-disabled="true"] .rl-dot { background: #0a1013; border: 2px dashed var(--muted); box-shadow: none; opacity: .7; }
 
 .rl-hold { position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; margin: -17px 0 0 -17px; transform: rotate(-90deg); pointer-events: none; overflow: visible; }
 .rl-hold circle { fill: none; stroke-width: 2.5; }

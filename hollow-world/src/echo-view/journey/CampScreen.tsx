@@ -8,7 +8,7 @@ import { SupplyLine } from "./ResourceBar";
 import { TrailRail } from "./TrailMap";
 import { useParallax } from "./useParallax";
 
-interface Geo { sx: number; maraY: number; choiceY: number; mergeY: number; contY: number; xs: number[]; width: number; branch: string[]; merge: string[] }
+interface Geo { sx: number; maraY: number; choiceY: number; mergeY: number; contY: number; xs: number[]; widths: number[]; route: string[] }
 
 /** The fork, in the stage's pixels: Mara's dot on the trail line, one branch down to each choice, every branch rejoining at Continue down. */
 function forkGeo(w: number, h: number, n: number, hereLevel: number): Geo {
@@ -18,10 +18,10 @@ function forkGeo(w: number, h: number, n: number, hereLevel: number): Geo {
   const gap = Math.min(300, Math.floor((w - 48) / n));
   const xs = Array.from({ length: n }, (_, i) => Math.round(sx + (i - (n - 1) / 2) * gap));
   const k = (choiceY - maraY) * 0.55, k2 = (contY - mergeY) * 0.6;
-  const branch = xs.map((x) => `M${sx} ${maraY} C${sx} ${maraY + k} ${x} ${choiceY - k} ${x} ${choiceY}`);
-  const rejoin = (x: number) => `C${x} ${mergeY + k2} ${sx} ${contY - k2} ${sx} ${contY}`;
-  const merge = xs.map((x) => `M${x} ${mergeY} ${rejoin(x)}`);
-  return { sx, maraY, choiceY, mergeY, contY, xs, width: gap - 24, branch, merge };
+  // One unbroken path per route: Mara's dot, down to the choice's dot centre, straight down beside its text, then back to Continue down.
+  // The dots are opaque, so a line ending at a dot's centre is hidden inside it at every scale (hover grows the ring, never the path).
+  const route = xs.map((x) => `M${sx} ${maraY} C${sx} ${maraY + k} ${x} ${choiceY - k} ${x} ${choiceY} L${x} ${mergeY} C${x} ${mergeY + k2} ${sx} ${contY - k2} ${sx} ${contY}`);
+  return { sx, maraY, choiceY, mergeY, contY, xs, widths: xs.map((x) => Math.max(120, Math.min(gap - 24, w - x - 24))), route };
 }
 
 /** Camp: the situation on the left; on the right the trail line forks at Mara into the choices and rejoins at Continue down. Pick (click, 1-3, arrows), Continue (Enter). */
@@ -98,8 +98,7 @@ export function CampScreen({ event, res, limit = LIMIT, legIndex, attempt, log, 
             const state = pickIdx === i ? "lit" : pickIdx >= 0 ? "off" : hot === i ? "lit" : "";
             return (
               <g key={i} className={`j-branch ${state}`}>
-                <path d={g.branch[i]} />
-                <path d={g.merge[i]} className="merge" />
+                <path d={g.route[i]} />
               </g>
             );
           })}
@@ -113,7 +112,7 @@ export function CampScreen({ event, res, limit = LIMIT, legIndex, attempt, log, 
             return (
               <button
                 key={c.id} ref={(el) => { btns.current[i] = el; }} type="button"
-                className={`j-fk${state}`} style={{ left: g.xs[i], top: g.choiceY, width: g.width }}
+                className={`j-fk${state}`} style={{ left: g.xs[i], top: g.choiceY, width: g.widths[i] }}
                 aria-pressed={picked === null ? undefined : c.id === picked} aria-disabled={picked !== null && c.id !== picked}
                 onClick={() => pick(c.id)} onKeyDown={(e) => arrows(i, e)}
                 onPointerEnter={(e) => { if (e.pointerType !== "touch") setHover(i); }} onPointerLeave={() => setHover((h) => (h === i ? null : h))}
