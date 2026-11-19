@@ -1,7 +1,7 @@
 // explainRun: 2-4 plain lines that say why a run went the way it did, built only from log events and the mission data.
 // Pass the complete log (RunOutcome.log from baseline.ts); observe().log keeps only the last 60 events and loses the early ones.
 // Never invents or rounds a number in the player's favour: every tick and margin below comes from an event.
-import { DESCENT_LIVE_GOALS } from "./descent";
+import { DESCENT_LEVELS } from "./descent-levels";
 import type { LogEvent, Mission, Pod } from "./types";
 
 const BLIND_MIN = 3; // protocol.ts BLIND_TICKS: a pod waits this long at an unbeaconed sector (can overlap queue time, so costs are "up to")
@@ -16,24 +16,29 @@ export function explainRun(log: LogEvent[], mission: Mission): string[] {
   const name = short(mara);
   const arrived = first(log, "arrive", mara.id)?.tick ?? null;
   const medArrived = med ? (first(log, "arrive", med.id)?.tick ?? null) : null;
-  const seal = first(log, "seal");
+  // Multi-seal levels: explain the flood Mara last heard about (the one that decided her run), not just the first one.
+  const heards = log.filter((l) => l.kind === "seal-heard" && l.podId === mara.id);
+  const heard = heards[heards.length - 1];
+  const reroutes = log.filter((l) => l.kind === "reroute" && l.podId === mara.id);
+  const seals = log.filter((l) => l.kind === "seal");
+  const seal = (heard && seals.find((x) => x.sectorId === heard.sectorId)) ?? seals[0];
   const sealId = seal?.sectorId ?? "the shaft";
-  const reroute = first(log, "reroute", mara.id);
-  const heard = first(log, "seal-heard", mara.id);
-  const stuck = !!first(log, "hold", mara.id) && !reroute && !!heard;
+  const reroute = heard ? reroutes.find((r) => r.tick >= heard.tick) : undefined; // she re-planned around that flood
+  const stuck = !!heard && !reroute && log.some((l) => l.kind === "hold" && l.podId === mara.id && l.tick >= heard.tick);
+  const when = reroutes.length > 1 ? `minutes ${reroutes.map((r) => r.tick).join(" and ")}` : `minute ${reroute?.tick}`;
   const lines: string[] = [];
 
   // 1. what the flood did to Mara
   if (!seal) lines.push(`The flood never hit. ${name} ${arrived === null ? "did not reach the clinic" : `reached the clinic at minute ${arrived}`}.`);
-  else if (reroute) lines.push(`The flood sealed ${sealId} at minute ${seal.tick}. The news hopped beacon to beacon, ${name} re-routed at minute ${reroute.tick}${arrived === null ? " but did not arrive" : ` and reached the clinic at minute ${arrived}`}.`);
+  else if (reroute) lines.push(`The flood${seals.length > 1 ? "s" : ""} sealed ${seals.map((x) => `${x.sectorId} at minute ${x.tick}`).join(" and ")}. The news hopped beacon to beacon, ${name} re-routed at ${when}${arrived === null ? " but did not arrive" : ` and reached the clinic at minute ${arrived}`}.`);
   else if (stuck) lines.push(`The flood sealed ${sealId} at minute ${seal.tick}. No warning reached ${name}: she met the sealed shaft at minute ${heard!.tick} and could not get through.`);
   else if (arrived === null) lines.push(`${name} did not reach the clinic.`); // e.g. still queued at timeout: never claim she cleared the shaft
   else lines.push(`${name} cleared the shaft before the flood sealed ${sealId} at minute ${seal.tick} and reached the clinic at minute ${arrived}.`);
 
   // 2. the cause (stuck) or the cost of dark sectors (arrived)
   if (stuck && seal) {
-    const at = mara.path.indexOf(sealId);
-    const prev = at > 0 ? mara.path[at - 1] : null; // the link the news has to cross to reach her
+    const sec = mission.world.sectors.find((x) => x.id === sealId);
+    const prev = sec ? (mission.world.sectors.find((x) => x.routeId === sec.routeId && x.index === sec.index - 1)?.id ?? null) : null; // the link the news has to cross to reach her
     const lit = (id: string) => mission.world.sectors.find((s) => s.id === id)?.beacon !== false || log.some((l) => l.kind === "beacon-placed" && l.sectorId === id);
     const placed = (id: string) => log.find((l) => l.kind === "beacon-placed" && l.sectorId === id)?.tick;
     const s = sealId;
@@ -52,10 +57,11 @@ export function explainRun(log: LogEvent[], mission: Mission): string[] {
   else if (med && medArrived === null && stuck) lines.push("The medicine was trapped by the same flood.");
 
   // 4. margin to the next star (descent-live only): both deadlines, the way the star table judges them
-  if (mission.id === "descent-live" && arrived !== null) {
-    const met = (g: (typeof DESCENT_LIVE_GOALS)[number]) => arrived <= g.maraBy && (g.medicineBy === undefined || (medArrived !== null && medArrived <= g.medicineBy));
-    const stars = DESCENT_LIVE_GOALS.reduce((n, g) => (met(g) ? g.stars : n), 0);
-    const next = DESCENT_LIVE_GOALS[stars];
+  const goals = DESCENT_LEVELS.find((l) => l.id === mission.id)?.goals;
+  if (goals && arrived !== null) {
+    const met = (g: (typeof goals)[number]) => arrived <= g.maraBy && (g.medicineBy === undefined || (medArrived !== null && medArrived <= g.medicineBy));
+    const stars = goals.reduce((n, g) => (met(g) ? g.stars : n), 0);
+    const next = goals[stars];
     if (!next) lines.push("Best possible run.");
     else {
       const m = arrived > next.maraBy ? `${name} by ${next.maraBy} (arrived ${arrived}, ${arrived - next.maraBy} late)` : null;

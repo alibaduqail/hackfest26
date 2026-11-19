@@ -1,6 +1,6 @@
 // runBaseline: the same mission played three ways, silently and deterministically: the tower, Echo with no beacons, and the player's own commands.
 // Pure engine code, no DOM. The debrief shows the three side by side so the value of the system is visible without narration.
-import { descentLiveStars } from "./descent";
+import { DESCENT_LEVELS } from "./descent-levels";
 import { createEngine } from "./engine";
 import type { Command, LogEvent, Mission, Mode } from "./types";
 
@@ -8,7 +8,7 @@ export interface RunOutcome {
   mode: Mode;
   mara: number | null; // tick the first nurse pod arrived, null = never
   medicine: number | null; // tick the first medicine pod arrived, null = never
-  stars: 0 | 1 | 2 | 3 | null; // descent-live star table; null on missions without one
+  stars: 0 | 1 | 2 | 3 | null; // the level's star table (DESCENT_LEVELS); null on missions without one
   claimed: number; // what the Directorate banner says
   actual: number; // pods that really moved after the tower went down
   log: LogEvent[]; // the complete log (observe().log keeps only the last 60 events)
@@ -31,12 +31,14 @@ export function playRun(mission: Mission, mode: Mode, commands: Command[] = []):
     log.push(...e.observe().log.filter((l) => l.tick === t)); // everything logged during tick t
   }
   const o = e.observe();
+  const goals = DESCENT_LEVELS.find((l) => l.id === mission.id)?.goals; // the live Descent levels carry their own star table
+  const by = (id: string, t: number) => (o.pods.find((p) => p.id === id)?.arriveTick ?? Infinity) <= t;
   const arrive = (pred: (p: (typeof o.pods)[number]) => boolean) => o.pods.find(pred)?.arriveTick ?? null;
   return {
     mode,
     mara: arrive((p) => !!p.nurse),
     medicine: arrive((p) => p.cargo === "medicine"),
-    stars: mission.id === "descent-live" ? descentLiveStars(o.pods) : null,
+    stars: goals ? goals.reduce<0 | 1 | 2 | 3>((n, g) => (by("MED-1", g.maraBy) && (g.medicineBy === undefined || by("SUP-3", g.medicineBy)) ? g.stars : n), 0) : null,
     claimed: o.score.towerClaimed,
     actual: o.score.realFlights,
     log,
@@ -48,6 +50,8 @@ export function runBaseline(mission: Mission, placements: Command[]): Baseline {
   const tower = playRun(mission, "tower");
   const none = playRun(mission, "echo");
   const you = playRun(mission, "echo", placements);
-  const fate = tower.mara === null ? "Mara never arrives" : `Mara arrives at minute ${tower.mara}`;
+  const nurse = mission.pods.find((p) => p.nurse);
+  const who = (nurse?.label.split("· ")[1] ?? "The nurse").replace(/^Nurse /, "").split(" ")[0];
+  const fate = tower.mara === null ? `${who} never arrives` : `${who} arrives at minute ${tower.mara}`;
   return { tower, none, you, towerSays: `Tower says: ${tower.claimed} flights authorized; actual: ${tower.actual} flew. ${fate}.` };
 }
