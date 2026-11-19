@@ -88,6 +88,32 @@ test("route-only play (all 7 beacons, no warning) never beats 0 stars: speed can
   assert.equal(descentLiveStars2(routeOnly.obs.pods), 0);
 });
 
+test("flood B is not telegraphed early: nothing before its own seal event reveals it", () => {
+  const m = descentLive2();
+  const sealB = m.seals![0];
+  assert.equal(sealB.sectorId, "mainB1");
+  const e = createEngine(m, "echo");
+  for (let tick = 0; tick < sealB.at; tick++) {
+    e.step();
+    const o = e.observe();
+    assert.equal(o.sectors.find((s) => s.id === "mainB1")!.sealed, false, `t${tick}: mainB1 shows sealed before its own seal tick`);
+    assert.ok(!o.log.some((l) => l.sectorId === "mainB1"), `t${tick}: a log entry already mentions mainB1`);
+    assert.ok(!o.pulses.some((p) => p.sectorId === "mainB1"), `t${tick}: a pulse already mentions mainB1`);
+  }
+  const after = e.observe();
+  e.step();
+  assert.ok(e.observe().log.some((l) => l.kind === "seal" && l.sectorId === "mainB1"), "the seal event itself is the first and only signal");
+  assert.equal(after.sectors.find((s) => s.id === "mainB1")!.sealed, false, "still unsealed the tick right before it fires");
+});
+
+test("flood B needs no advance knowledge: reacting to its seal log event, not pre-committing, still reaches 3 stars", () => {
+  const warnAAndSpeed: Command[] = [place("link0", 12), place("link1", 16), place("link2", 20), place("mainA1", 24), place("mainA0", 26)];
+  for (const reactAt of [55, 56, 58, 59]) {
+    const r = run([...warnAAndSpeed, place("mainB0", reactAt), place("mainB1", reactAt + 1)]);
+    assert.equal(descentLiveStars2(r.obs.pods), 3, `reacting at t${reactAt} should still 3-star the run`);
+  }
+});
+
 test("beacon budget caps live placements at 7", () => {
   const ids = ["link0", "link1", "link2", "mainA0", "mainA1", "mainB0", "mainB1", "bypB0"];
   const r = run(ids.map((id, i) => place(id, i)));
