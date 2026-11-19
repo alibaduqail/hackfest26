@@ -1,5 +1,5 @@
-// Briefing: typewriter story (click to skip), the Directorate's broadcast, objectives with their stars.
-// Also exports the typewriter and the Interlude page used by the prologue and epilogue.
+// Briefing: the mission, its one-line goal and its objectives on a relay line.
+// Also exports the objectives line, the typewriter and the Interlude page used by the prologue and epilogue.
 import { useEffect, useState } from "react";
 import type { CampaignMission } from "./campaign";
 import { RelayBar } from "../relay/Relay";
@@ -35,35 +35,35 @@ const Typed = ({ tw }: { tw: Typewriter }) => (
   </div>
 );
 
-export function Briefing({ cm, best, hasBudget, onNext, onBack }: { cm: CampaignMission; best: number; hasBudget: boolean; onNext: () => void; onBack: () => void }) {
-  const tw = useTypewriter(cm.briefing);
+/** The objectives as nodes on one line; a met one is lit. Shared by the briefing and the debrief. */
+export function Objectives({ cm, met, stars = false }: { cm: CampaignMission; met: boolean[]; stars?: boolean }) {
   return (
-    <div className="g-screen">
-      <div className="g-page g-brief">
-        <div className="g-head">
-          <div>
-            <div className="g-kicker">Mission {cm.number}</div>
-            <h2>{cm.name}</h2>
-          </div>
-          {!tw.done && <RelayBar size="sm" label="Skip" items={[{ key: "skip", label: "Skip", tone: "quiet", onSelect: tw.skip }]} />}
-        </div>
-        <Typed tw={tw} />
-        <div className="g-broadcast" style={{ opacity: tw.done ? 1 : 0 }} aria-hidden={!tw.done}>
-          <b>BROADCAST</b>
-          <div>THE DIRECTORATE: {cm.broadcast}</div>
-        </div>
-        <div className="g-kicker g-objs-head">Objectives</div>
-        <ul className="g-objs">
-          {cm.objectives.map((o, i) => (
-            <li key={i} className={best > i ? "met" : ""}><Stars n={i + 1} /><span>{o.label}</span></li>
-          ))}
-        </ul>
-        <div className="g-actions">
-          <RelayBar label="Briefing" items={[
-            { key: "back", label: "Back", nav: true, onSelect: onBack },
-            { key: "next", label: hasBudget ? "Place beacons" : "Begin", tone: "primary", nav: true, autoFocus: true, onSelect: onNext },
-          ]} />
-        </div>
+    <ol className="fp-objs" aria-label="Objectives">
+      {cm.objectives.map((o, i) => (
+        <li key={i} className={met[i] ? "met" : ""}>
+          <i className="fp-node" aria-hidden />
+          {stars && <Stars n={i + 1} />}
+          <span>{o.label}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+export function Briefing({ cm, best, hasBudget, onNext, onBack }: { cm: CampaignMission; best: number; hasBudget: boolean; onNext: () => void; onBack: () => void }) {
+  return (
+    <div className="g-screen g-fp">
+      <section className="fp-left" aria-labelledby="fp-title">
+        <p className="fp-kicker">Mission {cm.number}</p>
+        <h2 id="fp-title">{cm.name}</h2>
+        <p className="fp-line">{cm.hook}</p>
+        <RelayBar className="fp-bar" size="lg" label="Briefing" items={[
+          { key: "back", label: "Back", nav: true, onSelect: onBack },
+          { key: "next", label: hasBudget ? "Place beacons" : "Begin", tone: "primary", nav: true, autoFocus: true, onSelect: onNext },
+        ]} />
+      </section>
+      <div className="fp-right">
+        <Objectives cm={cm} met={cm.objectives.map((_, i) => best > i)} stars />
       </div>
     </div>
   );
