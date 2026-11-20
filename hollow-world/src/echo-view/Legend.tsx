@@ -25,7 +25,7 @@ const ITEMS: { group: string; items: [glyph: React.ReactNode, label: string][] }
     items: [
       [<svg width="22" height="14" aria-hidden><circle cx="11" cy="7" r="5.5" fill="none" stroke={THEME.red} strokeWidth="1.4" /></svg>, "outbreak"],
       [<span className="echo-lg-s07">Sector 07</span>, "home sector"],
-      [<svg width="22" height="14" aria-hidden><circle cx="11" cy="7" r="5" fill="none" stroke={THEME.ghost} strokeWidth="1.6" strokeDasharray="2 2" /></svg>, "forged pod"],
+      [<svg width="22" height="14" aria-hidden><circle cx="11" cy="7" r="5" fill="none" stroke={THEME.ghost} strokeWidth="1.6" strokeDasharray="2 2" /></svg>, "fake medical pod"],
     ],
   },
 ];

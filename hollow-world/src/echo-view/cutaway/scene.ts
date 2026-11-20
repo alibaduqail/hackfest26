@@ -1,6 +1,6 @@
 import { FONT_MONO, FONT_SANS, THEME as T } from "../theme";
 import type { Pod } from "../../echo/types";
-import { themeLabel } from "../../echo/theme-labels";
+import { podName } from "./live/names";
 import { along, type Frame, neighbors, podPose, type Point, type Track, tracks } from "./run";
 import { frameProgress } from "./motion";
 import med from "./art/med-1.webp";
@@ -191,7 +191,7 @@ export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasEleme
         ground.fillStyle = "#09131c2e";
         ground.fillRect(0, .07 * H, W, .177 * H);
       }
-      fixedTag(obs.towerUp ? "TOWER ONLINE" : "TOWER OFFLINE", .359, .147, obs.towerUp ? T.good : T.redText);
+      fixedTag(obs.towerUp ? "Tower: on" : "Tower: off", .359, .147, obs.towerUp ? T.good : T.redText);
       // The medicine bay is always visible. SUP-3 takes the marked crate when it enters the rail.
       const bayX = .268 * W, bayY = .225 * H;
       ground.fillStyle = T.amberDim;
@@ -272,7 +272,7 @@ export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasEleme
         echo && pax && pax.status === "waiting" && pax.at < 0 && obs.log.some((e) => e.kind === "yield" && e.podId === pax.id)
       ) {
         const holder = obs.sectors.find((s) => s.id === "trunk0")?.holder;
-        fixedTag(holder ? holder + " FIRST · PAX-1 HOLDS" : "PAX-1 HOLDS AT BOUNDARY", .82, .624, T.redText);
+        fixedTag(holder ? (obs.pods.find((p) => p.id === holder) ? podName(obs.pods.find((p) => p.id === holder)!) : holder) + " goes first" : "Passengers wait", .82, .624, T.redText);
       }
       for (const sign of signs) tag(ground, sign.box, sign.copy, sign.ink);
       const pods = obs.pods.filter((p) => visible(p, obs.tick)).map((p) => {
@@ -282,9 +282,8 @@ export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasEleme
         const ship: Sprite = p.ghost ? "forged" : p.nurse ? "med" : p.cargo ? "freight" : "passenger";
         const track = tracks.get(p.path[p.at]);
         const facesLeft = !!track && p.status !== "arrived" && track.b[0] < track.a[0];
-        let label = themeLabel(p);
-        if (p.ghost && fake) label = "Forged medical pod · queued as passenger";
-        else if (p.id === "PAX-1") label = "PAX-1 · passengers";
+        let label = podName(p);
+        if (p.ghost && fake) label = "Fake medical pod";
         return {
           id: p.id,
           x: x * W,

@@ -8,7 +8,7 @@ import "./dialogue.css";
 
 const WHO = {
   director: { img: directorImg, label: "THE DIRECTOR · TOWER PA" },
-  mara: { img: maraImg, label: "MARA · MED-1" },
+  mara: { img: maraImg, label: "MARA" },
 };
 const FADE_MS = 350;
 

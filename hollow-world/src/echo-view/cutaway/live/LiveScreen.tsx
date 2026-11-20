@@ -1,6 +1,5 @@
 import { type MouseEventHandler, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { DESCENT_LEVELS } from "../../../echo/descent-levels";
-import { themeLabel } from "../../../echo/theme-labels";
 import { LEGS } from "../../../echo/journey-events";
 import type { LegId, LegResult } from "../../../echo/journey";
 import type { LogEvent, Mission, Observation, Pod } from "../../../echo/types";
@@ -9,7 +8,7 @@ import { THEME } from "../../theme";
 import { SettingsGear } from "../../game/SettingsGear";
 import { applyLayout } from "../layouts";
 import { along, type Frame, neighbors, podPose, tracks } from "../run";
-import { plainText } from "./names";
+import { plainLog, plainText, podName } from "./names";
 import { createScene, lamp } from "../scene";
 import "../style.css";
 import { hitSector, RAIL_HEIGHT, RAIL_WIDTH } from "./hit";
@@ -20,6 +19,7 @@ import trim from "./art/shaft-trim.png";
 import { FREE_PLAY_SEED, heldAtFlood, useLive } from "./useLive";
 import { LiveDebrief } from "./LiveDebrief";
 import { LiveIntro } from "./LiveIntro";
+import "../../characters/bubble.css";
 import { LEVEL_HINTS, nextHint } from "./hints";
 import { Dialogue } from "../../characters/Dialogue";
 import "./live.css";
@@ -435,7 +435,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
                 onKeyDown={(e) => e.stopPropagation()}
               >
                 <summary>{held.length} pods held at the flood</summary>
-                <ul>{held.map((p) => <li key={p.id}>{themeLabel(p)}</li>)}</ul>
+                <ul>{held.map((p) => <li key={p.id}>{podName(p)}</li>)}</ul>
               </details>
             )}
             {hintText && !over && <p className="live-hint-caption" role="status">{hintText}</p>}
@@ -518,7 +518,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
             {events.map((e) => (
               <li key={[e.tick, e.kind, e.podId, e.sectorId].join("/")}>
                 <time>t+{e.tick}</time>
-                <span>{plainText(e.text)}</span>
+                <span>{plainLog(e.text)}</span>
               </li>
             ))}
           </ol>

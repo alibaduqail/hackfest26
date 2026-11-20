@@ -14,7 +14,7 @@ const debrief = (commands: Command[], stars: 0 | 1 | 2 | 3, extra = {}) =>
 
 test("intro: who, where, deadline, the rule, the hint, a Start button", () => {
   const html = renderToStaticMarkup(h(LiveIntro, { mission: descentLive(), onStart: noop }));
-  assert.match(html, /Mara Vale leaves Upper Depot for Deep Clinic/);
+  assert.match(html, /Mara leaves Upper Depot for Deep Clinic/);
   assert.match(html, /The tower is dark\.<\/strong> News only hops beacon to beacon\./);
   assert.match(html, /You have 5 beacons/);
   assert.match(html, /minute 92/);
@@ -71,4 +71,14 @@ test("debrief, solution replay: labelled, no stars, no next level, no credit hin
   assert.match(html, /Solution replay<\/p>/);
   assert.doesNotMatch(html, /of 3 stars|★|Next level|Continue anyway|Best possible|Next star/);
   assert.match(html, /Play yourself/);
+});
+
+test("plain labels: pod ids and protocol verbs read as ordinary words; Mara's bubble lines stay short", async () => {
+  const { plainLog, podName } = await import("./names");
+  const { campLine, legLine } = await import("../../characters/bubbles");
+  assert.equal(podName({ id: "MED-1", label: "MED-1 · Nurse Mara Vale" }), "Mara");
+  assert.equal(plainLog("MED-1 · Nurse Mara Vale waits blind at main1: no beacon"), "Mara waits at the middle main shaft: no beacon");
+  assert.equal(plainLog("GHOST-1 · Medical courier: signature rejected, queued as passenger"), "Fake medical pod has no valid signature and joins the passenger line");
+  assert.equal(plainLog("PAX-1 · Passenger holds at the boundary"), "Passengers wait at the edge");
+  for (const t of [campLine("outfitting"), campLine("tower-lies"), campLine("forged-claim"), campLine("retry-descent1"), legLine(descentLive(1))]) assert.ok(t && t.split(" ").length <= 12, t);
 });

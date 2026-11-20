@@ -9,6 +9,7 @@ import { ghostData } from "./ghosts";
 import { choiceNamesFor } from "./helpers";
 import { TitleScreen } from "./TitleScreen";
 import "./journey.css";
+import "../characters/bubble.css";
 
 // The leg screen is its own chunk. It is fetched as soon as the journey mounts, and once it is in, Leg renders it directly: going through
 // Suspense on the camp -> leg switch showed a blank "Loading" frame for ~0.3 s between the two screens.
