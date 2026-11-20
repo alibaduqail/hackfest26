@@ -2,6 +2,7 @@
 // three baseline runs and the explanation come from src/echo (runBaseline, explainRun). Mounted by LiveScreen (see WIRING-INTRO-DEBRIEF.md).
 import { useMemo } from "react";
 import { runBaseline, type RunOutcome } from "../../../echo/baseline";
+import { STANDBY_AFTER } from "../../../echo/tower";
 import { explainRun } from "../../../echo/explain";
 import type { Command, Mission } from "../../../echo/types";
 import { placeName, plainText } from "./names";
@@ -74,6 +75,7 @@ export function LiveDebrief({ mission, commands, stars, onRetry, onNext, onWatch
         </tbody>
       </table>
       <p className="live-tower-says">{base.towerSays}</p>
+      <p className="live-tower-says live-backup">tower + backup · back at min {mission.towerDownAt + STANDBY_AFTER} · no flood news reaches it</p>
       {hint && !replay && <p className="live-next"><strong>Next star:</strong> {hint}</p>}
       {stars >= 3 && !replay && <p className="live-next"><strong>Best possible run.</strong></p>}
       {note && <p className="live-next">{note}</p>}
