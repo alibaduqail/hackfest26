@@ -3,7 +3,7 @@
 export const CONTRACT_VERSION = 2; // v2 (game): beacons, multiple seals, beacon budget, ghost pods. Additive over v1.
 
 export type Priority = "medical" | "supply" | "passenger";
-export type Mode = "tower" | "echo" | "normal"; // normal = tower never fails (reference run)
+export type Mode = "tower" | "echo" | "normal" | "standby"; // normal = tower never fails (reference run); standby (additive) = a backup tower comes online after the primary fails: still central, so it clears flights but cannot carry news
 
 export interface City {
   id: string;
@@ -112,6 +112,17 @@ export interface Observation {
   pulses: Pulse[];
   score: Score;
   over: boolean;
+  // Live Descent only (present only when the mission sets the matching option; absent keys keep every other observation identical):
+  floodWarnings?: FloodWarning[]; // one per seal that has not fired yet, in seal order
+  building?: { sectorId: string; readyAt: number }[]; // beacons ordered but not live yet
+  endReason?: string; // why the run is over, once it is (set when Mission.earlyEnd is on)
+}
+
+/** A flood telegraph. `risk` is always shown; `sectorId` and `at` (the seal minute) appear only inside the reveal window. */
+export interface FloodWarning {
+  risk: string;
+  sectorId?: string;
+  at?: number;
 }
 
 // dispatchMedical makes a scheduled medical pod depart at atTick. Apply the same command to every engine in a split screen.
@@ -132,6 +143,10 @@ export interface Mission {
   seals?: { at: number; sectorId: string }[]; // v2: further seals after the first; all follow the same rules
   beaconBudget?: number | null; // v2: null/missing = fixed layout; a number = the player places up to N beacons before the run
   pods: Pod[]; // initial and scheduled
+  // Live Descent opt-ins (all additive; a mission without them behaves exactly as before):
+  floodReveal?: { lead: number; risk: string[] }; // seal telegraphs (sector + minute) show `lead` ticks before each seal; 0 = never before it fires. risk[i] is the always-visible text for seal i (sealsOf order)
+  beaconBuildTicks?: number; // a placed beacon goes live this many ticks after the command; the observation lists it under `building`
+  earlyEnd?: boolean; // the run ends as soon as the key pods are decided, and the observation carries endReason
 }
 
 export interface EchoEngineApi {

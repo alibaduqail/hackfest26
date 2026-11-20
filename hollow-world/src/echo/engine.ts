@@ -46,6 +46,7 @@ export interface Sim {
   mode: Mode;
   tick: number;
   towerUp: boolean;
+  standbyBack: boolean; // standby mode only: the backup tower has come online (latch: the primary does not fail a second time)
   sectors: Sector[];
   sec: Map<string, Sector>;
   pods: Pod[];
@@ -66,6 +67,7 @@ export interface Sim {
   pending: { atTick: number; sectorId: string }[]; // accepted placeBeacon commands not yet applied
   placed: number; // live placements applied so far
   score: Score;
+  ended: string | null; // early-end reason (Mission.earlyEnd), once decided
 }
 
 /** Beacon graph: chain neighbours plus every sector touching the same city; an unbeaconed sector neither hears nor relays. */
@@ -144,11 +146,12 @@ export function makeSim(m: Mission, mode: Mode): Sim {
     rt.set(p.id, { granted: p.at >= 0, knows: new Set(), stuck: false, claim: null, claimTick: -1 });
   }
   return {
-    m, mode, tick: 0, towerUp: true, sectors, sec: new Map(sectors.map((s) => [s.id, s])), pods, rt,
+    m, mode, tick: 0, towerUp: true, standbyBack: false, sectors, sec: new Map(sectors.map((s) => [s.id, s])), pods, rt,
     topo: buildTopo(sectors, mode === "normal" ? [] : sealsOf(m)),
     log: [], pulses: [], tokens: 0, grantsEver: 0, entries: 0, hist: [], released: new Map(),
     flown: new Set(), yielded: new Set(), announced: new Set(), blind: new Map(),
     beaconAt: new Map(sectors.filter(hasBeacon).map((x) => [x.id, -Infinity])), pending: [], placed: 0,
+    ended: null,
     score: { nursesArrived: 0, nursesTotal: pods.filter((p) => p.nurse).length, suppliesDelivered: 0, suppliesTotal: pods.filter((p) => p.cargo).length, passengerDelayMin: 0, capacityPct: 100, realFlights: 0, towerClaimed: 0 },
   };
 }
@@ -161,7 +164,19 @@ export function say(s: Sim, kind: LogEvent["kind"], text: string, podId?: string
   if (s.log.length > 60) s.log.shift();
 }
 
-export const isOver = (s: Sim) => s.tick >= s.m.endTick;
+export const isOver = (s: Sim) => s.tick >= s.m.endTick || s.ended !== null;
+
+/** Early end (Mission.earlyEnd): the nurse and the medicine pod are both decided, or the nurse can never arrive. A stuck pod is held at a seal with no route (the engine never backs a pod out). */
+function decide(s: Sim): string | null {
+  const mara = s.pods.find((p) => p.nurse);
+  const med = s.pods.find((p) => p.cargo === "medicine");
+  if (!mara) return null;
+  const stuck = (p: Pod) => p.status !== "arrived" && s.rt.get(p.id)!.stuck;
+  if (stuck(mara)) return "Mara is trapped at a sealed shaft with no way around";
+  if (mara.status !== "arrived") return null;
+  if (!med || med.status === "arrived") return "Mara and the medicine have both arrived";
+  return stuck(med) ? "Mara arrived but the medicine is trapped at a sealed shaft" : null;
+}
 
 // the normal-day run of the same mission, cached per mission object: capacity is measured against it
 const refCache = new WeakMap<Mission, number[]>();
@@ -190,7 +205,7 @@ function movement(s: Sim) {
       p.status = "arrived";
       p.arriveTick = s.tick;
       say(s, "arrive", `${p.label} arrives`, p.id);
-    } else if ((s.mode === "tower" && !s.towerUp) || s.rt.get(p.id)!.stuck) {
+    } else if (((s.mode === "tower" || s.mode === "standby") && !s.towerUp) || s.rt.get(p.id)!.stuck) {
       p.status = "holding";
       say(s, "hold", `${p.label} holds at the boundary`, p.id);
     } else p.status = "waiting";
@@ -223,9 +238,10 @@ function lastChange(h: number[]): number {
 
 /** Live beacons due this tick go in first, in (atTick, sectorId) order, so the protocol below already hears them. */
 function placeBeacons(s: Sim) {
-  const due = s.pending.filter((c) => c.atTick <= s.tick).sort((a, b) => a.atTick - b.atTick || (a.sectorId < b.sectorId ? -1 : 1));
+  const delay = s.m.beaconBuildTicks ?? 0;
+  const due = s.pending.filter((c) => c.atTick + delay <= s.tick).sort((a, b) => a.atTick - b.atTick || (a.sectorId < b.sectorId ? -1 : 1));
   if (!due.length) return;
-  s.pending = s.pending.filter((c) => c.atTick > s.tick);
+  s.pending = s.pending.filter((c) => c.atTick + delay > s.tick);
   for (const c of due) {
     const sec = s.sec.get(c.sectorId)!;
     if (hasBeacon(sec)) continue; // act() already refuses these; kept so the engine never double-counts
@@ -245,6 +261,23 @@ export function stepSim(s: Sim) {
   if (s.mode === "echo") echoPhase(s);
   score(s);
   s.tick++;
+  if (s.m.earlyEnd && s.ended === null) s.ended = decide(s);
+}
+
+/** The optional live-Descent observation fields; empty for any mission that does not opt in. */
+function live(s: Sim): Partial<Observation> {
+  const out: Partial<Observation> = {};
+  const fr = s.m.floodReveal;
+  if (fr)
+    out.floodWarnings = s.topo.seals.flatMap((n, i) => {
+      if (s.tick > n.at) return []; // the seal lands in the step of tick `at`: the observation flips to sealed (and this entry goes) after it
+      const risk = fr.risk[i] ?? "flood risk";
+      return fr.lead > 0 && n.at - s.tick <= fr.lead ? [{ risk, sectorId: n.sectorId, at: n.at }] : [{ risk }];
+    });
+  if (s.m.beaconBuildTicks)
+    out.building = s.pending.filter((c) => c.atTick <= s.tick).map((c) => ({ sectorId: c.sectorId, readyAt: c.atTick + s.m.beaconBuildTicks! }));
+  if (s.m.earlyEnd && isOver(s)) out.endReason = s.ended ?? "Time ran out";
+  return out;
 }
 
 export const createEngine: CreateEngine = (m, mode): EchoEngineApi => {
@@ -268,6 +301,7 @@ export const createEngine: CreateEngine = (m, mode): EchoEngineApi => {
         pulses: s.pulses,
         score: s.score,
         over: isOver(s),
+        ...live(s),
       });
     },
     act(c: Command) {

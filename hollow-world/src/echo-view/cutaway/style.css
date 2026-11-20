@@ -1,0 +1,75 @@
+.descent, .descent * { box-sizing: border-box; }
+.descent {
+  margin: auto; min-height: 100svh; max-width: 2160px;
+  padding: clamp(20px, 3.2vh, 40px) clamp(18px, 2.9vw, 64px) clamp(18px, 2.5vh, 32px);
+  background: var(--bg, #10191e); color: var(--text); font: 16px/normal var(--sans);
+  display: flex; flex-direction: column; gap: clamp(14px, 2.1vh, 24px);
+}
+:where(.descent) header, :where(.descent) .mode, :where(.descent) nav, :where(.descent) .controls, :where(.descent) .switch, :where(.descent) .fine { display: flex; align-items: center; }
+:where(.descent) header, :where(.descent) .fine { justify-content: space-between; gap: 14px; }
+:where(.descent) .brand, :where(.descent) .eyebrow, :where(.descent) h3 { color: var(--amber); font: 650 clamp(12px, .85vw, 16px)/1.3 var(--mono); }
+:where(.descent) .brand { display: inline-block; letter-spacing: .14em; text-decoration: none; }
+:where(.descent) .brand:hover { text-decoration: underline; }
+:where(.descent) h1, :where(.descent) h2, :where(.descent) p, :where(.descent) dl, :where(.descent) dd, :where(.descent) ol, :where(.descent) h3 { margin: 0; }
+:where(.descent) h1, :where(.descent) h2 { color: var(--head); line-height: 1.04; letter-spacing: -.035em; font-weight: 670; }
+:where(.descent) h1 { font-size: clamp(35px, 2.9vw, 56px); margin-top: 4px; }
+:where(.descent) h2 { font-size: clamp(24px, 1.85vw, 38px); margin: .28em 0; }
+:where(.descent) .mode { gap: clamp(10px, 1vw, 20px); }
+:where(.descent) time { color: var(--head); font: 650 clamp(16px, 1.18vw, 23px) var(--mono); }
+:where(.descent) button {
+  cursor: pointer; background: var(--panel); color: var(--text2); border: 1px solid var(--line2);
+  border-radius: 4px; padding: .52em .82em; font: 600 clamp(13px, .9vw, 17px)/1.2 var(--sans);
+}
+:where(.descent) button:hover { background: var(--btn2); color: var(--head); }
+:where(.descent) :focus-visible { outline: 3px solid var(--amberHi); outline-offset: 3px; z-index: 2; }
+:where(.descent) button:disabled { opacity: .55; cursor: default; }
+:where(.descent) .switch button { border-radius: 0; }
+:where(.descent) .switch button:first-child { border-radius: 4px 0 0 4px; }
+:where(.descent) .switch button:last-child { border-radius: 0 4px 4px 0; border-left: 0; }
+:where(.descent) button[aria-pressed="true"], :where(.descent) button[aria-current="step"] { background: var(--amber); color: var(--ink); border-color: var(--amber); }
+:where(.descent) .mode button { min-width: 4.8em; font-size: clamp(14px, 1vw, 19px); }
+:where(.descent) main { display: grid; grid-template-columns: minmax(0, 1fr) clamp(260px, 21vw, 370px); gap: clamp(15px, 1.4vw, 30px); align-items: start; }
+:where(.descent) .world-scroll { overflow: auto; border: 1px solid var(--line2); }
+:where(.descent) .world { min-width: 620px; aspect-ratio: 1672/941; position: relative; background-color: var(--stage);
+  background-image: url('./art/descent.webp'), linear-gradient(to bottom, #503d2e 0 24.7%, #40372b 24.7% 41.9%, #343538 41.9% 61%, #193c44 61% 78.9%, #244044 78.9%);
+  background-size: 100% 100%; }
+:where(.descent) canvas { width: 100%; height: 100%; display: block; position: absolute; inset: 0; }
+:where(.descent) aside { border-top: 1px solid var(--line); padding-top: .8em; }
+:where(.descent) #caption { font-size: clamp(16px, 1.1vw, 22px); line-height: 1.33; color: var(--text2); }
+:where(.descent) #rules, :where(.descent) #events { list-style: none; padding: 0; margin-top: clamp(12px, 1.4vh, 18px); }
+:where(.descent) #rules li { padding: .34em 0; display: flex; gap: .8em; border-top: 1px solid var(--line); font-size: clamp(14px, .95vw, 18px); line-height: 1.5; color: var(--text2); }
+:where(.descent) #rules b { font: 650 .86em/1.75 var(--mono); }
+:where(.descent) #rules .active { color: var(--amberHi); font-weight: 660; }
+:where(.descent) #rules .past b::after { content: ' ✓'; font-size: .75em; }
+:where(.descent) .stats { display: grid; grid-template-columns: 1fr 1fr; margin: 1em 0; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; }
+:where(.descent) .stats div { display: flex; flex-direction: column-reverse; padding: .55em .8em; }
+:where(.descent) .stats div + div { border-left: 1px solid var(--line); }
+:where(.descent) .stats dt { font-size: clamp(12px, .77vw, 15px); color: var(--text2); }
+:where(.descent) .stats dd { font: 650 clamp(21px, 1.45vw, 28px)/1.28 var(--mono); }
+:where(.descent) #claim.offline { color: var(--redText); text-decoration: line-through var(--red); }
+:where(.descent) .ward, :where(.descent) #events { border-top: 1px solid var(--line); padding-top: .65em; }
+:where(.descent) h3 { color: var(--text2); text-transform: uppercase; margin-bottom: 5px; }
+:where(.descent) #ward { color: var(--redText); font-weight: 600; }
+:where(.descent) #ward.stocked { color: var(--good); }
+:where(.descent) #events li { display: flex; align-items: baseline; gap: .7em; padding: .12em 0; color: var(--text2); font-size: clamp(13px, .82vw, 16px); }
+:where(.descent) #events time { color: var(--amber); font: .9em var(--mono); white-space: nowrap; }
+:where(.descent) nav { border-top: 1px solid var(--line); padding-top: .85em; gap: clamp(12px, 1.5vw, 30px); }
+:where(.descent) .controls { gap: 6px; }
+:where(.descent) #play { min-width: 5.3em; }
+:where(.descent) #beats { display: flex; justify-content: space-between; gap: 6px; flex: 1; background: linear-gradient(var(--line),var(--line)) center/98% 1px no-repeat; }
+:where(.descent) #beats button { background-color: var(--bg); }
+:where(.descent) #beats [aria-current="step"] { background: var(--amber); }
+:where(.descent) .fine { color: var(--text2); font: 500 clamp(11px, .8vw, 15px)/1.4 var(--mono); margin-top: .85em; }
+:where(.descent) .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.descent.clean .controls, .descent.clean nav, .descent.clean .switch { display: none; }
+@media (max-width: 1080px) {
+  :where(.descent) nav { flex-wrap: wrap; }
+  :where(.descent) #beats { flex-wrap: wrap; }
+  :where(.descent) main { grid-template-columns: minmax(0, 2.5fr) minmax(245px, 1fr); }
+}
+@media (max-width: 850px) {
+  :where(.descent) main { grid-template-columns: minmax(0, 1fr); }
+  :where(.descent) .fine { align-items: start; flex-direction: column; gap: 3px; }
+  :where(.descent) nav { align-items: start; flex-direction: column; }
+  :where(.descent) #beats { justify-content: flex-start; background: none; }
+}

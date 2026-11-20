@@ -1,7 +1,9 @@
 // Canvas map for Echo: reads an Observation only (contract v2). No engine imports.
 // v2: a sector with beacon === false is a dead zone (dim, dashed); missing = beaconed, so v1 missions draw as before.
 import { FONT_SANS, THEME } from "./theme";
-import type { City, Observation, Pod, Priority, Sector } from "../echo/types";
+import type { Observation, Pod, Priority, Sector } from "../echo/types";
+import { cityBoxes, cityLabel, overlaps, placeTag, type Box } from "./labels";
+import { podName } from "./cutaway/live/names";
 
 export type Variant = "tower" | "echo";
 /** View-only effects, kept by the screen in wall-clock ms so they stay readable at 60x. Not part of the contract. */
@@ -58,9 +60,6 @@ export const COLORS = {
   pulse: { announce: THEME.amberHi, seal: THEME.red, release: THEME.good },
 } as const;
 const PRIORITY_COLOR: Record<Priority, string> = { medical: COLORS.medical, supply: COLORS.supply, passenger: COLORS.passenger };
-// label side per city, chosen so neighbours (NY/Sector 07, London/Moscow, Beijing/Tokyo) never collide
-const LABEL_SIDE: Record<string, "l" | "r" | "t" | "b"> = { ny: "r", s07: "l", lon: "t", mow: "r", bei: "t", tok: "r", cairo: "t", lagos: "l", mum: "r", jak: "r", syd: "l", sao: "r" };
-
 type XY = [number, number];
 export interface Projection { (p: XY): XY }
 
@@ -139,29 +138,6 @@ export function podPositions(obs: Observation, project: Projection, frac = 0): M
     });
   }
   return out;
-}
-
-const LABEL_FONT = `12px ${FONT_SANS}`;
-type Box = [x: number, y: number, w: number, h: number];
-const overlaps = (a: Box, b: Box) => a[0] < b[0] + b[2] && b[0] < a[0] + a[2] && a[1] < b[1] + b[3] && b[1] < a[1] + a[3];
-
-/** Where a city's name goes: left edge, middle line, width. */
-function labelAt(ctx: CanvasRenderingContext2D, c: City, [x, y]: XY, prepare: boolean): [number, number, number] {
-  const side = prepare && c.id === "ny" ? "t" : LABEL_SIDE[c.id] ?? "r";
-  ctx.font = LABEL_FONT;
-  const wText = ctx.measureText(c.name).width;
-  return side === "t" ? [x - wText / 2, y - 42, wText] :
-    side === "b" ? [x - wText / 2, y + 15, wText] :
-    side === "l" ? [x - 11 - wText, y, wText] : [x + 11, y, wText];
-}
-
-function cityLabel(ctx: CanvasRenderingContext2D, c: City, xy: XY, prepare: boolean) {
-  const [tx, ty, width] = labelAt(ctx, c, xy, prepare);
-  ctx.fillStyle = "rgba(13,22,28,0.85)"; ctx.fillRect(tx - 2, ty - 8, width + 4, 16);
-  ctx.fillStyle = c.outbreak ? COLORS.outbreak : c.strata ? COLORS.strata : COLORS.label;
-  ctx.textBaseline = "middle";
-  ctx.textAlign = "left";
-  ctx.fillText(c.name, tx, ty);
 }
 
 function drawX(ctx: CanvasRenderingContext2D, [x, y]: XY, r: number) {
@@ -410,6 +386,12 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
 
   // pods on top
   const pos = podPositions(obs, project, o.fx?.frac ?? 0);
+  const used: Box[] = cityBoxes(ctx, obs, project, prep); // tags placed so far; each new tag steers clear of them
+  for (const st of fx?.stamps ?? []) {
+    const sec = byId.get(st.sectorId); if (!sec) continue;
+    const [sa, sb] = lane(project, sec); const sm = lerp(sa, sb, 0.5);
+    used.push([sm[0] + 8 - 34, sm[1] + 24 - 14, 68, 28]);
+  }
   const order: Pod[] = [...obs.pods].sort((a, b) => rank(a.priority) - rank(b.priority));
   for (const p of order) {
     const xy = pos.get(p.id); if (!xy) continue;
@@ -420,7 +402,7 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
       ctx.strokeStyle = COLORS.ghost; ctx.lineWidth = 1.6; ctx.setLineDash([2, 2]);
       ctx.beginPath(); ctx.arc(xy[0], xy[1], r + 1, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
       ctx.fillStyle = COLORS.ghost; ctx.font = `11px ${FONT_SANS}`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
-      ctx.fillText(`${p.id} forged`, xy[0] + 9, xy[1] - 9);
+      ctx.fillText("Fake medical pod", xy[0] + 9, xy[1] - 9);
       ctx.globalAlpha = 1;
       continue;
     }
@@ -440,18 +422,23 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
     }
     const y = echo ? o.fx?.yields.find((q) => q.podId === p.id && o.time - q.born < YIELD_MS) : undefined;
     if (y) {
-      const txt = `${p.id} yields to ${y.to}`;
+      const toPod = obs.pods.find((q) => q.id === y.to);
+      const txt = `${podName(p)} waits for ${toPod ? podName(toPod) : y.to}`;
       ctx.font = `bold 12px ${FONT_SANS}`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
-      const wt = ctx.measureText(txt).width + 10;
+      const [bx, by, bw, bh] = placeTag(xy, ctx.measureText(txt).width + 10, 17, used, w, h);
+      used.push([bx, by, bw, bh]);
       ctx.globalAlpha = Math.min(1, (YIELD_MS - (o.time - y.born)) / 500);
       ctx.fillStyle = THEME.amberBg; ctx.strokeStyle = THEME.amber; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.roundRect(xy[0] + 8, xy[1] + 6, wt, 17, 4); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = THEME.amberText; ctx.fillText(txt, xy[0] + 13, xy[1] + 15);
+      ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 4); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = THEME.amberText; ctx.fillText(txt, bx + 5, by + bh / 2 + 0.5);
       ctx.globalAlpha = 1;
     }
     if (p.id === nurse?.id && p.status !== "arrived") {
-      ctx.fillStyle = THEME.redText; ctx.font = `12px ${FONT_SANS}`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
-      ctx.fillText(p.label, xy[0] + 10, xy[1] + 15);
+      ctx.font = `600 12px ${FONT_SANS}`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      const [bx, by, bw, bh] = placeTag(xy, ctx.measureText(podName(p)).width + 10, 16, used, w, h);
+      used.push([bx, by, bw, bh]);
+      ctx.fillStyle = "rgba(58,26,24,0.9)"; ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 3); ctx.fill();
+      ctx.fillStyle = THEME.redText; ctx.fillText(podName(p), bx + 5, by + bh / 2 + 0.5);
     }
   }
 
@@ -466,17 +453,7 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
       const at = pos.get(podId) ?? (city ? project([city.x, city.y]) : undefined);
       if (!at) continue;
       // keep clear of city names and Mara's own label: first spot (above, above-left, below, below-left, higher) that hits none
-      const avoid: Box[] = obs.cities.flatMap((c): Box[] => {
-        const [cx, cy] = project([c.x, c.y]);
-        const [lx, ly, lw] = labelAt(ctx, c, [cx, cy], prep);
-        return [[lx - 2, ly - 8, lw + 4, 16], [cx - 10, cy - (c.strata ? 34 : 28), 20, c.strata ? 38 : 32]];
-      });
-      for (const st of fx.stamps) { // SEALED stamps (drawn at the seal's midpoint + (8, 24), about 64x24 once popped)
-        const sec = byId.get(st.sectorId); if (!sec) continue;
-        const [sa, sb] = lane(project, sec); const sm = lerp(sa, sb, 0.5);
-        avoid.push([sm[0] + 8 - 34, sm[1] + 24 - 14, 68, 28]);
-      }
-      if (pos.has(podId)) { ctx.font = `12px ${FONT_SANS}`; avoid.push([at[0] + 8, at[1] + 7, ctx.measureText(p.label).width + 4, 16]); }
+      const avoid: Box[] = used; // city names, SEALED stamps and pod tags already placed
       ctx.font = `13px ${FONT_SANS}`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
       let lines = [sp.text];
       if (ctx.measureText(sp.text).width + 24 > w) { // narrow pane (phone): wrap onto two lines at the space nearest the middle

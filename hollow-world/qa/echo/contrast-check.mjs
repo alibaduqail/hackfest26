@@ -22,7 +22,7 @@ let worst = 99, fails = 0;
 for (const [name, q] of SCREENS) {
   await send("Page.navigate", { url: `${base}/${q}` }); await ev(`localStorage.setItem("echo-progress-v1", JSON.stringify({"tower-down":3,"dead-zones":2,"seen:prologue":1}))`); await send("Page.navigate", { url: `${base}/${q}` }); await sleep(4500 + (process.env.MOTION ? Math.floor(Math.random() * 6000) : 0));
   const els = await ev(COLLECT);
-  await ev(`(()=>{const s=document.createElement('style');s.textContent='.g-screen *,.g-screen *::before{color:transparent!important;text-shadow:none!important;-webkit-text-stroke:0!important}.g-sound,.g-title canvas{visibility:hidden}';document.head.append(s)})()`);
+  await ev(`(()=>{const s=document.createElement('style');s.textContent='.g-screen *,.g-screen *::before{color:transparent!important;text-shadow:none!important;-webkit-text-stroke:0!important}.g-gear,.g-title canvas{visibility:hidden}';document.head.append(s)})()`);
   await sleep(300);
   const shot = await send("Page.captureScreenshot", { format: "png" });
   const { w, h, bpp, px } = decode(Buffer.from(shot.result.data, "base64"));

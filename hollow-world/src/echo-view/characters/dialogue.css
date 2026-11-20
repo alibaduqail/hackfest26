@@ -1,0 +1,27 @@
+/* Character dialogue over the map. Never captures the pointer; the map's own clicks pass straight through. */
+.descent-live .dialogue-layer { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 5; }
+.descent-live .dialogue { position: absolute; display: flex; align-items: flex-end; gap: 0; pointer-events: none; }
+.descent-live .dialogue * { pointer-events: none; }
+.descent-live .dialogue img { width: 192px; height: 192px; image-rendering: pixelated; flex: none; filter: drop-shadow(0 6px 10px #000b); }
+.descent-live .dialogue p { margin: 0 0 14px; width: clamp(260px, 26vw, 360px); padding: 10px 14px 12px; background: rgba(10,14,18,.88);
+  border-left: 3px solid var(--rule); color: #e9e0c8; font: 500 clamp(15px, 1.35vw, 19px)/1.3 var(--sans, system-ui, sans-serif); }
+.descent-live .dialogue small { display: block; margin-bottom: 5px; color: var(--rule); font: 500 12px/1.2 var(--mono, ui-monospace, monospace); letter-spacing: .04em; }
+.descent-live .dialogue.director { --rule: #d6483a; top: 0; right: 0; flex-direction: row-reverse; align-items: flex-start; animation: dlg-in-top .3s ease-out; }
+.descent-live .dialogue.director img { transform: scaleX(-1); }
+.descent-live .dialogue.director p { margin: 12px 0 0; }
+.descent-live .dialogue.mara { --rule: #6ec8b4; left: 0; bottom: 0; animation: dlg-in-bottom .3s ease-out; }
+.descent-live .dialogue.out { opacity: 0; transition: opacity .35s ease-in; }
+@keyframes dlg-in-top { from { transform: translateY(-40px); opacity: 0; } }
+@keyframes dlg-in-bottom { from { transform: translateY(60px); opacity: 0; } }
+/* Narrow maps (the aside drops below, or sits tight): the full-size Director strip spans most of the map and covers the TOWER OFFLINE label and the pod tags on L1-L2.
+   Shrink only the Director so it stays in the top-right corner and leaves them readable. */
+@media (max-width: 1180px) {
+  .descent-live .dialogue.director img { width: 128px; height: 128px; }
+  .descent-live .dialogue.director p { width: clamp(190px, 26vw, 250px); padding: 8px 12px 10px; font-size: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .descent-live .dialogue { animation: none !important; }
+  .descent-live .dialogue.out { transition: none; }
+}
+/* The map's teaching hint sits bottom-centre; lift it clear while Mara's strip is up. */
+.descent-live .live-world:has(.dialogue.mara) .live-hint-caption { bottom: 19%; }

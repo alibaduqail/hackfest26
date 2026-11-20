@@ -1,0 +1,221 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { playRun } from "./baseline";
+import { DESCENT_LEVELS, goalsForMission } from "./descent-levels";
+import { campEvent, choose, completeLeg, currentLeg, ending, lastReveal, LIMIT, startJourney, type JourneyState, type LegResult } from "./journey";
+import { LEGS, TUNING } from "./journey-events";
+import type { Command } from "./types";
+
+// Floods are seeded per journey now. Seed 34 draws candidate 0 (the original floods) on all three levels for the first try, which is what these tuning numbers are measured on.
+const SEED = 34;
+const place = (ids: string[], atTick = 0): Command[] => ids.map((sectorId) => ({ type: "placeBeacon", sectorId, atTick }));
+const idx = (s: JourneyState) => s.legIndex;
+
+/** Play the current leg on the real engine with up to `budget` commands, and report it the way the screen will. */
+function play(s: JourneyState, cmds: Command[]): LegResult {
+  const { legId, mission } = currentLeg(s);
+  const goals = DESCENT_LEVELS[idx(s)].goalsFor({ seed: s.seed, attempt: 0 });
+  const placed = cmds.slice(0, mission.beaconBudget ?? 0);
+  const o = playRun(mission, "echo", placed);
+  const hold = o.log.find((l) => l.kind === "hold" && l.podId === "MED-1")?.tick;
+  const stars = goals.reduce<0 | 1 | 2 | 3>((n, g) => (o.mara !== null && o.mara <= g.maraBy && (g.medicineBy === undefined || (o.medicine !== null && o.medicine <= g.medicineBy)) ? g.stars : n), 0);
+  return { legId, stars, maraAt: o.mara, medicineAt: o.medicine, beaconsPlaced: placed.length, ticks: o.mara ?? hold ?? mission.endTick };
+}
+const solution = (s: JourneyState) => DESCENT_LEVELS[idx(s)].solutionFor({ seed: s.seed, attempt: 0 });
+const warn = (s: JourneyState) => place(LEGS[idx(s)].minWin);
+
+/** A scripted journey: choice per camp (by event order) + a command policy per attempt. */
+function run(choices: string[], cmds: (s: JourneyState, attempt: number) => Command[]): JourneyState {
+  let s = startJourney(SEED);
+  const picks = [...choices];
+  for (let guard = 0; guard < 30 && s.phase !== "ending"; guard++) {
+    if (s.phase === "camp") s = choose(s, picks.shift() ?? "retry");
+    else s = completeLeg(s, play(s, cmds(s, s.attempt)));
+  }
+  return s;
+}
+
+test("the engine agrees with the minimum winning sets: the warning chain is worth a star, one beacon less is not", () => {
+  const s0 = startJourney(SEED);
+  for (let i = 0; i < 3; i++) {
+    const s = { ...s0, legIndex: i, phase: "leg" as const };
+    assert.ok(play(s, warn(s)).stars >= 1, `leg ${i} warning only`);
+    assert.equal(play(s, warn(s).slice(1)).stars, 0, `leg ${i} missing a warning beacon`);
+  }
+});
+
+test("a decent journey (outfit beacons, the known solutions, verify, check the credential) is Saved at 302 minutes", () => {
+  const s = run(["extra-beacons", "verify-beacons", "check-credential"], solution);
+  const e = ending(s);
+  assert.equal(s.res.clock, TUNING.start.clock + 83 + 111 + 78);
+  assert.equal(s.res.beacons, 0); // 15 + 4 - (5 + 1 + 7 + 6): exactly enough, so every beacon matters
+  assert.equal(e.kind, "saved");
+  assert.equal(e.title, "The clinic is supplied");
+  assert.ok(e.score > 900, String(e.score));
+  assert.ok(e.lines.some((l) => /Descent I: ★★★ · Mara at minute 83 · 0 retries/.test(l)));
+  assert.ok(e.lines.some((l) => /^Without the beacons, Mara never leaves level \d\./.test(l)));
+});
+
+test("a mediocre journey (warning beacons only, 1 star each) still gets Saved, with a lower score", () => {
+  const s = run(["leave-now", "verify-beacons", "check-credential"], warn);
+  assert.equal(ending(s).kind, "saved");
+  assert.ok(ending(s).score < ending(run(["extra-beacons", "verify-beacons", "check-credential"], solution)).score);
+});
+
+test("a careless journey (two failures, then trusting the tower) ends Too late", () => {
+  const s = run(["leave-now", "retry", "retry", "trust-tower", "yield"], (st, attempt) => (st.legIndex === 0 && attempt < 2 ? [] : solution(st)));
+  assert.equal(ending(s).kind, "late");
+  assert.ok(s.res.clock > LIMIT);
+  assert.ok(s.log.filter((e) => e.kind === "leg" && e.result.stars === 0).length >= 2); // and the lost beacons make the later legs harder: the careless run spirals
+});
+
+test("failure cost: clock += ticks + 15, placed beacons lost, -1 dose, retry the same leg from a retry camp", () => {
+  let s = choose(startJourney(SEED), "extra-medicine"); // 13 beacons, 8 doses
+  const before = s.res;
+  const r = play(s, place(["link0", "link1", "link2"])); // 3 route beacons, no warning: Mara is trapped
+  assert.equal(r.stars, 0);
+  s = completeLeg(s, r);
+  assert.deepEqual(s.res, { beacons: before.beacons - 3, clock: before.clock + r.ticks + 15, doses: before.doses - 1 });
+  assert.equal(s.phase, "camp");
+  assert.equal(s.attempt, 1);
+  assert.equal(s.legIndex, 0);
+  assert.equal(campEvent(s).id, "retry-descent1");
+  s = choose(s, "retry");
+  assert.equal(s.phase, "leg");
+  assert.equal(currentLeg(s).legId, "descent1");
+});
+
+test("soft-lock guard: Scavenge appears below the smallest winning set, stays in camp, and repeats until you can win", () => {
+  let s: JourneyState = { ...startJourney(SEED), legIndex: 1, phase: "camp", res: { beacons: 1, clock: 100, doses: 3 } }; // leg 2 needs 4
+  assert.ok(campEvent(s).choices.some((c) => c.id === "scavenge"));
+  s = choose(s, "scavenge");
+  assert.deepEqual([s.phase, s.res.beacons, s.res.clock], ["camp", 3, 125]);
+  assert.ok(campEvent(s).choices.some((c) => c.id === "scavenge")); // 3 < 4: still stuck
+  s = choose(s, "scavenge");
+  assert.equal(s.res.beacons, 5);
+  assert.ok(!campEvent(s).choices.some((c) => c.id === "scavenge"));
+  assert.equal(choose(s, "verify-beacons").phase, "leg");
+  // and a retry camp offers it too
+  const failed = completeLeg({ ...startJourney(SEED), phase: "leg", res: { beacons: 1, clock: 0, doses: 6 } }, { legId: "descent1", stars: 0, maraAt: null, medicineAt: null, beaconsPlaced: 1, ticks: 70 });
+  assert.ok(campEvent(failed).choices.some((c) => c.id === "scavenge"));
+});
+
+test("tower lie: Trust sets revealLead 0 for leg 2 only; Verify leaves the normal reveal", () => {
+  const base = (id: string) => {
+    let s = choose(startJourney(SEED), "leave-now");
+    s = completeLeg(s, play(s, solution(s)));
+    assert.equal(campEvent(s).id, "tower-lies");
+    return choose(s, id);
+  };
+  let s = base("trust-tower");
+  assert.equal(currentLeg(s).mods.revealLead, 0);
+  assert.match(lastReveal(s)!, /tower was wrong/);
+  s = completeLeg(s, play(s, solution(s)));
+  s = choose(s, "check-credential");
+  assert.equal(currentLeg(s).mods.revealLead, undefined); // leg 3 is normal again
+  const v = base("verify-beacons");
+  assert.equal(currentLeg(v).mods.revealLead, undefined);
+  assert.match(lastReveal(v)!, /beacons knew/);
+});
+
+test("leg budget is min(leg cap, beacons carried) and goes into the mission", () => {
+  const s = choose(startJourney(SEED), "leave-now");
+  assert.deepEqual([currentLeg(s).mods.budget, currentLeg(s).mission.beaconBudget], [5, 5]);
+  const poor = { ...s, res: { ...s.res, beacons: 3 } };
+  assert.deepEqual([currentLeg(poor).mods.budget, currentLeg(poor).mission.beaconBudget], [3, 3]);
+});
+
+test("deterministic: the same seed and choices replay to the same state; pure functions do not mutate", () => {
+  const a = run(["extra-beacons", "verify-beacons", "check-credential"], solution);
+  const b = run(["extra-beacons", "verify-beacons", "check-credential"], solution);
+  assert.deepEqual(a, b);
+  const s0 = startJourney(SEED);
+  const snap = JSON.stringify(s0);
+  choose(s0, "extra-beacons");
+  assert.equal(JSON.stringify(s0), snap);
+  assert.deepEqual(campEvent(startJourney(7)), campEvent(startJourney(7)));
+  assert.equal(choose(s0, "no-such-choice"), s0);
+});
+
+test("both endings are reachable, including running out of doses", () => {
+  assert.equal(ending(run(["extra-beacons", "verify-beacons", "check-credential"], solution)).kind, "saved");
+  assert.equal(ending(run(["leave-now", "retry", "retry", "retry", "retry", "retry", "retry", "trust-tower", "yield"], (st, a) => (st.legIndex === 0 && a < 6 ? [] : solution(st)))).kind, "late");
+  const noDoses = { ...run(["extra-beacons", "verify-beacons", "check-credential"], solution) };
+  noDoses.res = { ...noDoses.res, doses: 0 };
+  assert.equal(ending(noDoses).kind, "late");
+  assert.equal(ending(noDoses).title, "The medicine ran out");
+});
+
+test("Leave now really saves 15 minutes (the clock starts above zero, so the saving is not clamped away)", () => {
+  const s = choose(startJourney(SEED), "leave-now");
+  assert.equal(s.res.clock, TUNING.start.clock - 15);
+  assert.ok(s.res.clock > 0 && s.res.clock < startJourney(SEED).res.clock);
+  assert.equal(choose(startJourney(SEED), "extra-beacons").res.clock, TUNING.start.clock);
+});
+
+test("currentLeg throws a clear error outside a leg instead of a TypeError", () => {
+  const over = run(["extra-beacons", "verify-beacons", "check-credential"], solution);
+  assert.equal(over.phase, "ending");
+  assert.throws(() => currentLeg(over), /no leg to play.*phase "ending"/);
+});
+
+test("completeLeg ignores a stale or malformed result (wrong leg, NaN ticks)", () => {
+  const s = choose(startJourney(SEED), "leave-now");
+  const ok = play(s, solution(s));
+  assert.equal(completeLeg(s, { ...ok, legId: "descent2" }), s);
+  assert.equal(completeLeg(s, { ...ok, ticks: NaN }), s);
+  assert.equal(completeLeg(s, { ...ok, maraAt: Infinity }), s);
+  assert.equal(completeLeg({ ...s, phase: "camp" }, ok).phase, "camp"); // not in a leg: unchanged
+  assert.ok(Number.isFinite(completeLeg(s, ok).res.clock));
+});
+
+test("1 star is reachable by beating the no-beacons baseline, on every flood of every leg", () => {
+  for (const L of DESCENT_LEVELS) L.candidates.forEach((c, ci) => {
+    const a = [...Array(80).keys()].find((n) => L.candidateIndex({ attempt: n }) === ci)!;
+    const none = playRun(L.build({ attempt: a }), "echo");
+    assert.equal(none.stars, 0, `${L.id}/${c.id}: doing nothing never earns a star`);
+    if (none.mara !== null) assert.ok(c.goals[0].maraBy < none.mara, `${L.id}/${c.id}: the 1-star bar (${c.goals[0].maraBy}) is below the baseline arrival (${none.mara})`);
+  });
+});
+
+test("a retry faces the same flood and the same star deadlines", () => {
+  const s0 = choose(startJourney(SEED), "leave-now");
+  const failed = completeLeg(s0, { legId: "descent1", stars: 0, maraAt: null, medicineAt: null, beaconsPlaced: 2, ticks: 70 });
+  const a = currentLeg(s0).mission, b = currentLeg(choose(failed, "retry")).mission;
+  assert.equal(a.sealSectorId, b.sealSectorId);
+  assert.deepEqual(goalsForMission(a), goalsForMission(b));
+});
+
+test("Continue anyway: a 0-star leg where Mara arrived moves on at her arrival time; one where she never arrived pays the failure cost and moves on", () => {
+  const s0 = choose(startJourney(SEED), "leave-now");
+  const arrived = completeLeg(s0, { legId: "descent1", stars: 0, maraAt: 88, medicineAt: 120, beaconsPlaced: 2, ticks: 90 }, { advance: true });
+  assert.equal(arrived.legIndex, 1); assert.equal(arrived.attempt, 0); assert.equal(arrived.phase, "camp");
+  assert.equal(arrived.res.clock, s0.res.clock + 88);
+  assert.equal(completeLeg(s0, { legId: "descent1", stars: 0, maraAt: 88, medicineAt: 120, beaconsPlaced: 2, ticks: 90 }).legIndex, 0, "without advance a 0-star leg still retries");
+  const lost = completeLeg(s0, { legId: "descent1", stars: 0, maraAt: null, medicineAt: null, beaconsPlaced: 2, ticks: 70 }, { advance: true });
+  assert.equal(lost.legIndex, 1);
+  assert.equal(lost.res.clock, s0.res.clock + 70 + TUNING.failPenalty);
+  assert.equal(lost.res.doses, s0.res.doses - 1);
+  assert.equal(ending(arrived).lines[0], "Descent I: ☆☆☆ · Mara at minute 88 · 0 retries");
+});
+
+test("replay guard: a 'Watch the solution' result never scores, spends beacons or moves the clock", () => {
+  const s = choose(startJourney(), "leave-now");
+  const ok = play(s, solution(s));
+  assert.equal(ok.stars, 3);
+  assert.equal(completeLeg(s, { ...ok, replay: true }), s); // exactly the same state object: nothing changed
+  const after = completeLeg(s, ok); // the same result without the flag does count
+  assert.notEqual(after, s);
+  assert.equal(after.res.clock, s.res.clock + ok.maraAt!);
+});
+
+test("a Scavenge that runs the clock past the limit ends the journey instead of leaving a dead camp", () => {
+  const camp: JourneyState = { ...startJourney(1), res: { beacons: 0, clock: LIMIT - 5, doses: 3 } };
+  const s = choose(camp, "scavenge");
+  assert.equal(s.phase, "ending");
+  assert.equal(s.legIndex, LEGS.length);
+  assert.ok(s.res.clock > LIMIT);
+  assert.equal(ending(s).kind, "late"); // does not throw, and is not "saved"
+  const ok = choose({ ...camp, res: { ...camp.res, clock: 100 } }, "scavenge"); // plenty of time: stays in camp as before
+  assert.equal(ok.phase, "camp");
+});
