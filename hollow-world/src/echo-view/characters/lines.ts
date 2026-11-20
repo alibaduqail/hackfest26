@@ -5,7 +5,7 @@ import { placeName } from "../cutaway/live/names";
 
 export type Speaker = "director" | "mara";
 export interface Line { id: string; who: Speaker; text: string }
-export interface LineCtx { ended: boolean; stars: number }
+export interface LineCtx { ended: boolean; stars: number; coach?: boolean } // coach: leg 1, where Mara may say where to bolt
 
 /** All the wording lives here. {section} and {n} are filled from the observation. */
 export const LINES = {
@@ -46,7 +46,8 @@ export function newLines(prev: Observation, obs: Observation, fired: ReadonlySet
   const shown = (o: Observation) => o.floodWarnings?.find((w) => w.sectorId !== undefined);
   const telegraph = shown(obs);
   add("flood", !!telegraph && !shown(prev), telegraph && { section: section(telegraph.sectorId!), n: `${Math.max(0, telegraph.at! - obs.tick)} min` });
-  add("floodMara", !!telegraph && !shown(prev), telegraph && { place: placeName(telegraph.sectorId!) });
+  // Only on leg 1's main1 flood: "the shaft above" is the whole answer there, and wrong advice for other floods and legs.
+  add("floodMara", !!ctx.coach && telegraph?.sectorId === "main1" && !shown(prev), telegraph && { place: placeName(telegraph.sectorId!) });
   const rerouted = has((e) => e.kind === "reroute" && e.podId === MARA);
   add("reroute", rerouted);
   add("rerouteDirector", rerouted);

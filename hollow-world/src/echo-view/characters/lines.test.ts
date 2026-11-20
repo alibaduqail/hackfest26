@@ -36,12 +36,16 @@ test("first blind wait: Director", () => {
 
 test("flood telegraph: Director names the section and minutes, then Mara says where to bolt beacons, once", () => {
   const warn = { floodWarnings: [{ risk: "flood", sectorId: "main1", at: 18 }] };
-  const [d, m, ...rest] = newLines(obs(9), obs(10, warn), new Set(), ctx);
+  const [d, m, ...rest] = newLines(obs(9), obs(10, warn), new Set(), { ...ctx, coach: true });
   assert.deepEqual([d.who, d.text], ["director", "The middle main shaft floods in 8 min. I didn't warn anyone. Did you?"]);
   assert.deepEqual([m.who, m.text], ["mara", "Bolt a beacon on the middle main shaft and the shaft above. The news hops to me."]);
   assert.equal(rest.length, 0);
   assert.deepEqual(newLines(obs(10, warn), obs(11, warn), new Set(), ctx), []); // already on screen
-  assert.deepEqual(newLines(obs(9), obs(10, warn), new Set(["flood", "floodMara"]), ctx), []);
+  assert.deepEqual(newLines(obs(9), obs(10, warn), new Set(["flood", "floodMara"]), { ...ctx, coach: true }), []);
+  // no coaching outside leg 1, or for any other flood
+  assert.deepEqual(newLines(obs(9), obs(10, warn), new Set(), ctx).map((l) => l.id), ["flood"]);
+  const other = { floodWarnings: [{ risk: "flood", sectorId: "main2", at: 18 }] };
+  assert.deepEqual(newLines(obs(9), obs(10, other), new Set(), { ...ctx, coach: true }).map((l) => l.id), ["flood"]);
 });
 
 test("reroute: Mara, then the Director queued right after; other pods do not trigger", () => {
@@ -96,7 +100,7 @@ test("real run: no beacons fails once; solution replay speaks start, beacon, flo
       const n = run.getSnapshot();
       const mara = n.observation.pods.find((p) => p.id === "MED-1")!;
       const stars = mara.arriveTick === null ? 0 : 1;
-      for (const l of newLines(n.previous, n.observation, fired, { ended: n.ended, stars })) { fired.add(l.id); said.push(l.id); }
+      for (const l of newLines(n.previous, n.observation, fired, { ended: n.ended, stars, coach: true })) { fired.add(l.id); said.push(l.id); }
     }
     return said;
   };
