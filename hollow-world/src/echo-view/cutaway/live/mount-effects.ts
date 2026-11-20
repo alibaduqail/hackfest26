@@ -1,6 +1,6 @@
 import type { Observation } from "../../../echo/types";
-import { frameProgress } from "../motion";
-import { neighbors, podPose, tracks } from "../run";
+import { buildRoute, compileRoute, frameProgress, sampleRoute } from "../motion";
+import { neighbors, tracks } from "../run";
 import { lamp } from "../scene";
 import * as fx from "./fx";
 import { RAIL_HEIGHT, RAIL_WIDTH } from "./hit";
@@ -55,9 +55,9 @@ export function mountEffects(lightCanvas: HTMLCanvasElement, fxCanvas: HTMLCanva
       };
     });
     const headlamps = obs.pods.filter((p) => p.status === "moving").map((p) => {
-      const [x, y] = podPose(p);
-      const [px, py] = podPose(previous.pods.find((old) => old.id === p.id)!);
-      return { x: x * RAIL_WIDTH, y: y * RAIL_HEIGHT - 12, px: px * RAIL_WIDTH, py: py * RAIL_HEIGHT - 12 };
+      // The headlamp rides the same track polyline as the pod sprite (scene.ts), not a straight line between ticks.
+      const route = compileRoute(buildRoute(previous.pods.find((old) => old.id === p.id)!, p), RAIL_WIDTH, RAIL_HEIGHT, false);
+      return { route, x: route.x[route.x.length - 1], y: route.y[route.y.length - 1] - 12 };
     });
     return {
       sectors,
@@ -71,13 +71,15 @@ export function mountEffects(lightCanvas: HTMLCanvasElement, fxCanvas: HTMLCanva
 
   let current: ReturnType<typeof prepare> | undefined;
   let last = performance.now(), animationId = 0;
+  const spot = { x: 0, y: 0, left: false };
   function draw(now: number) {
     if (current) {
       const t = motion.matches ? 1 : frameProgress(now, current.started, current.duration);
       for (const [i, pos] of current.positions.entries()) {
         const h = current.headlamps[i];
-        pos.x = h.px + (h.x - h.px) * t;
-        pos.y = h.py + (h.y - h.py) * t;
+        sampleRoute(h.route, t, spot, false);
+        pos.x = spot.x;
+        pos.y = spot.y - 12;
       }
       lighting.draw({ sectors: current.sectors, pulses: current.pulses, headlamps: current.positions, t, now });
     }

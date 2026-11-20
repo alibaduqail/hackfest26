@@ -2,7 +2,7 @@ import { FONT_MONO, FONT_SANS, THEME as T } from "../theme";
 import type { Pod } from "../../echo/types";
 import { podName } from "./live/names";
 import { along, type Frame, neighbors, podPose, type Point, type Track, tracks } from "./run";
-import { frameProgress } from "./motion";
+import { buildRoute, compileRoute, frameProgress, restFacing, sampleRoute } from "./motion";
 import med from "./art/med-1.webp";
 import freight from "./art/supply.webp";
 import passenger from "./art/pax-1.webp";
@@ -277,23 +277,25 @@ export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasEleme
       for (const sign of signs) tag(ground, sign.box, sign.copy, sign.ink);
       const pods = obs.pods.filter((p) => visible(p, obs.tick)).map((p) => {
         const old = previous.obs.pods.find((o) => o.id === p.id)!;
-        const [x, y] = podPose(p), [px, py] = podPose(old);
+        const [x, y] = podPose(p);
+        const restLeft = restFacing(p);
+        const route = compileRoute(buildRoute(old, p), W, H, restFacing(old)); // once per tick; draw() only samples it
         const fake = rejected.has(p.id), held = p.status === "holding" || p.status === "waiting";
         const ship: Sprite = p.ghost ? "forged" : p.nurse ? "med" : p.cargo ? "freight" : "passenger";
-        const track = tracks.get(p.path[p.at]);
-        const facesLeft = !!track && p.status !== "arrived" && track.b[0] < track.a[0];
         let label = podName(p);
         if (p.ghost && fake) label = "Fake medical pod";
         return {
           id: p.id,
           x: x * W,
           y: y * H,
-          px: px * W,
-          py: py * H,
+          route,
+          restLeft,
+          cx: x * W,
+          cy: y * H,
           ship,
           held,
           fake,
-          facesLeft,
+          facesLeft: restLeft,
           label,
           ink: color(p, fake),
           box: { x: 0, y: 0, w: 0, h: 0 },
@@ -336,13 +338,20 @@ export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasEleme
       const sealedNow = obs.log.some((e) => e.kind === "seal" && e.tick === obs.tick - 1);
       const liftSection = obs.sectors.find((s) => s.id === "ramp2");
       const liftPod = pods.find((p) => p.id === liftSection?.holder);
+      const spot = { x: 0, y: 0, left: false };
       function draw(now: number) {
         const t = frameProgress(now, start, duration);
         live.clearRect(0, 0, W, H);
+        for (const p of pods) { // pods ride the track polyline; one sample per pod per frame
+          sampleRoute(p.route, t, spot, p.restLeft);
+          p.cx = spot.x;
+          p.cy = spot.y;
+          p.facesLeft = spot.left;
+        }
         // Keep moving leader lines behind every fixed sign even between simulation ticks.
         for (const p of pods) {
           if (!p.box.w) continue;
-          const x = p.px + (p.x - p.px) * t, y = p.py + (p.y - p.py) * t;
+          const x = p.cx, y = p.cy;
           line(live, p.box.x + p.box.w / 2, p.box.y + p.box.h, x, y - 40, p.ink + "90", 1.5);
         }
         for (const box of fixed) live.clearRect(box.x - 2, box.y - 2, box.w + 4, box.h + 4);
@@ -357,7 +366,7 @@ export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasEleme
           circle(live, x, y, 8 + 7 * t, pulse.ink + "cc", true);
         }
         if (liftPod) {
-          const y = liftPod.py + (liftPod.y - liftPod.py) * t;
+          const y = liftPod.cy;
           const x = .513 * W;
           if (trim) {
             line(live, x-9, .077*H, x-9, y-48, "#140f0a", 4);
@@ -383,7 +392,7 @@ export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasEleme
           }
         }
         for (const p of pods) {
-          const x = p.px + (p.x - p.px) * t, y = p.py + (p.y - p.py) * t;
+          const x = p.cx, y = p.cy;
           drawSprite(live, p.ship, x, y, 112, 41, p.facesLeft);
           if (p.ship === "med") maraInPod(live, x, y, p.facesLeft); // characters: Mara rides MED-1
           if (p.fake) {
