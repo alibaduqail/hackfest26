@@ -62,7 +62,11 @@ export function CampScreen({ event, res, limit = LIMIT, legIndex, attempt, log, 
 
   const choice = event.choices.find((c) => c.id === picked);
   const pickIdx = event.choices.findIndex((c) => c.id === picked);
-  const pick = (id: string) => { if (picked) return; setPicked(id); onPick?.(id); };
+  const pick = (id: string) => {
+    if (picked) return;
+    setPicked(id); onPick?.(id);
+    if (id === "retry") onContinue(id); // the retry card has one choice and nothing to preview: one press retries, no second Enter
+  };
 
   useEffect(() => {
     const onKey = (e: globalThis.KeyboardEvent) => {

@@ -60,9 +60,11 @@ export interface LiveScreenProps {
   attempt?: number; // journey mode: the leg's failed tries so far, and the journey's seed: together they picked the flood candidate when the mission was built
   seed?: number;
   onLegEnd?: (result: LegResult, opts?: { continueAnyway?: boolean }) => void;
+  /** Journey mode: the run just ended and the debrief is showing, before the player confirms. The journey saves the result here so a reload from the debrief resumes at the next camp, not the start of this leg. */
+  onLegResult?: (result: LegResult) => void;
 }
 
-export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = false, attempt: journeyAttempt = 0, seed: journeySeed, onLegEnd }: LiveScreenProps) {
+export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = false, attempt: journeyAttempt = 0, seed: journeySeed, onLegEnd, onLegResult }: LiveScreenProps) {
   applyLayout(legMission?.id ?? "descent-live"); // the shared track map must match this level before anything reads it
   const levelIndex = Math.max(0, DESCENT_LEVELS.findIndex((l) => l.id === legMission?.id));
   const level = DESCENT_LEVELS[levelIndex];
@@ -255,8 +257,12 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
   function endLeg(continueAnyway = false) {
     if (finished.current || !onLegEnd || !legId || solution) return; // a solution replay never records a leg
     finished.current = true;
-    onLegEnd({ legId, stars, maraAt: mara.arriveTick, medicineAt: medicine.arriveTick, beaconsPlaced: live.commands.length, ticks: obs.tick }, continueAnyway ? { continueAnyway } : undefined);
+    onLegEnd(legResult(), continueAnyway ? { continueAnyway } : undefined);
   }
+  function legResult(): LegResult {
+    return { legId: legId!, stars, maraAt: mara.arriveTick, medicineAt: medicine.arriveTick, beaconsPlaced: live.commands.length, ticks: obs.tick };
+  }
+  useEffect(() => { if (over && journeyMode && legId && !solution && onLegResult) onLegResult(legResult()); }, [over]); // eslint-disable-line react-hooks/exhaustive-deps -- once per run end
   function restart(watch: boolean) {
     setIntroDone(true);
     seenHints.current = new Set([1]);
