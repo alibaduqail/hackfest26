@@ -21,6 +21,7 @@ import { LiveDebrief } from "./LiveDebrief";
 import { analyzeRun } from "./cause";
 import { liveLinks, previewReach, sectorGraph } from "./reach";
 import { LiveIntro } from "./LiveIntro";
+import { LEG_LEVELS, LEVEL_NAMES } from "../../journey/helpers";
 import "../../characters/bubble.css";
 import { LEVEL_HINTS, nextHint } from "./hints";
 import { Dialogue } from "../../characters/Dialogue";
@@ -70,6 +71,7 @@ export interface LiveScreenProps {
   mission?: Mission;
   legId?: LegId;
   journeyMode?: boolean;
+  pool?: number; // journey mode: the beacons in the pack when the leg starts (the leg takes up to its own cap from it)
   attempt?: number; // journey mode: the leg's failed tries so far, and the journey's seed: together they picked the flood candidate when the mission was built
   seed?: number;
   onLegEnd?: (result: LegResult, opts?: { continueAnyway?: boolean }) => void;
@@ -77,7 +79,7 @@ export interface LiveScreenProps {
   onLegResult?: (result: LegResult) => void;
 }
 
-export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = false, attempt: journeyAttempt = 0, seed: journeySeed, onLegEnd, onLegResult }: LiveScreenProps) {
+export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = false, pool, attempt: journeyAttempt = 0, seed: journeySeed, onLegEnd, onLegResult }: LiveScreenProps) {
   applyLayout(legMission?.id ?? "descent-live"); // the shared track map must match this level before anything reads it
   const levelIndex = Math.max(0, DESCENT_LEVELS.findIndex((l) => l.id === legMission?.id));
   const level = DESCENT_LEVELS[levelIndex];
@@ -86,10 +88,12 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
   const { mission, observation: obs, previous, playing, queued, remaining, solution, feedback } = live;
   const runAttempt = legMission ? journeyAttempt : live.attempt;
   const goals = level.goalsFor({ seed: legMission ? journeySeed : FREE_PLAY_SEED, attempt: runAttempt }); // the flood candidate has its own star table
+  const poolMore = journeyMode && pool !== undefined && pool > (mission.beaconBudget ?? 0); // the pack holds more than this leg may use
   const [introDone, setIntroDone] = useState(false);
   const [hintText, setHintText] = useState<string | null>(null);
   const seenHints = useRef(new Set<number>([1])); // level 1's hint is on the intro card
   const finished = useRef(false);
+  const spaceDown = useRef(false); // a Space press that already started the run: one press does one thing
   const starterId = mission.world.sectors.find((s) => s.beacon === false)?.id ?? "link0";
   const [attempt, setAttempt] = useState(0);
   // The hover pill follows the pointer by direct style writes: a React render per pointermove re-rendered the whole screen.
@@ -260,7 +264,11 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
   useEffect(() => {
     function keys(e: KeyboardEvent) {
       if (e.altKey || e.ctrlKey || e.metaKey || e.repeat) return;
-      if (!introDone) return; // the intro card owns the keyboard until Start
+      if (!introDone) { // the intro card owns the keyboard until Start: Space is its Start (and only that)
+        if (e.key === " ") { e.preventDefault(); spaceDown.current = true; start(); }
+        return;
+      }
+      if (spaceDown.current && e.key === " ") { e.preventDefault(); return; } // the press that started the run must not also pause it
       if (e.key.toLowerCase() === "r" && over) {
         e.preventDefault();
         if (journeyMode) { if (!won) endLeg(); } else restart(false);
@@ -269,8 +277,10 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
         toggleRun();
       }
     }
+    const keyup = (e: KeyboardEvent) => { if (e.key === " ") spaceDown.current = false; };
     window.addEventListener("keydown", keys);
-    return () => window.removeEventListener("keydown", keys);
+    window.addEventListener("keyup", keyup);
+    return () => { window.removeEventListener("keydown", keys); window.removeEventListener("keyup", keyup); };
   });
 
   function tryPlace(id: string) {
@@ -310,6 +320,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
   function legResult(): LegResult {
     return { legId: legId!, stars, maraAt: mara.arriveTick, medicineAt: medicine.arriveTick, beaconsPlaced: live.commands.length, ticks: obs.tick };
   }
+  useEffect(() => { if (over) window.scrollTo(0, 0); }, [over]); // the debrief autofocuses its button, which scrolled the page down and cropped the map: keep the map in view
   useEffect(() => { if (over && journeyMode && legId && !solution && onLegResult) onLegResult(legResult()); }, [over]); // eslint-disable-line react-hooks/exhaustive-deps -- once per run end
   function restart(watch: boolean) {
     setIntroDone(true);
@@ -331,7 +342,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
   return (
     <div className="descent descent-live">
       <SettingsGear />
-      <header>
+      <header inert={!introDone}>
         <div>
           <a className="brand" href="?screen=title" onClick={onExit} aria-label="Back to the Echo title">← Back</a>
           <h1>{journeyMode && legId ? LEGS.find((l) => l.id === legId)?.story.title : "The Descent"}</h1>
@@ -339,7 +350,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
         <div className="live-status">
           <div className="live-pack" aria-live="polite" aria-atomic="true">
             <span>
-              <strong>{remaining}</strong> / {mission.beaconBudget} beacons left
+              <strong>{remaining}</strong> / {mission.beaconBudget} beacons left{poolMore && <small className="live-pool"> · of your {pool}</small>}
             </span>
             <div className="live-pips" aria-hidden="true">
               {Array.from(
@@ -373,7 +384,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
           </div>
         </div>
       </header>
-      <main>
+      <main inert={!introDone}>
         <div className="world-scroll">
           <div
             className={"world live-world" + (hover && canPlace(hover) ? " placeable" : "")}
@@ -515,7 +526,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
             )}
             {hintText && !over && <p className="live-hint-caption" role="status">{hintText}</p>}
             {/* characters: Director + Mara dialogue (src/echo-view/characters) */}
-            <Dialogue obs={obs} previous={previous} ended={over} stars={stars} coach={mission.id === "descent-live"} />
+            <Dialogue obs={obs} previous={previous} ended={over} stars={stars} coach={mission.id === "descent-live"} placed={live.commands.length} />
           </div>
         </div>
         <aside aria-label="Relay controls and goals">
@@ -524,7 +535,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
               journeyMode
                 ? won
                   ? <LiveDebrief mission={mission} commands={live.commands} stars={stars} endReason={obs.endReason} onNext={() => endLeg()} nextLabel="Continue the journey" />
-                  : <LiveDebrief mission={mission} commands={live.commands} stars={stars} endReason={obs.endReason} onRetry={() => endLeg()} retryLabel="Retry leg" onContinue={() => endLeg(true)}
+                  : <LiveDebrief mission={mission} commands={live.commands} stars={stars} endReason={obs.endReason} onRetry={() => endLeg()} retryLabel="Retry leg" failed onContinue={() => endLeg(true)}
                       note={`Retrying costs ${obs.tick + 15} minutes on the clock, 1 dose${live.commands.length ? `, and the ${live.commands.length} beacon${live.commands.length === 1 ? "" : "s"} you placed` : ""}.`} />
                 : <LiveDebrief mission={mission} commands={live.commands} stars={stars} endReason={obs.endReason} replay={solution} onRetry={() => restart(false)} retryLabel={solution ? "Play yourself" : undefined} onWatchSolution={solution ? undefined : () => restart(true)} />
             )
@@ -599,7 +610,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
           </ol>
         </aside>
       </main>
-      <footer>
+      <footer inert={!introDone}>
         <nav aria-label="Descent controls">
           <button className="live-primary" onClick={toggleRun} disabled={over}>
             {playing ? "Ⅱ Pause" : obs.tick === 0 ? "▶ Start run" : "▶ Resume"} <kbd>Space</kbd>
@@ -622,7 +633,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
         </nav>
         <p className="fine">Simulated run · deterministic engine</p>
       </footer>
-      {!introDone && <LiveIntro mission={mission} goal={`Nurse Mara reaches the deep clinic by minute ${goals[0].maraBy}.`} hint={INTRO_HINTS[levelIndex]} onStart={start} />}
+      {!introDone && <LiveIntro mission={mission} pool={poolMore ? pool : undefined} from={journeyMode && levelIndex > 0 ? LEVEL_NAMES[LEG_LEVELS[levelIndex - 1].at(-1)! - 1] : undefined} goal={`Nurse Mara reaches the deep clinic by minute ${goals[0].maraBy}.`} hint={INTRO_HINTS[levelIndex]} onStart={start} />}
     </div>
   );
 }

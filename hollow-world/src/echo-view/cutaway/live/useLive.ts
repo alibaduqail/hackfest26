@@ -19,7 +19,7 @@ type LiveState = {
   commands: Command[];
   queued: ReadonlySet<string>;
   solution: boolean;
-  attempt: number; // retries so far: free play picks the flood candidate from it
+  attempt: number; // always 0: retries keep the flood
   building: ReadonlySet<string>; // beacons ordered and ticking toward live (the engine's build delay)
   feedback: string | null;
   stepMs: number;
@@ -107,7 +107,7 @@ export function createLive(spec: LiveSpec = LEVEL_1) {
   function suppressSlow() {
     if (state.slow) override = true;
   }
-  function reset(watch: boolean) { // watching the solution replays the same flood; a retry draws the next one
+  function reset(watch: boolean) { // watching the solution and a retry both replay the same flood
     mission = spec.build(attempt);
     engine = createEngine(mission, "echo");
     observation = engine.observe();
@@ -196,7 +196,7 @@ export function createLive(spec: LiveSpec = LEVEL_1) {
     togglePause,
     start,
     setSpeed,
-    retry: () => { attempt++; reset(false); },
+    retry: () => reset(false), // the same flood on every retry (a new page load draws a new one), like a journey leg
     watchSolution: () => reset(true),
   };
 }

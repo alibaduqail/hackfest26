@@ -12,15 +12,15 @@ const WHO = {
 };
 const FADE_MS = 350;
 
-export function Dialogue({ obs, previous, ended, stars, coach }: { obs: Observation; previous: Observation } & LineCtx) {
+export function Dialogue({ obs, previous, ended, stars, coach, placed }: { obs: Observation; previous: Observation } & LineCtx) {
   const fired = useRef(new Set<string>());
   const queue = useRef<Line[]>([]);
   const busy = useRef(false);
   const [cur, setCur] = useState<{ line: Line; n: number } | null>(null);
   const [out, setOut] = useState(false);
   const count = useRef(0);
-  const ctx = useRef({ ended, stars, coach });
-  ctx.current = { ended, stars, coach };
+  const ctx = useRef({ ended, stars, coach, placed });
+  ctx.current = { ended, stars, coach, placed };
 
   function pump() {
     if (busy.current) return;

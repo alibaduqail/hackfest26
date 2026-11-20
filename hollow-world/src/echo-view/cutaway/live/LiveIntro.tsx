@@ -10,10 +10,12 @@ export interface LiveIntroProps {
   mission: Mission;
   hint?: string | null; // defaults to the level 1 hint; pass null to hide
   goal?: string; // the deadline line; defaults to Descent I's 1-star goal (pass the level's own from DESCENT_LEVELS)
+  pool?: number; // journey mode: the whole pack, when it holds more than this leg may use
+  from?: string; // journey mode: where this leg starts (the end of the previous leg); defaults to the mission's own start city
   onStart: () => void;
 }
 
-export function LiveIntro({ mission, hint = LEVEL_HINTS[1], goal: goalText, onStart }: LiveIntroProps) {
+export function LiveIntro({ mission, hint = LEVEL_HINTS[1], goal: goalText, pool, from, onStart }: LiveIntroProps) {
   const mara = mission.pods.find((p) => p.nurse);
   const city = (id: string) => mission.world.cities.find((c) => c.id === id)?.name ?? id;
   const name = mara ? podName(mara) : "the nurse";
@@ -25,16 +27,16 @@ export function LiveIntro({ mission, hint = LEVEL_HINTS[1], goal: goalText, onSt
         <div className="eyebrow">YOU ARE THE RELAY</div>
         <h2 id="live-intro-title">Get {name} to the clinic</h2>
         <p>
-          {mara ? `${name} leaves ${city(mara.origin)} for ${city(mara.dest)}. ` : ""}
+          {mara ? `${name} leaves ${from ?? city(mara.origin)} for ${city(mara.dest)}. ` : ""}
           The tower goes dark at minute {mission.towerDownAt}. {mission.floodReveal ? (mission.floodReveal.lead === 0 ? "The Directorate will flood a shaft, and nothing warns you before it seals." : `The Directorate will flood a shaft; you see which one ${mission.floodReveal.lead} minutes before it seals.`) : mission.sealAt !== null && `The Directorate floods a shaft at minute ${mission.sealAt}.`}
         </p>
         <ul className="live-intro-rules">
           <li><strong>The tower is dark.</strong> News only hops beacon to beacon.</li>
-          <li><strong>You have {mission.beaconBudget ?? 0} beacons.</strong> Click a rail to bolt one in while the pods move.{mission.beaconBuildTicks ? ` A beacon takes ${mission.beaconBuildTicks} minutes to go live.` : ""}</li>
+          <li><strong>You have {mission.beaconBudget ?? 0} beacons{pool ? ` of your ${pool}` : ""}.</strong> Click a rail to bolt one in while the pods move.{mission.beaconBuildTicks ? ` A beacon takes ${mission.beaconBuildTicks} minutes to go live.` : ""}</li>
           <li><strong>Deadline:</strong> {goal.text}</li>
         </ul>
         {hint && <p className="live-intro-hint">{hint}</p>}
-        <button className="live-primary" onClick={onStart} autoFocus>Start <kbd>Space</kbd></button>
+        <button className="live-primary" onClick={onStart} autoFocus aria-label="Start the run">Start <kbd>Space</kbd></button>
       </section>
     </div>
   );

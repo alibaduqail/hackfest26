@@ -114,3 +114,11 @@ test("real run: no beacons fails once; solution replay speaks start, beacon, flo
   assert.equal(solved.at(-1), "win");
   assert.ok(solved.indexOf("flood") < solved.indexOf("reroute"));
 });
+
+test("reroute with none of the player's beacons down: Mara says the news came over the beacons already in the shaft, not 'through the beacons'", () => {
+  const withOwn = newLines(obs(4), obs(5, { log: [ev(4, "reroute", "MED-1")] }), new Set(), { ...ctx, placed: 2 });
+  assert.equal(withOwn[0].text, LINES.reroute.text);
+  const none = newLines(obs(4), obs(5, { log: [ev(4, "reroute", "MED-1")] }), new Set(), { ...ctx, placed: 0 });
+  assert.deepEqual(none.map((l) => l.id), ["rerouteOld", "rerouteDirector"]);
+  assert.match(none[0].text, /already in the shaft/);
+});

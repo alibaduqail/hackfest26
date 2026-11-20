@@ -34,7 +34,7 @@ test("debrief, no beacons: 0 stars, readable cause, tower / none / you all never
   assert.match(html, /had no beacon/);
   assert.match(html, /Tower<\/th><th[^>]*>Tower \+\u00a0backup<\/th><th[^>]*>No beacons<\/th><th[^>]*>You/);
   assert.equal((html.match(/<td class="[^"]*never"/g) ?? []).length, 8); // 4 columns x (Mara, medicine)
-  assert.match(html, /Tower says: \d+ pod runs authorized; actual: \d+ ran\. Mara never arrives\./);
+  assert.match(html, /Tower-only run:<\/strong> \d+ pod runs authorized; actual: \d+ ran\. Mara never arrives\./);
   assert.match(html, /Next star:<\/strong> Light the middle main shaft, the upper relay track/);
   assert.doesNotMatch(html, /main[01]\b/); // sector ids are shown by name
 });
@@ -84,4 +84,28 @@ test("plain labels: pod ids and protocol verbs read as ordinary words; Mara's bu
   assert.equal(plainLog("GHOST-1 · Medical courier: signature rejected, queued as passenger"), "Fake medical pod has no valid signature and joins the passenger line");
   assert.equal(plainLog("PAX-1 · Passenger holds at the boundary"), "Passengers wait at the edge");
   for (const t of [campLine("outfitting"), campLine("tower-lies"), campLine("forged-claim"), campLine("retry-descent1"), legLine(descentLive(1))]) assert.ok(t && t.split(" ").length <= 12, t);
+});
+
+test("Tower Down text names the Hollow cities (X Deep), never the surface ones", async () => {
+  const { plainLog } = await import("./names");
+  assert.equal(plainLog("Ines takes s07-lagos-f0"), "Ines takes the Sector 07 to Lagos Deep tunnel");
+  assert.equal(plainLog("Idris takes ny-lon-f1"), "Idris takes the New York Deep to London Deep tunnel");
+  assert.equal(plainLog("Directorate seals jak-syd-b2"), "Directorate seals the Jakarta Deep to Sydney Deep tunnel");
+});
+
+test("a late arrival with no star reads as one outcome: leg failed, no 'both arrived', the tower line is labelled as the tower's run", () => {
+  const m = descentLive(1);
+  const failed = renderToStaticMarkup(h(LiveDebrief, { mission: m, commands: [], stars: 0, onRetry: noop, failed: true, endReason: "Mara and the medicine have both arrived." }));
+  assert.match(failed, /LEG FAILED/);
+  assert.match(failed, /Arrived \d+ min late/);
+  assert.doesNotMatch(failed, /both arrived/);
+  assert.match(failed, /Tower-only run:/);
+  assert.match(renderToStaticMarkup(h(LiveDebrief, { mission: m, commands: [], stars: 0, onRetry: noop })), /RUN COMPLETE/);
+});
+
+test("journey intro: the leg starts where the last one ended, and the pack is shown against the leg's own beacons", () => {
+  const out = renderToStaticMarkup(h(LiveIntro, { mission: descentLive(), from: "Relay level", pool: 15, onStart: noop }));
+  assert.match(out, /Mara leaves Relay level for Deep Clinic/);
+  assert.match(out, /You have 5 beacons of your 15\./);
+  assert.match(out, /aria-label="Start the run"/);
 });

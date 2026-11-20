@@ -56,7 +56,7 @@ export function podName(p: PodLike): string {
 
 const POD_REF = /\b(?:MED|SUP|PAX|GHOST)-\d+(?: · .+?)?(?= (?:leaves|enters|arrives|holds|hears|re-plans|waits|announces|claims|yields)\b|[:,.]|$)/g;
 const podRef = (ref: string) => { const [id, ...rest] = ref.split(" · "); return podName({ id, label: ref, cargo: rest.join(" · ") }); };
-const CITY: Record<string, string> = { ny: "New York", s07: "Sector 07", sao: "São Paulo", lon: "London", lagos: "Lagos", cairo: "Cairo", mow: "Moscow", mum: "Mumbai", bei: "Beijing", tok: "Tokyo", jak: "Jakarta", syd: "Sydney" };
+const CITY: Record<string, string> = { ny: "New York Deep", s07: "Sector 07", sao: "São Paulo Deep", lon: "London Deep", lagos: "Lagos Deep", cairo: "Cairo Deep", mow: "Moscow Deep", mum: "Mumbai Deep", bei: "Beijing Deep", tok: "Tokyo Deep", jak: "Jakarta Deep", syd: "Sydney Deep" }; // the Hollow names (world.ts), never the surface cities
 /** "s07-lagos-f0" -> "the Sector 07 to Lagos tunnel" (world-map tunnel ids). */
 const tunnel = (t: string) => t.replace(/\b([a-z0-9]+)-([a-z]+)-[bf]\d+\b/g, (m, a: string, b: string) => (CITY[a] && CITY[b] ? `the ${CITY[a]} to ${CITY[b]} tunnel` : m));
 const PLURAL = /^Passengers (\S+)/;

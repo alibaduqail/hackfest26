@@ -58,6 +58,13 @@ export function stoppedAt(log: LogEntry[]): string | null {
   return first === -1 ? null : LEVEL_NAMES[STOP_LEVEL[first] - 1];
 }
 
+/** True when the first unwon leg ended with Mara at the clinic, but past the 1-star deadline: the leg failed because she was too late, not because she never arrived. */
+export function arrivedTooLate(log: LogEntry[]): boolean {
+  const first = starsFromLog(log).findIndex((s) => s === null);
+  const last = first === -1 ? undefined : [...log].reverse().find((l) => l.kind === "leg" && l.legId === LEG_IDS[first]);
+  return !!last && last.kind === "leg" && last.result.maraAt !== null;
+}
+
 export type LevelState = "done" | "current" | "ahead";
 export interface TrailNode { level: number; name: string; state: LevelState; leg: number; legEnd: boolean; here: boolean }
 export interface TrailModel { nodes: TrailNode[]; stars: (Stars | null)[]; hereLevel: number /* 0 = still at the surface ramp */ }
@@ -83,10 +90,10 @@ export function trailRows(log: LogEntry[], names: Record<string, string> = {}): 
       const choice = names[`${l.eventId}/${l.choiceId}`] ?? humanize(l.choiceId);
       return { kind: "choice", title: names[l.eventId] ?? humanize(l.eventId), detail: choice };
     }
-    const r = l.result, failed = r.stars === 0 || r.maraAt === null;
+    const r = l.result, moved = !!l.skipped, failed = (r.stars === 0 || r.maraAt === null) && !(moved && r.maraAt !== null); // "Continue anyway" with Mara at the clinic late: the journey counts the leg as done, late, so the trail must not call it failed
     return {
       kind: "leg", title: LEG_NAMES[l.legId] + (l.attempt > 0 ? `, retry ${l.attempt}` : ""), stars: r.stars, failed,
-      detail: `${r.ticks} min · ${plural(r.beaconsPlaced, "beacon")} placed${failed ? " · failed, retried" : ""}`,
+      detail: `${r.ticks} min · ${plural(r.beaconsPlaced, "beacon")} placed${failed ? (moved ? " · failed, moved on" : " · failed, retried") : moved ? " · late, continued" : ""}`,
     };
   });
 }
