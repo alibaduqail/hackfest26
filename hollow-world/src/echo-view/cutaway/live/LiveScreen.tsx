@@ -1,5 +1,6 @@
 import { type MouseEventHandler, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { DESCENT_LEVELS } from "../../../echo/descent-levels";
+import { themeLabel } from "../../../echo/theme-labels";
 import { LEGS } from "../../../echo/journey-events";
 import type { LegId, LegResult } from "../../../echo/journey";
 import type { LogEvent, Mission, Observation, Pod } from "../../../echo/types";
@@ -422,7 +423,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
                 onKeyDown={(e) => e.stopPropagation()}
               >
                 <summary>{held.length} pods held at the flood</summary>
-                <ul>{held.map((p) => <li key={p.id}>{p.label}</li>)}</ul>
+                <ul>{held.map((p) => <li key={p.id}>{themeLabel(p)}</li>)}</ul>
               </details>
             )}
             {hintText && !over && <p className="live-hint-caption" role="status">{hintText}</p>}

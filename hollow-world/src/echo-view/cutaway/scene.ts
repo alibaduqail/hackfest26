@@ -1,5 +1,6 @@
 import { FONT_MONO, FONT_SANS, THEME as T } from "../theme";
 import type { Pod } from "../../echo/types";
+import { themeLabel } from "../../echo/theme-labels";
 import { along, type Frame, neighbors, podPose, type Point, type Track, tracks } from "./run";
 import { frameProgress } from "./motion";
 import med from "./art/med-1.webp";
@@ -264,7 +265,7 @@ export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasEleme
         const ship: Sprite = p.ghost ? "forged" : p.nurse ? "med" : p.cargo ? "freight" : "passenger";
         const track = tracks.get(p.path[p.at]);
         const facesLeft = !!track && p.status !== "arrived" && track.b[0] < track.a[0];
-        let label = p.label;
+        let label = themeLabel(p);
         if (p.ghost && fake) label = "Forged medical pod · queued as passenger";
         else if (p.id === "PAX-1") label = "PAX-1 · passengers";
         return {

@@ -49,7 +49,7 @@ export function LiveDebrief({ mission, commands, stars, onRetry, onNext, onWatch
   const margin = lines.find(isMargin);
   const hint = nextStep(stars, mission, commands, base.you);
   const headline = stars ? "Clinic supplied" : base.you.mara !== null ? "Not fast enough" : "Deadline missed"; // never "missed" for a run that reached the clinic
-  const cols: [string, RunOutcome, string][] = [["Tower", base.tower, "tower"], ["No beacons", base.none, "none"], ["You", base.you, "you"]];
+  const cols: [string, RunOutcome, string][] = [["Tower", base.tower, "tower"], ["Tower +\u00a0backup", base.standby, "standby"], ["No beacons", base.none, "none"], ["You", base.you, "you"]];
   return (
     <section className="live-debrief live-debrief2" aria-label="Run result">
       <div className="eyebrow">RUN COMPLETE</div>
@@ -61,7 +61,7 @@ export function LiveDebrief({ mission, commands, stars, onRetry, onNext, onWatch
       {margin && !replay && <p className="live-margin">{margin}</p>}
       <h3>What happened</h3>
       <ol className="live-why">{why.map((l) => <li key={l}>{l}</li>)}</ol>
-      <h3>The same run, three ways</h3>
+      <h3>The same run, four ways</h3>
       <table className="live-compare">
         <thead><tr><th scope="col" />{cols.map(([n, , k]) => <th key={k} scope="col" className={k === "you" ? "you" : ""}>{n}</th>)}</tr></thead>
         <tbody>
