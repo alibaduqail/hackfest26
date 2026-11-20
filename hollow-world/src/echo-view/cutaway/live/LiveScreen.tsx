@@ -10,6 +10,7 @@ import { applyLayout } from "../layouts";
 import { along, type Frame, podPose, tracks } from "../run";
 import { plainLog, plainText, podName } from "./names";
 import { createScene, lamp } from "../scene";
+import { type Tween, tweenFor } from "../motion";
 import "../style.css";
 import { hitSector, RAIL_HEIGHT, RAIL_WIDTH } from "./hit";
 import { mountEffects } from "./mount-effects";
@@ -97,6 +98,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
   const ground = useRef<HTMLCanvasElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const scene = useRef<ReturnType<typeof createScene> | null>(null);
+  const tween = useRef<Tween | null>(null); // the clock of the tick on screen
   const lightCanvas = useRef<HTMLCanvasElement>(null);
   const fxCanvas = useRef<HTMLCanvasElement>(null);
   const effects = useRef<ReturnType<typeof mountEffects> | null>(null);
@@ -171,16 +173,20 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
       }
     }
     const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const smooth = playing && !reduced && previous.tick + 1 === obs.tick;
+    // Only the clock steps, so a fresh tick always animates, even the one that triggers a flood hold or ends the run (it used to snap).
+    const smooth = !reduced && previous.tick + 1 === obs.tick;
     const trapped = obs.pods.filter((p) => heldAtFlood(p, obs));
     const hiddenChips = trapped.length > 1 ? new Set(trapped.map((p) => p.id)) : undefined;
-    effects.current?.sync(obs, previous, smooth ? live.stepMs : 0);
+    // Pause/resume, a flood hold, a speed change or a placement re-shows the same tick: keep its clock so pods never replay it from the start.
+    const { start, duration } = (tween.current = tweenFor(tween.current, obs.tick, smooth, live.stepMs, performance.now()));
+    effects.current?.sync(obs, previous, duration, start);
     scene.current?.show(
       sceneFrame(obs, rejected.current),
       sceneFrame(previous),
       warning ? 4 : activeSector?.level ?? 1,
-      smooth ? live.stepMs : 0,
+      duration,
       hiddenChips,
+      start,
     );
   }, [obs, previous, playing, activeSector, warning, live.stepMs]);
 

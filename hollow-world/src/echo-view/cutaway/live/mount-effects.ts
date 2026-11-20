@@ -26,7 +26,7 @@ export function mountEffects(lightCanvas: HTMLCanvasElement, fxCanvas: HTMLCanva
   });
   resize.observe(fxCanvas);
 
-  function prepare(obs: Observation, previous: Observation, duration: number) {
+  function prepare(obs: Observation, previous: Observation, duration: number, started: number) {
     const sectors = obs.sectors.map((s) => {
       const track = tracks.get(s.id)!;
       const [midX, midY] = lamp(track);
@@ -51,7 +51,7 @@ export function mountEffects(lightCanvas: HTMLCanvasElement, fxCanvas: HTMLCanva
       headlamps,
       positions: headlamps.map((h) => ({ x: h.x, y: h.y })),
       duration,
-      started: performance.now(),
+      started,
     };
   }
 
@@ -81,8 +81,8 @@ export function mountEffects(lightCanvas: HTMLCanvasElement, fxCanvas: HTMLCanva
   }
   animationId = requestAnimationFrame(draw);
   return {
-    sync(obs: Observation, previous: Observation, duration: number) {
-      current = prepare(obs, previous, duration);
+    sync(obs: Observation, previous: Observation, duration: number, started = performance.now()) {
+      current = prepare(obs, previous, duration, started);
     },
     dispose() {
       cancelAnimationFrame(animationId);

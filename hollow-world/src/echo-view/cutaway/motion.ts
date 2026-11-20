@@ -3,9 +3,20 @@ export function frameProgress(now: number, start: number, duration: number): num
   return duration ? Math.max(0, Math.min(1, (now - start) / duration)) : 1;
 }
 
+/** One tick's tween clock: when it started and how long it runs (0 = snapped to the tick's end pose). */
+export interface Tween { tick: number; start: number; duration: number }
+/**
+ * The clock for showing `tick`. Re-showing a tick that is already on screen (pause and resume, a flood hold, a speed or slow-motion change,
+ * a beacon placed mid-tick) keeps that tick's clock instead of restarting it, so pods never replay the tick from its first pose.
+ */
+export function tweenFor(last: Tween | null, tick: number, smooth: boolean, duration: number, now: number): Tween {
+  if (last && last.tick === tick) return last;
+  return { tick, start: now, duration: smooth ? duration : 0 };
+}
+
 // ---- Pod motion: pods ride the track polyline instead of lerping in a straight line between tick poses.
 import type { Pod } from "../../echo/types";
-import { onTrack, podBerth, podDock, podPose, type Point, tracks } from "./run";
+import { berthOnTrack, dockOnTrack, onTrack, podBerth, podDock, podPose, type Point, shownProgress, tracks } from "./run";
 
 const same = (a: Point, b: Point) => Math.abs(a[0] - b[0]) < 1e-9 && Math.abs(a[1] - b[1]) < 1e-9;
 
@@ -13,6 +24,7 @@ const same = (a: Point, b: Point) => Math.abs(a[0] - b[0]) < 1e-9 && Math.abs(a[
 export function restFacing(pod: Pod): boolean {
   if (pod.status === "arrived") {
     const last = tracks.get(pod.path[pod.path.length - 1]);
+    if (last && berthOnTrack(pod)) return last.b[0] < last.a[0];
     return !!last && podBerth(pod)[0] < last.b[0] - 1e-9;
   }
   for (let i = pod.at; i >= 0; i--) {
@@ -20,17 +32,19 @@ export function restFacing(pod: Pod): boolean {
     if (t && Math.abs(t.b[0] - t.a[0]) > 1e-9) return t.b[0] < t.a[0];
   }
   const first = tracks.get(pod.path[0]);
+  if (first && pod.at < 0 && dockOnTrack(pod)) return first.b[0] < first.a[0];
   return !!first && pod.at < 0 && podDock(pod)[0] > first.a[0] + 1e-9;
 }
 
-/** Appends the corner-by-corner walk from (path[from], p0) to (path[to], p1). Requires (from, p0) <= (to, p1). */
-function walk(out: Point[], path: string[], from: number, p0: number, to: number, p1: number) {
-  out.push(onTrack(tracks.get(path[from])!, p0));
+/** Appends the corner-by-corner walk from (path[from], p0) to (path[to], p1), in engine progress. Requires (from, p0) <= (to, p1). */
+function walk(out: Point[], pod: Pod, from: number, p0: number, to: number, p1: number) {
+  const path = pod.path;
+  out.push(onTrack(tracks.get(path[from])!, shownProgress(pod, from, p0)));
   for (let j = from; j < to; j++) {
     const here = tracks.get(path[j])!, next = tracks.get(path[j + 1])!;
     out.push(onTrack(here, 1), here.b, onTrack(next, 0));
   }
-  out.push(onTrack(tracks.get(path[to])!, p1));
+  out.push(onTrack(tracks.get(path[to])!, shownProgress(pod, to, p1)));
 }
 
 /**
@@ -47,7 +61,7 @@ export function buildRoute(prev: Pod, cur: Pod): Point[] {
   const path = cur.path;
   let j = 0, p0 = 0; // where on the new path the pod starts
   if (prev.at < 0) {
-    out.push(tracks.get(path[0])!.a); // dock connector, then the first section
+    if (!dockOnTrack(cur)) out.push(tracks.get(path[0])!.a); // dock connector, then the first section (a dock on the section rolls straight out)
   } else {
     const id = prev.path[prev.at];
     j = path.indexOf(id);
@@ -64,8 +78,8 @@ export function buildRoute(prev: Pod, cur: Pod): Point[] {
   }
   if (j > cur.at || (j === cur.at && p0 > cur.progress + 1e-9)) return straight;
   const last = cur.status === "arrived";
-  walk(out, path, j, p0, last ? path.length - 1 : cur.at, last ? 1 : cur.progress);
-  if (last) out.push(tracks.get(path[path.length - 1])!.b, end);
+  walk(out, cur, j, p0, last ? path.length - 1 : cur.at, last ? 1 : cur.progress);
+  if (last && !berthOnTrack(cur)) out.push(tracks.get(path[path.length - 1])!.b, end);
   else out.push(end);
   return out.filter((p, i) => !i || !same(p, out[i - 1]));
 }
