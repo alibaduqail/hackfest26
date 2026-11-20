@@ -30,7 +30,7 @@ export function explainRun(log: LogEvent[], mission: Mission): string[] {
 
   // 1. what the flood did to Mara
   if (!seal) lines.push(`The flood never hit. ${name} ${arrived === null ? "did not reach the clinic" : `reached the clinic at minute ${arrived}`}.`);
-  else if (reroute) lines.push(`The flood${seals.length > 1 ? "s" : ""} sealed ${seals.map((x) => `${x.sectorId} at minute ${x.tick}`).join(" and ")}. The news hopped beacon to beacon, ${name} re-routed at ${when}${arrived === null ? " but did not arrive" : ` and reached the clinic at minute ${arrived}`}.`);
+  else if (reroute) lines.push(`The flood${seals.length > 1 ? "s" : ""} sealed ${seals.map((x) => `${x.sectorId} at minute ${x.tick}`).join(" and ")}. The news hopped ${log.some((l) => l.kind === "beacon-placed") ? "beacon to beacon" : "along the beacons already in the shaft"}, ${name} re-routed at ${when}${arrived === null ? " but did not arrive" : ` and reached the clinic at minute ${arrived}`}.`);
   else if (stuck) lines.push(`The flood sealed ${sealId} at minute ${seal.tick}. No warning reached ${name}: she met the sealed shaft at minute ${heard!.tick} and could not get through.`);
   else if (arrived === null) lines.push(`${name} did not reach the clinic.`); // e.g. still queued at timeout: never claim she cleared the shaft
   else lines.push(`${name} cleared the shaft before the flood sealed ${sealId} at minute ${seal.tick} and reached the clinic at minute ${arrived}.`);

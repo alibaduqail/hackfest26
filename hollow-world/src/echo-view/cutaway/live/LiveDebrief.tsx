@@ -20,6 +20,7 @@ export interface LiveDebriefProps {
   nextLabel?: string; // journey mode: "Continue the journey"
   endReason?: string; // why the run ended (observation.endReason), shown under the result
   note?: string; // a line above the buttons (the cost of a retry)
+  failed?: boolean; // journey mode: a leg without a star is a failed leg, even when Mara did reach the clinic (late)
   replay?: boolean; // "Watch the solution" playback: no stars, no credit, no next-level; only a way back to play
 }
 
@@ -33,7 +34,7 @@ function nextStep(stars: number, mission: Mission, commands: Command[], o: RunOu
   return stars === 0 ? "Light Mara's route." : "Beat the next deadline.";
 }
 
-export function LiveDebrief({ mission, commands, stars, onRetry, onNext, onWatchSolution, onContinue, retryLabel = "Retry", nextLabel = "Next level", endReason, note, replay = false }: LiveDebriefProps) {
+export function LiveDebrief({ mission, commands, stars, onRetry, onNext, onWatchSolution, onContinue, retryLabel = "Retry", nextLabel = "Next level", endReason, note, failed = false, replay = false }: LiveDebriefProps) {
   const { base, verdict } = useMemo(() => analyzeRun(mission, commands, stars), [mission, commands, stars]);
   const lines = useMemo(() => explainRun(base.you.log, mission).map((l) => plainLog(l).replace(/^./, (c) => c.toUpperCase())), [base, mission]);
   const why = lines.filter((l) => !isMargin(l));
@@ -42,10 +43,10 @@ export function LiveDebrief({ mission, commands, stars, onRetry, onNext, onWatch
   const cols: [string, RunOutcome, string][] = [["Tower", base.tower, "tower"], ["Tower +\u00a0backup", base.standby, "standby"], ["No beacons", base.none, "none"], ["You", base.you, "you"]];
   return (
     <section className="live-debrief live-debrief2" aria-label="Run result">
-      <div className="eyebrow">RUN COMPLETE</div>
+      <div className="eyebrow">{failed ? "LEG FAILED" : "RUN COMPLETE"}</div>
       <h2>{verdict.headline}</h2>
       {verdict.cause && !replay && <p className="live-cause">{verdict.cause}</p>}
-      {endReason && <p className="live-end-reason">{endReason}</p>}
+      {endReason && !(stars === 0 && base.you.mara !== null) && <p className="live-end-reason">{endReason}</p>}
       {replay
         ? <p className="live-stars live-replay-tag">Solution replay</p>
         : <p className="live-stars" aria-label={stars + " of 3 stars"}>{"★".repeat(stars)}{"☆".repeat(3 - stars)}</p>}
@@ -64,7 +65,7 @@ export function LiveDebrief({ mission, commands, stars, onRetry, onNext, onWatch
           ))}
         </tbody>
       </table>
-      <p className="live-tower-says">{base.towerSays}</p>
+      <p className="live-tower-says"><strong>Tower-only run:</strong> {base.towerSays.replace(/^Tower says: /, "")}</p>
       <p className="live-tower-says live-backup">tower + backup · back at min {mission.towerDownAt + STANDBY_AFTER} · no flood news reaches it</p>
       {hint && !replay && <p className="live-next"><strong>Next star:</strong> {hint}</p>}
       {stars >= 3 && !replay && <p className="live-next"><strong>Best possible run.</strong></p>}

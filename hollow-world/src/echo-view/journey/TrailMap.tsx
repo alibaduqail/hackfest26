@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { ghostHead, ghostOutcome, type GhostPath } from "./ghosts";
-import { LEG_NAMES, LEG_IDS, starsFromLog, stoppedAt, trailModel, trailRows } from "./helpers";
+import { arrivedTooLate, LEG_NAMES, LEG_IDS, starsFromLog, stoppedAt, trailModel, trailRows } from "./helpers";
 import { TentIcon } from "./icons";
 import type { TrailMapProps } from "./props";
 
@@ -156,11 +156,11 @@ export function TrailRecord({ log, choiceNames, ghosts }: TrailRecordProps) {
           <li key={i} data-leg={l.kind === "leg" ? LEG_IDS.indexOf(l.legId) : undefined} className={`${r.kind}${r.failed ? " failed" : ""}`} style={{ "--i": i + 1 } as React.CSSProperties}>
             <i aria-hidden />
             {r.kind === "leg" && l.kind === "leg"
-              ? <span><b>{r.title}</b><span className="g-stars" aria-label={`${r.stars} of 3 stars`}>{STAR_TEXT(r.stars ?? 0)}</span><em>{l.result.ticks} min{r.failed ? " · failed" : ""}</em></span>
+              ? <span><b>{r.title}</b><span className="g-stars" aria-label={`${r.stars} of 3 stars`}>{STAR_TEXT(r.stars ?? 0)}</span><em>{l.result.ticks} min{r.failed ? " · failed" : l.skipped ? " · late" : ""}</em></span>
               : <span><em>{r.title}</em>{r.detail}</span>}
           </li>
         ))}
-        <li className="mara" style={{ "--i": items.length + 1 } as React.CSSProperties}><i aria-hidden /><span><b>Mara</b>{full ? "Deep clinic" : `stopped at ${stopped}`}</span></li>
+        <li className="mara" style={{ "--i": items.length + 1 } as React.CSSProperties}><i aria-hidden /><span><b>Mara</b>{full ? "Deep clinic" : `${arrivedTooLate(log) ? "arrived too late at" : "stopped at"} ${stopped}`}</span></li>
         {!full && <li className="ahead"><i aria-hidden /><span>Deep clinic</span></li>}
       </ol>
     </div>

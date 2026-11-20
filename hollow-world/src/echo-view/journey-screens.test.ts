@@ -3,7 +3,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createElement as h } from "react";
 import { renderToStaticMarkup as html } from "react-dom/server";
-import { applyEffect, consequenceOf, formatEffect, retriesOf, starsFromLog, stoppedAt, trailModel, trailRows } from "./journey/helpers";
+import { applyEffect, arrivedTooLate, consequenceOf, formatEffect, retriesOf, starsFromLog, stoppedAt, trailModel, trailRows } from "./journey/helpers";
 import { campEvent, choose, completeLeg, ending, LIMIT, startJourney } from "../echo/journey";
 import { ghostData, ghostHead, ghostOutcome } from "./journey/ghosts";
 import { names, played, start } from "./journey/sample";
@@ -111,4 +111,14 @@ test("the ending's stop point comes from the legs actually won, not the last lev
   assert.equal(stoppedAt([res("descent1", 2), res("descent2", 0), res("descent3", 2)]), "Flooded shaft"); // leg II never won, a later leg did
   assert.equal(stoppedAt([res("descent1", 0)]), "Relay level");
   assert.equal(stoppedAt([res("descent1", 3), res("descent2", 3), res("descent3", 1)]), null); // all won: she reached the clinic
+});
+
+test("a late arrival with no star is a failed leg everywhere; 'Continue anyway' is a late completion, not a failure", () => {
+  const late = (skipped = false) => ({ kind: "leg" as const, legId: "descent2" as const, attempt: 0, ...(skipped ? { skipped } : {}), result: { legId: "descent2" as const, stars: 0 as const, maraAt: 130, medicineAt: 140, beaconsPlaced: 2, ticks: 90 } });
+  const won1 = { kind: "leg" as const, legId: "descent1" as const, attempt: 0, result: { legId: "descent1" as const, stars: 2 as const, maraAt: 80, medicineAt: 85, beaconsPlaced: 2, ticks: 60 } };
+  assert.equal(arrivedTooLate([won1, late()]), true);
+  assert.equal(trailRows([won1, late()])[1].failed, true);
+  assert.equal(arrivedTooLate([won1]), false);
+  assert.equal(trailRows([won1, late(true)])[1].failed, false);
+  assert.match(trailRows([won1, late(true)])[1].detail, /late, continued/);
 });

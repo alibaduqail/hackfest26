@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createEngine } from "../../../echo/engine";
-import { DESCENT_LIVE_SOLUTION, descentLiveStars } from "../../../echo/descent";
+import { DESCENT_LIVE_SOLUTION, descentLive, descentLiveStars } from "../../../echo/descent";
 import { createLive } from "./useLive";
 
 function finish(run: ReturnType<typeof createLive>) {
@@ -114,4 +114,11 @@ test("slow motion is capped and reserves time for the flood telegraph", () => {
     run.step();
   }
   assert.ok(slowTicks > 0 && slowTicks <= 16);
+});
+
+test("a retry replays the same flood (free play, like a journey leg): the mission and its star table do not change", () => {
+  const spec = { build: (a: number) => descentLive({ seed: 12345, attempt: a }), solution: () => DESCENT_LIVE_SOLUTION };
+  const run = createLive(spec);
+  const first = run.getSnapshot().mission;
+  for (let i = 0; i < 3; i++) { run.retry(); assert.deepEqual(run.getSnapshot().mission, first); assert.equal(run.getSnapshot().attempt, 0); }
 });

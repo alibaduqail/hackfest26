@@ -94,7 +94,7 @@ function Leg({ s, play, remember, toTitle }: { s: JourneyState; play: (s: Journe
     <Suspense fallback={<p role="status" className="g-muted">Loading the Descent…</p>}>
       <LiveScreen
         key={`${s.legIndex}-${s.attempt}-${s.log.length}`}
-        mission={cur.mission} legId={cur.legId} attempt={0} seed={s.seed} journeyMode // attempt 0: every retry of a leg faces the same flood (see currentLeg)
+        mission={cur.mission} legId={cur.legId} attempt={0} seed={s.seed} journeyMode pool={s.res.beacons} // attempt 0: every retry of a leg faces the same flood (see currentLeg)
         onLegResult={(r: LegResult) => remember(completeLeg(s, r))} // the debrief is up: save the finished leg now, so a reload resumes at the camp it leads to
         onLegEnd={(r: LegResult, o?: { continueAnyway?: boolean }) => play(completeLeg(s, r, { advance: o?.continueAnyway }))}
         onExit={(e: MouseEvent<HTMLAnchorElement>) => { e.preventDefault(); toTitle(); }}

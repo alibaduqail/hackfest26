@@ -5,7 +5,7 @@ import { placeName } from "../cutaway/live/names";
 
 export type Speaker = "director" | "mara";
 export interface Line { id: string; who: Speaker; text: string }
-export interface LineCtx { ended: boolean; stars: number; coach?: boolean } // coach: leg 1, where Mara may say where to bolt
+export interface LineCtx { ended: boolean; stars: number; coach?: boolean; placed?: number } // coach: leg 1, where Mara may say where to bolt; placed: beacons the player has bolted in so far
 
 /** All the wording lives here. {section} and {n} are filled from the observation. */
 export const LINES = {
@@ -15,6 +15,7 @@ export const LINES = {
   flood: { who: "director", text: "{section} floods in {n}. I didn't warn anyone. Did you?" },
   floodMara: { who: "mara", text: "Bolt a beacon on {place} and the shaft above. The news hops to me." },
   reroute: { who: "mara", text: "Got the flood warning through the beacons. Taking the bypass!" },
+  rerouteOld: { who: "mara", text: "Got the flood warning over the beacons already in the shaft. Taking the bypass!" }, // none of the player's own beacons are down: the news came over the pre-placed ones
   rerouteDirector: { who: "director", text: "…How did she hear that?" },
   forged: { who: "mara", text: "No credential, no priority. Medical goes first." },
   held: { who: "director", text: "Told you. Without my tower, nothing moves." },
@@ -49,7 +50,8 @@ export function newLines(prev: Observation, obs: Observation, fired: ReadonlySet
   // Only on leg 1's main1 flood: "the shaft above" is the whole answer there, and wrong advice for other floods and legs.
   add("floodMara", !!ctx.coach && telegraph?.sectorId === "main1" && !shown(prev), telegraph && { place: placeName(telegraph.sectorId!) });
   const rerouted = has((e) => e.kind === "reroute" && e.podId === MARA);
-  add("reroute", rerouted);
+  add("reroute", rerouted && ctx.placed !== 0);
+  add("rerouteOld", rerouted && ctx.placed === 0);
   add("rerouteDirector", rerouted);
   add("forged", has((e) => e.kind === "credential-reject"));
   add("held", has((e) => e.kind === "hold" && e.podId === MARA) && obs.sectors.some((s) => s.sealed)); // tower-down holds happen before any seal
