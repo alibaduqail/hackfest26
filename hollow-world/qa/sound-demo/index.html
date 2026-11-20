@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sound demo (dev only)</title>
+<style>
+  :root{color-scheme:dark;--bg:#0e1013;--fg:#e8e4da;--mut:#8b8a85;--acc:#e0a94a}
+  *{box-sizing:border-box} body{margin:0;width:1280px;height:720px;background:var(--bg);color:var(--fg);font:16px/1.4 "IBM Plex Mono",ui-monospace,monospace;overflow:hidden;position:relative}
+  header{position:absolute;left:48px;top:36px;right:48px;display:flex;justify-content:space-between;align-items:baseline}
+  h1{margin:0;font:600 34px/1 Georgia,serif;letter-spacing:.02em} h1 small{display:block;margin-top:8px;font:14px "IBM Plex Mono",monospace;color:var(--mut);letter-spacing:0}
+  #clock{color:var(--mut)}
+  #seg{position:absolute;left:48px;top:128px;color:var(--mut);letter-spacing:.12em;text-transform:uppercase;font-size:13px}
+  #cue{position:absolute;left:48px;top:170px;font:600 92px/1.1 Georgia,serif;transition:none}
+  #src{position:absolute;left:52px;top:290px;color:var(--mut);font-size:15px}
+  #chips{position:absolute;left:48px;right:48px;top:350px;display:flex;flex-wrap:wrap;gap:8px}
+  .chip{padding:5px 10px;border:1px solid #2a2d33;border-radius:4px;color:var(--mut);font-size:13px}
+  .chip.done{color:var(--fg);border-color:#3b3f47} .chip.now{background:var(--acc);border-color:var(--acc);color:#1a1405}
+  canvas{position:absolute;left:48px;bottom:40px}
+</style></head><body>
+<header><h1 id="ttl">Sound<small id="sub"></small></h1><div id="clock"></div></header>
+<div id="seg"></div><div id="cue"></div><div id="src"></div><div id="chips"></div>
+<canvas id="wave" width="1184" height="150"></canvas>
+<script type="module" src="./demo.ts"></script>
+</body></html>

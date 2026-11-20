@@ -5,7 +5,7 @@ import { createEngine } from "../echo/engine";
 import { towerDown } from "../echo/missions";
 import type { EchoEngineApi, LogEvent, LogKind, Mission, Observation } from "../echo/types";
 import { drawMap, makeProjection, PULSE_MS, shakeOffset, type Fx, type Variant } from "./map";
-import { play, type Sound } from "./game/audio";
+import { ambience, play, type Sound } from "./game/audio";
 
 const STRATA_URL = "/strata.html"; // the Strata city sim, home of Sector 07
 import { EchoBanner, EchoLog, Scoreboard, TowerBanner } from "./panels";
@@ -286,6 +286,7 @@ export function MissionScreen({ mission: missionProp, allowDispatch = true, spee
   const endRef = useRef(onEnd);
   endRef.current = onEnd;
   const ended = useRef(false);
+  useEffect(() => { ambience(running && !echo.over); return () => ambience(false); }, [running, echo.over]); // quiet cave bed while a run goes
   useEffect(() => {
     if (!echo.over || ended.current) return;
     ended.current = true; // a Replay builds a new world but onEnd still fires once per mount
