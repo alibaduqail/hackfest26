@@ -10,14 +10,6 @@
 .descent-live .live-world { outline-offset: -3px; }
 .descent-live .live-world.placeable { cursor: copy; }
 .descent-live .live-markers { position: absolute; inset: 0; pointer-events: none; }
-.descent-live .live-socket {
-  position: absolute; transform: translate(-50%, -50%); width: 21px; height: 21px; border: 1px dashed var(--amberHi);
-  display: grid; place-items: center; border-radius: 50%; background: #10191ed9; color: var(--amberHi);
-  font: 650 14px/1 var(--mono); z-index: 1;
-}
-.descent-live .live-socket.selected, .descent-live .live-socket.queued { border-style: solid; border-color: var(--good); color: var(--good); box-shadow: 0 0 0 4px #7ec8b343; z-index: 3; }
-.descent-live .live-socket.starter { outline: 1px solid var(--amber); outline-offset: 3px; }
-.descent-live .live-socket.queued { background: #244541; }
 .descent-live .live-water {
   width: 14%; height: 8%; position: absolute; transform: translate(-50%,-93%); z-index: 0;
   border-bottom: 2px solid var(--amber); background: linear-gradient(0deg,#4098a980,#20566f2b);
@@ -25,7 +17,7 @@
 .descent-live .live-water.sealed { border-color: var(--red); background: linear-gradient(0deg,#29708284,transparent); }
 .descent-live .live-instructions { color: var(--text2); font-size: clamp(14px, 1vw, 19px); line-height: 1.4; }
 .descent-live .live-alert { display: grid; gap: 4px; margin: 14px 0; background: var(--relay-panel); border-left: 3px solid var(--amber); padding: 9px 10px; }
-.descent-live .live-alert small { color: var(--amberHi); font: 650 11px var(--mono); text-transform: uppercase; }
+.descent-live .live-alert small { color: var(--amberHi); font: 600 12px var(--mono); }
 .descent-live .live-alert strong { font-size: 14px; }
 .descent-live .live-alert.danger { border-color: var(--red); background: var(--redBg); }
 .descent-live .live-alert.danger small { color: var(--redText); }
@@ -61,9 +53,6 @@
   .descent-live main { grid-template-columns: minmax(0,1fr) clamp(250px,18vw,350px); gap: 15px; }
 }
 .descent-live .live-markers { isolation: isolate; }
-.descent-live .live-socket.invalid { border-color: var(--red); color: var(--redText); box-shadow: 0 0 0 4px #e0634f38; }
-.descent-live .live-socket.warn-here { outline: 2px solid var(--amberHi); animation: warn-socket 1.3s ease-in-out infinite alternate; }
-.descent-live .live-socket.just-placed { animation: beacon-pop .28s ease-out; }
 .descent-live .live-pips .spent { animation: pip-spent .3s ease-out; }
 .descent-live .live-feedback span { display: inline-block; animation: reject-place .24s ease-in-out; }
 .descent-live .live-water { transition: height .45s ease-out; }
@@ -81,21 +70,17 @@
 .descent-live .live-blind ul { padding-inline-start: 16px; }
 .descent-live { position: relative; }
 .descent-live > header { padding-right: 46px; } /* the fixed settings gear sits top-right; keep the beacons/clock HUD clear of it */
-@keyframes warn-socket { to { outline-offset: 5px; } }
-@keyframes beacon-pop { from { transform: translate(-50%,-50%) scale(1.3); } }
 @keyframes pip-spent { 50% { transform: translateY(-3px); background: var(--amber); } }
 @keyframes reject-place { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
 @media (max-width: 850px) {
 }
 @media (prefers-reduced-motion: reduce) {
-  .descent-live .live-socket, .descent-live .live-pips .spent, .descent-live .live-feedback span { animation: none; }
   .descent-live .live-water { transition: none; }
 }
 
 .descent-live .live-hold-group { position: absolute; z-index: 4; left: 47%; top: 77%; padding: 5px 7px; background: var(--stage); border: 1px solid var(--redText); color: var(--redText); font: 650 12px/1.3 var(--mono); }
 .descent-live .live-hold-group ul { margin: 4px 0 0; padding-left: 15px; }
 
-.descent-live .live-socket.selected:not(.queued)::after { content: ""; position: absolute; top: 100%; width: 2px; height: 8px; background: currentColor; opacity: .7; }
 .descent-live .live-overlay { pointer-events: none; }
 .descent-live .live-water.sealed::after { content: ""; position: absolute; inset: 20% 0 0; opacity: .32;
   background: repeating-linear-gradient(171deg,transparent 0 10px,#7eb2b655 13px,transparent 15px 24px);
@@ -104,47 +89,17 @@
 @media (prefers-reduced-motion: reduce) { .descent-live .live-water.sealed::after { animation: none; } }
 .descent-live .live-hint-caption { position: absolute; left: 50%; bottom: 3%; transform: translateX(-50%); z-index: 4; margin: 0; max-width: min(70%, 640px); padding: 8px 14px; background: var(--stage); border-left: 3px solid var(--amber); color: var(--amberHi); font-size: 14px; line-height: 1.4; pointer-events: none; }
 .descent-live .live-end-reason { margin: 0; color: var(--text2); font-size: 14px; }
-.descent-live .live-socket.building { border-style: dashed; border-color: var(--amberHi); color: var(--amberHi); font: 700 13px var(--mono); animation: socket-build 1s ease-in-out infinite alternate; }
-@keyframes socket-build { to { box-shadow: 0 0 0 5px #e4c49433; } }
-@media (prefers-reduced-motion: reduce) { .descent-live .live-socket.building { animation: none; } }
 
-/* Mara's route: a lit line under the markers, and markers on it drawn solid and larger than the rest. */
-/* Its own compositor layer: the drop-shadow filter is costly to re-raster, and without this every socket class change, building pulse and
-   screen-shake frame repainted it (measured: 200 ms GPU frames after each placement). */
-.descent-live .live-route, .descent-live .live-range { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; will-change: transform; }
-.descent-live .live-socket:not(.on-route):not(.queued):not(.building):not(.selected) { opacity: .6; width: 17px; height: 17px; font-size: 12px; }
-.descent-live .live-socket.on-route:not(.queued):not(.building) { width: 27px; height: 27px; border-style: solid; border-width: 2px; border-color: var(--good); background: #1c4a43; color: #fff; font-size: 17px; opacity: 1; }
-.descent-live .live-socket.linked { opacity: 1; outline: 2px solid var(--amberHi); outline-offset: 3px; }
+.descent-live .live-range { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; will-change: transform; }
 
-/* Beacon range. Opacity and stroke only (no filters, they cost 200 ms frames on large SVGs). */
+/* The failed run's missing chain, behind the debrief. Opacity and stroke only (no filters, they cost 200 ms frames on large SVGs). */
 .descent-live .live-range line, .descent-live .live-range polyline { fill: none; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-.descent-live .live-range .cov { stroke: var(--good); stroke-width: 11px; opacity: .17; }
-.descent-live .live-range .cov.soft { opacity: .08; }
-.descent-live .live-range .route line { stroke: var(--good); stroke-width: 5px; opacity: .7; }
-.descent-live .live-range .route line.under { stroke-width: 12px; opacity: .14; }
-.descent-live .live-range .route.dark line { stroke: var(--amber); stroke-dasharray: 3 9; opacity: .45; }
-.descent-live .live-range .route.dark line.under { stroke: #000; stroke-dasharray: none; stroke-width: 9px; opacity: .35; }
-.descent-live .live-range .link { stroke: #d2fff1; stroke-width: 3px; opacity: 1; }
-.descent-live .live-range .link.soft { stroke-dasharray: 2 7; opacity: .75; }
-.descent-live .live-range .pv-seg, .descent-live .live-range .pv-edge { opacity: 0; }
-.descent-live .live-range [data-pv] { opacity: 1; }
-.descent-live .live-range .pv-seg[data-pv=self] { stroke: var(--amberHi); stroke-width: 14px; opacity: .4; }
-.descent-live .live-range .pv-seg[data-pv=hear] { stroke: var(--good); stroke-width: 12px; opacity: .6; }
-.descent-live .live-range .pv-seg[data-pv=dark] { stroke: var(--amber); stroke-width: 6px; stroke-dasharray: 2 8; opacity: .8; }
-.descent-live .live-range .pv-edge[data-pv=link] { stroke: var(--good); stroke-width: 3px; }
-.descent-live .live-range .pv-edge[data-pv=gap] { stroke: var(--amberHi); stroke-width: 2px; stroke-dasharray: 2 6; opacity: .75; }
 .descent-live .live-range .gap { stroke: var(--amberHi); stroke-width: 9px; stroke-dasharray: 10 8; opacity: .85; animation: gap-pulse 1.3s ease-in-out infinite alternate; }
 .descent-live .live-gap-mark { position: absolute; transform: translate(-50%, -50%); width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; z-index: 3;
   border: 2px solid var(--amberHi); background: #10191ed9; color: var(--amberHi); font: 700 15px/1 var(--mono); }
-.descent-live .live-hop { position: absolute; z-index: 2; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: #fff; opacity: 0;
-  animation: news-hop 1.2s ease-in-out .15s 1 both; }
 .descent-live .live-cause { margin: 6px 0 0; color: var(--head); font-size: 15px; line-height: 1.4; font-weight: 600; }
 @keyframes gap-pulse { to { opacity: .4; } }
-@keyframes news-hop {
-  0% { left: var(--x0); top: var(--y0); opacity: 0; }
-  12% { opacity: 1; }
-  50% { left: var(--xs); top: var(--ys); }
-  88% { opacity: 1; }
-  100% { left: var(--x1); top: var(--y1); opacity: 0; }
-}
-@media (prefers-reduced-motion: reduce) { .descent-live .live-range .gap { animation: none; } .descent-live .live-hop { display: none; } }
+@media (prefers-reduced-motion: reduce) { .descent-live .live-range .gap { animation: none; } }
+
+.descent-live .live-eyebrow, .descent-live .live-goals-title { text-transform: none; letter-spacing: 0; font: 600 12px var(--mono); color: var(--text2); }
+.descent-live .live-eyebrow { color: var(--amberHi); }

@@ -1,6 +1,6 @@
 import type { Observation } from "../../../echo/types";
 import { frameProgress } from "../motion";
-import { neighbors, podPose, tracks } from "../run";
+import { podPose, tracks } from "../run";
 import { lamp } from "../scene";
 import * as fx from "./fx";
 import { RAIL_HEIGHT, RAIL_WIDTH } from "./hit";
@@ -41,19 +41,6 @@ export function mountEffects(lightCanvas: HTMLCanvasElement, fxCanvas: HTMLCanva
         length: Math.hypot(dx, dy),
       };
     });
-    const pulses = obs.pulses.map((p) => {
-      const track = tracks.get(p.sectorId)!;
-      const source = previous.pulses.find((q) =>
-        q.kind === p.kind && q.sectorId !== p.sectorId &&
-        neighbors(track, tracks.get(q.sectorId)!)
-      );
-      return {
-        id: obs.tick + ":" + p.sectorId + ":" + p.kind,
-        kind: p.kind,
-        from: source ? lamp(tracks.get(source.sectorId)!) : null,
-        to: lamp(track),
-      };
-    });
     const headlamps = obs.pods.filter((p) => p.status === "moving").map((p) => {
       const [x, y] = podPose(p);
       const [px, py] = podPose(previous.pods.find((old) => old.id === p.id)!);
@@ -61,7 +48,6 @@ export function mountEffects(lightCanvas: HTMLCanvasElement, fxCanvas: HTMLCanva
     });
     return {
       sectors,
-      pulses,
       headlamps,
       positions: headlamps.map((h) => ({ x: h.x, y: h.y })),
       duration,
@@ -79,7 +65,7 @@ export function mountEffects(lightCanvas: HTMLCanvasElement, fxCanvas: HTMLCanva
         pos.x = h.px + (h.x - h.px) * t;
         pos.y = h.py + (h.y - h.py) * t;
       }
-      lighting.draw({ sectors: current.sectors, pulses: current.pulses, headlamps: current.positions, t, now });
+      lighting.draw({ sectors: current.sectors, pulses: [], headlamps: current.positions, t, now }); // news pulses run along the rail in TrackLight.tsx
     }
     if (context) {
       fx.update(now - last);

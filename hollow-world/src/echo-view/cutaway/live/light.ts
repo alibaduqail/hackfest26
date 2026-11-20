@@ -57,7 +57,6 @@ function noopLayer(): LightLayer {
 const DEFAULT_W = 1672, DEFAULT_H = 941;
 const LIGHT_SPRITE_W = 256, LIGHT_SPRITE_H = 72;
 const HEADLAMP_SPRITE_SIZE = 160;
-const HATCH_TILE = 12;
 const GLOW_SPRITE_SIZE = 96;
 const DEFAULT_HEADLAMP_RADIUS = 46;
 
@@ -123,20 +122,6 @@ function makeGlowSprite(color: string): HTMLCanvasElement | null {
   return sprite;
 }
 
-/** One diagonal-hatch tile, prebaked once; tiled as a CanvasPattern for every dark-section chip. */
-function makeHatchPattern(ctx: CanvasRenderingContext2D): CanvasPattern | null {
-  const tile = makeCanvas(HATCH_TILE, HATCH_TILE);
-  const tctx = tile.getContext("2d");
-  if (!tctx) return null;
-  tctx.strokeStyle = "rgba(221,216,193,0.55)";
-  tctx.lineWidth = 2;
-  tctx.beginPath();
-  tctx.moveTo(-2, HATCH_TILE + 2);
-  tctx.lineTo(HATCH_TILE + 2, -2);
-  tctx.stroke();
-  return ctx.createPattern(tile, "repeat");
-}
-
 const PULSE_COLORS: Record<PulseKind, string> = {
   seal: "rgba(224,99,79,0.9)",
   announce: "rgba(228,196,148,0.9)",
@@ -168,16 +153,13 @@ export function createLightLayer(canvas: HTMLCanvasElement, options: LightLayerO
   const maybeGlowSeal = makeGlowSprite(PULSE_COLORS.seal);
   const maybeGlowAnnounce = makeGlowSprite(PULSE_COLORS.announce);
   const maybeGlowRelease = makeGlowSprite(PULSE_COLORS.release);
-  const maybeHatchPattern = makeHatchPattern(ctx);
   if (
-    !maybeLightSprite || !maybeHeadlampSprite || !maybeGlowSeal || !maybeGlowAnnounce || !maybeGlowRelease ||
-    !maybeHatchPattern
+    !maybeLightSprite || !maybeHeadlampSprite || !maybeGlowSeal || !maybeGlowAnnounce || !maybeGlowRelease
   ) {
     return noopLayer();
   }
   const lightSprite: HTMLCanvasElement = maybeLightSprite;
   const headlampSprite: HTMLCanvasElement = maybeHeadlampSprite;
-  const hatchPattern: CanvasPattern = maybeHatchPattern;
   const glowSprites: Record<PulseKind, HTMLCanvasElement> = {
     seal: maybeGlowSeal,
     announce: maybeGlowAnnounce,
@@ -220,20 +202,6 @@ export function createLightLayer(canvas: HTMLCanvasElement, options: LightLayerO
       baseCtx.restore();
     }
     baseCtx.restore();
-  }
-
-  function drawHatchChips(sectors: readonly LightSectorFrame[]) {
-    ctx.save();
-    ctx.fillStyle = hatchPattern;
-    ctx.strokeStyle = "rgba(221,216,193,0.5)";
-    ctx.lineWidth = 1.5;
-    const size = 22;
-    for (const sector of sectors) {
-      if (sector.beacon) continue;
-      ctx.fillRect(sector.midX - size / 2, sector.midY - size / 2, size, size);
-      ctx.strokeRect(sector.midX - size / 2, sector.midY - size / 2, size, size);
-    }
-    ctx.restore();
   }
 
   function drawHeadlamps(headlamps: readonly LightHeadlamp[]) {
@@ -280,7 +248,6 @@ export function createLightLayer(canvas: HTMLCanvasElement, options: LightLayerO
       ctx.clearRect(0, 0, W, H);
       ctx.drawImage(base, 0, 0, halfW, halfH, 0, 0, W, H);
       drawHeadlamps(frame.headlamps);
-      drawHatchChips(frame.sectors);
       drawPulses(frame.t);
     },
     dispose() {

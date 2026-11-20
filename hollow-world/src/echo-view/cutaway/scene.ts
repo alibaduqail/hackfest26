@@ -318,17 +318,6 @@ export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasEleme
           }
         }
       }
-      const pulses = obs.pulses.map((p) => {
-        const tr = tracks.get(p.sectorId)!;
-        const origin = p.kind === "seal"
-          ? previous.obs.pulses.find((q) => q.kind === "seal" && neighbors(tr, tracks.get(q.sectorId)!))
-          : undefined;
-        return {
-          to: lamps.get(p.sectorId)!,
-          from: origin ? lamps.get(origin.sectorId)! : null,
-          ink: p.kind === "seal" ? T.red : T.amberHi,
-        };
-      });
       const messages = obs.log.filter((e) =>
         e.tick === obs.tick - 1 && (e.kind === "announce" || e.kind === "seal-heard")
       );
@@ -346,16 +335,6 @@ export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasEleme
           line(live, p.box.x + p.box.w / 2, p.box.y + p.box.h, x, y - 40, p.ink + "90", 1.5);
         }
         for (const box of fixed) live.clearRect(box.x - 2, box.y - 2, box.w + 4, box.h + 4);
-        for (const pulse of pulses) {
-          const [x, y] = pulse.to;
-          if (pulse.from) {
-            const [px, py] = pulse.from;
-            line(live, px, py, x, y, pulse.ink + "65", 2);
-            circle(live, px + (x - px) * t, py + (y - py) * t, 5, pulse.ink);
-          }
-          circle(live, x, y, 6, pulse.ink);
-          circle(live, x, y, 8 + 7 * t, pulse.ink + "cc", true);
-        }
         if (liftPod) {
           const y = liftPod.py + (liftPod.y - liftPod.py) * t;
           const x = .513 * W;
