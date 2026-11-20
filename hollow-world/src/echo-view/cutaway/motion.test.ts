@@ -160,3 +160,68 @@ test("sampling walks the polyline by arc length and faces the direction of trave
   sampleRoute(l, .5, out, false);
   assert.equal(out.left, tracks.get(m.path[i])!.b[0] < tracks.get(m.path[i])!.a[0]);
 });
+
+// ---- Pods never jump back: no route doubles back on itself, and re-showing a tick never replays it.
+import { DESCENT_LEVELS } from "../../echo/descent-levels";
+import { tweenFor, type Tween } from "./motion";
+
+/** A route that reverses direction (two consecutive legs more than 120 degrees apart) is a pod driving backwards along its own track. */
+function assertNoReversal(route: Point[], label: string) {
+  const px = route.map((p) => [p[0] * 1672, p[1] * 941]);
+  for (let i = 2; i < px.length; i++) {
+    const ax = px[i - 1][0] - px[i - 2][0], ay = px[i - 1][1] - px[i - 2][1];
+    const bx = px[i][0] - px[i - 1][0], by = px[i][1] - px[i - 1][1];
+    const la = Math.hypot(ax, ay), lb = Math.hypot(bx, by);
+    if (la < 2 || lb < 2) continue;
+    assert.ok((ax * bx + ay * by) / (la * lb) > -0.5, `${label}: route doubles back at ${px[i - 1].map(Math.round)} (${JSON.stringify(px.map((q) => q.map(Math.round)))})`);
+  }
+}
+function checkForward(frames: (t: number) => Observation, end: number, label: string) {
+  for (let t = 1; t <= end; t++) {
+    const now = frames(t), before = frames(t - 1);
+    for (const p of now.pods) {
+      const old = before.pods.find((q) => q.id === p.id)!;
+      const route = buildRoute(old, p);
+      assert.deepEqual(route[0], route.length > 1 ? podPose(old) : podPose(p), `${label} t${t} ${p.id}: starts where the last tick ended`);
+      assertNoReversal(route, `${label} t${t} ${p.id}`);
+    }
+  }
+}
+test("pods never drive backwards: every tick of levels 1-3 (story echo/tower, live attempts with and without beacons)", () => {
+  for (const mode of ["echo", "tower"] as const) {
+    const sample = createRun(mode);
+    checkForward((t) => sample(t).obs, sample(0).obs.endTick, "L1 story " + mode);
+  }
+  try {
+    for (const level of DESCENT_LEVELS) {
+      applyLayout(level.id);
+      for (let attempt = 0; attempt < 4; attempt++) {
+        for (const beacons of [true, false]) {
+          const frames = runOf(level.build(attempt), beacons ? level.solutionFor(attempt) : []);
+          checkForward((t) => frames[Math.min(t, frames.length - 1)], frames.length - 1, `${level.id} a${attempt} ${beacons ? "solved" : "bare"}`);
+        }
+      }
+    }
+  } finally {
+    applyLayout("");
+  }
+});
+test("a dock on the pod's first section rolls forward out of it (SUP-2 used to slide back to the start of the track)", () => {
+  const sup2 = createRun("echo")(0).obs.pods.find((p) => p.id === "SUP-2")!;
+  const first = tracks.get(sup2.path[0])!;
+  const dock = podDock(sup2);
+  const out = buildRoute(podAt(sup2, -1, 0, { status: "waiting" }), podAt(sup2, 0, 1 / 3));
+  assert.ok(!out.some((p) => p[0] === first.a[0] && p[1] === first.a[1]), "does not visit the section start behind the dock");
+  assert.ok(out.at(-1)![0] > dock[0], "ends ahead of where it waited");
+  assert.equal(restFacing(podAt(sup2, -1, 0, { status: "waiting" })), first.b[0] < first.a[0], "waits facing its way out");
+});
+test("re-showing the tick on screen keeps its clock: pause, hold, resume or a speed change never replay it", () => {
+  let tw: Tween | null = tweenFor(null, 5, true, 600, 1000);
+  assert.deepEqual(tw, { tick: 5, start: 1000, duration: 600 });
+  assert.equal(tweenFor(tw, 5, false, 0, 1300), tw, "pause mid-tick");
+  assert.equal(tweenFor(tw, 5, true, 150, 1400), tw, "resume at 4x: same clock, same duration");
+  tw = tweenFor(tw, 6, false, 600, 2000); // paused on a fresh tick: snapped
+  assert.equal(tw.duration, 0);
+  assert.equal(tweenFor(tw, 6, true, 600, 2500), tw, "resume after a hold stays at the end pose");
+  assert.deepEqual(tweenFor(tw, 7, true, 600, 3000), { tick: 7, start: 3000, duration: 600 }, "the next tick animates");
+});

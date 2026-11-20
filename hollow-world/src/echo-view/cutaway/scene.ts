@@ -151,7 +151,7 @@ export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasEleme
     c.fillText(label, box.x + box.w / 2, box.y + box.h / 2);
   }
   let anim = 0;
-  function show(frame: Frame, previous: Frame, level: number, duration: number, hiddenChips?: ReadonlySet<string>) {
+  function show(frame: Frame, previous: Frame, level: number, duration: number, hiddenChips?: ReadonlySet<string>, started?: number) {
     cancelAnimationFrame(anim);
     function render(duration: number) {
       cancelAnimationFrame(anim);
@@ -323,13 +323,14 @@ export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasEleme
       const messages = obs.log.filter((e) =>
         e.tick === obs.tick - 1 && (e.kind === "announce" || e.kind === "seal-heard")
       );
-      const start = performance.now();
+      const start = started ?? performance.now(); // a re-show of the same tick keeps its clock (motion.ts tweenFor)
       const sealedNow = obs.log.some((e) => e.kind === "seal" && e.tick === obs.tick - 1);
       const liftSection = obs.sectors.find((s) => s.id === "ramp2");
       const liftPod = pods.find((p) => p.id === liftSection?.holder);
       const spot = { x: 0, y: 0, left: false };
+      const shown = performance.now(); // a frame timestamp can lag the clock read here: never let t step back within one show
       function draw(now: number) {
-        const t = frameProgress(now, start, duration);
+        const t = frameProgress(Math.max(now, shown), start, duration);
         live.clearRect(0, 0, W, H);
         for (const p of pods) { // pods ride the track polyline; one sample per pod per frame
           sampleRoute(p.route, t, spot, p.restLeft);
@@ -393,7 +394,7 @@ export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasEleme
         for (const p of pods) if (p.box.w) tag(live, p.box, p.label, p.ink);
         if (t < 1) anim = requestAnimationFrame(draw);
       }
-      draw(start);
+      draw(shown);
     }
     redraw = () => render(0);
     render(duration);
