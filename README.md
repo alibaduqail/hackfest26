@@ -46,4 +46,4 @@ The game itself lives at `/`; `/echo.html` is the Tower Down split screen.
 
 ## Team
 
-Built by **M and Ali**, with a team of coordinated AI agents working in parallel — roles, ownership and workflow are in [`AGENTS.md`](AGENTS.md). The engine and the map are deterministic: the same seed gives the same numbers, and the harness is how we check them.
+Built by **Muhammad and Ali**
