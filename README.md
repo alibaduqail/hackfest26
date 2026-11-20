@@ -18,6 +18,10 @@ Every mission runs in four phases: **Briefing → Prepare → Run → Debrief**.
 
 In **Prepare** you click sectors on the map to place or remove beacons within the mission's budget; in **Run** the split screen shows the Directorate on the left and Echo on the right. Stars (★ / ★★ / ★★★) score how fast Mara and the supplies arrive — thresholds and per-mission detail are in [`docs/specs/echo/GAME.md`](docs/specs/echo/GAME.md).
 
+### The Descent
+
+Want to place beacons yourself, live, while the pods move? Choose **Play the Descent** on the title screen, or go straight to `/?screen=descent-live`. You get five beacons: two have to warn the flood before the pods reach it, or both are trapped for good; the rest buy speed. **See how Echo works** (`/?screen=descent`) plays the same five levels read-only, with no clock. Details are in [`docs/specs/echo/DESCENT.md`](docs/specs/echo/DESCENT.md).
+
 ## Run locally
 
 ```bash
