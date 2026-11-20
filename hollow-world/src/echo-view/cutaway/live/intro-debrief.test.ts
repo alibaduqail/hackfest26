@@ -26,7 +26,9 @@ test("intro: who, where, deadline, the rule, the hint, a Start button", () => {
 
 test("debrief, no beacons: 0 stars, readable cause, tower / none / you all never arrive", () => {
   const html = debrief([], 0);
-  assert.match(html, /Deadline missed/);
+  assert.doesNotMatch(html, /Deadline missed/); // Mara never arrived: say that, with the cause
+  assert.match(html, /<h2>Mara never arrived<\/h2>/);
+  assert.match(html, /live-cause">The flood warning never reached Mara: the middle main shaft and the upper main shaft had no beacon\./);
   assert.match(html, /0 of 3 stars/);
   assert.match(html, /No warning reached Mara Vale/);
   assert.match(html, /had no beacon/);
@@ -59,9 +61,10 @@ test("debrief, the solution: 3 stars, best possible, you beat the tower and no-b
 });
 
 test("debrief headline agrees with the result: a 0-star run that reached the clinic is not 'Deadline missed'; Continue anyway only when asked", () => {
-  const html = renderToStaticMarkup(h(LiveDebrief, { mission: descentLive(1), commands: place(["link0", "link1"]), stars: 0, onRetry: noop, onContinue: noop })); // the main0 flood: Mara reaches the clinic, just not fast enough
+  const html = renderToStaticMarkup(h(LiveDebrief, { mission: descentLive(1), commands: [], stars: 0, onRetry: noop, onContinue: noop })); // the main0 flood: Mara reaches the clinic, just not fast enough
   assert.doesNotMatch(html, /Deadline missed/);
-  assert.match(html, /Not fast enough/);
+  assert.match(html, /<h2>Arrived \d+ min late<\/h2>/);
+  assert.doesNotMatch(html, /Not fast enough/);
   assert.match(html, /Continue anyway/);
   assert.doesNotMatch(debrief([], 0), /Continue anyway/);
 });

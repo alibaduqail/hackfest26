@@ -111,8 +111,40 @@
 /* Mara's route: a lit line under the markers, and markers on it drawn solid and larger than the rest. */
 /* Its own compositor layer: the drop-shadow filter is costly to re-raster, and without this every socket class change, building pulse and
    screen-shake frame repainted it (measured: 200 ms GPU frames after each placement). */
-.descent-live .live-route { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; will-change: transform; }
-.descent-live .live-route line { stroke: var(--good); stroke-width: 5px; stroke-linecap: round; opacity: .55; vector-effect: non-scaling-stroke; filter: drop-shadow(0 0 4px #7ec8b3aa); }
+.descent-live .live-route, .descent-live .live-range { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; will-change: transform; }
 .descent-live .live-socket:not(.on-route):not(.queued):not(.building):not(.selected) { opacity: .6; width: 17px; height: 17px; font-size: 12px; }
 .descent-live .live-socket.on-route:not(.queued):not(.building) { width: 27px; height: 27px; border-style: solid; border-width: 2px; border-color: var(--good); background: #1c4a43; color: #fff; font-size: 17px; opacity: 1; }
 .descent-live .live-socket.linked { opacity: 1; outline: 2px solid var(--amberHi); outline-offset: 3px; }
+
+/* Beacon range. Opacity and stroke only (no filters, they cost 200 ms frames on large SVGs). */
+.descent-live .live-range line, .descent-live .live-range polyline { fill: none; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.descent-live .live-range .cov { stroke: var(--good); stroke-width: 11px; opacity: .17; }
+.descent-live .live-range .cov.soft { opacity: .08; }
+.descent-live .live-range .route line { stroke: var(--good); stroke-width: 5px; opacity: .7; }
+.descent-live .live-range .route line.under { stroke-width: 12px; opacity: .14; }
+.descent-live .live-range .route.dark line { stroke: var(--amber); stroke-dasharray: 3 9; opacity: .45; }
+.descent-live .live-range .route.dark line.under { stroke: #000; stroke-dasharray: none; stroke-width: 9px; opacity: .35; }
+.descent-live .live-range .link { stroke: #d2fff1; stroke-width: 3px; opacity: 1; }
+.descent-live .live-range .link.soft { stroke-dasharray: 2 7; opacity: .75; }
+.descent-live .live-range .pv-seg, .descent-live .live-range .pv-edge { opacity: 0; }
+.descent-live .live-range [data-pv] { opacity: 1; }
+.descent-live .live-range .pv-seg[data-pv=self] { stroke: var(--amberHi); stroke-width: 14px; opacity: .4; }
+.descent-live .live-range .pv-seg[data-pv=hear] { stroke: var(--good); stroke-width: 12px; opacity: .6; }
+.descent-live .live-range .pv-seg[data-pv=dark] { stroke: var(--amber); stroke-width: 6px; stroke-dasharray: 2 8; opacity: .8; }
+.descent-live .live-range .pv-edge[data-pv=link] { stroke: var(--good); stroke-width: 3px; }
+.descent-live .live-range .pv-edge[data-pv=gap] { stroke: var(--amberHi); stroke-width: 2px; stroke-dasharray: 2 6; opacity: .75; }
+.descent-live .live-range .gap { stroke: var(--amberHi); stroke-width: 9px; stroke-dasharray: 10 8; opacity: .85; animation: gap-pulse 1.3s ease-in-out infinite alternate; }
+.descent-live .live-gap-mark { position: absolute; transform: translate(-50%, -50%); width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; z-index: 3;
+  border: 2px solid var(--amberHi); background: #10191ed9; color: var(--amberHi); font: 700 15px/1 var(--mono); }
+.descent-live .live-hop { position: absolute; z-index: 2; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: #fff; opacity: 0;
+  animation: news-hop 1.2s ease-in-out .15s 1 both; }
+.descent-live .live-cause { margin: 6px 0 0; color: var(--head); font-size: 15px; line-height: 1.4; font-weight: 600; }
+@keyframes gap-pulse { to { opacity: .4; } }
+@keyframes news-hop {
+  0% { left: var(--x0); top: var(--y0); opacity: 0; }
+  12% { opacity: 1; }
+  50% { left: var(--xs); top: var(--ys); }
+  88% { opacity: 1; }
+  100% { left: var(--x1); top: var(--y1); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .descent-live .live-range .gap { animation: none; } .descent-live .live-hop { display: none; } }
