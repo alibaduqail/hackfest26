@@ -61,17 +61,26 @@ const berths: Record<string, Point> = {
   "SUP-1": [.648, .407],
   "SUP-2": [.737, .407],
 };
-export function podPose(pod: Pod): Point {
-  if (pod.status === "arrived") return berths[pod.id] ?? ([.4 + (pod.id.charCodeAt(pod.id.length - 1) % 4) * .07, .944] as Point); // levels 2-3 bring pods with no fixed berth
-  if (pod.at < 0) return dock[pod.id] ?? tracks.get(pod.path[0])!.a;
-  const track = tracks.get(pod.path[pod.at])!;
-  let progress = pod.progress;
+/** Where a pod waits before it enters its first track section. */
+export function podDock(pod: Pod): Point {
+  return dock[pod.id] ?? tracks.get(pod.path[0])!.a;
+}
+/** Where an arrived pod parks. Levels 2-3 bring pods with no fixed berth, so those line up along the floor. */
+export function podBerth(pod: Pod): Point {
+  return berths[pod.id] ?? ([.4 + (pod.id.charCodeAt(pod.id.length - 1) % 4) * .07, .944] as Point);
+}
+/** A point on a track section. Junction sections (level 1, order >= 6) are drawn inset: the engine tracks a point, the art shows the pod inside its occupied box. */
+export function onTrack(track: Track, progress: number): Point {
   if (track.shaft === "track" && track.order >= 6) {
-    // The engine tracks a point. Draw the entire pod inside its occupied junction section.
     const inset = .034 / Math.abs(track.b[0] - track.a[0]);
     progress = inset + progress * (1 - 2 * inset);
   }
   return along(track, progress);
+}
+export function podPose(pod: Pod): Point {
+  if (pod.status === "arrived") return podBerth(pod);
+  if (pod.at < 0) return podDock(pod);
+  return onTrack(tracks.get(pod.path[pod.at])!, pod.progress);
 }
 
 export interface Frame {
