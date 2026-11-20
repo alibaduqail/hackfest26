@@ -53,9 +53,9 @@ test("leg 3 telegraphs 8 ticks ahead on every seeded candidate", () => {
   }
 });
 
-test("the journey seed picks leg 1's flood, and a retry faces the same one (star deadlines never shift)", () => {
-  const picks = new Set(SEEDS.map((seed) => floodCandidate(0, { seed, attempt: 0 })));
-  assert.ok(picks.size > 1, "different seeds draw different floods");
+test("leg 1 is always the teaching flood; later legs draw theirs from the seed; a retry faces the same one (star deadlines never shift)", () => {
+  assert.deepEqual([...new Set(SEEDS.map((seed) => floodCandidate(0, { seed, attempt: 0 })))], [0], "leg 1 ignores the seed");
+  assert.ok(new Set(SEEDS.map((seed) => floodCandidate(1, { seed, attempt: 0 }))).size > 1, "different seeds draw different leg 2 floods");
   for (const seed of SEEDS) {
     const failed = completeLeg(choose(startJourney(seed), "leave-now"), { legId: "descent1", stars: 0, maraAt: null, medicineAt: null, beaconsPlaced: 0, ticks: 70 });
     const first = currentLeg(choose(startJourney(seed), "leave-now")).mission;

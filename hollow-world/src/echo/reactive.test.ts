@@ -3,7 +3,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createEngine } from "./engine";
 import {
-  BEACON_BUILD_TICKS, DEFAULT_REVEAL_LEAD, DESCENT_LIVE_CANDIDATES as C, DESCENT_LIVE_GOALS, DESCENT_LIVE_SOLUTION, DESCENT_LIVE_SOLUTIONS,
+  BEACON_BUILD_TICKS, DEFAULT_REVEAL_LEAD, DESCENT_LIVE_REVEAL_LEAD, DESCENT_LIVE_CANDIDATES as C, DESCENT_LIVE_GOALS, DESCENT_LIVE_SOLUTION, DESCENT_LIVE_SOLUTIONS,
   descentLive, descentLiveCandidateIndex, descentLiveStars, starsFor,
 } from "./descent";
 import { DESCENT_LEVELS } from "./descent-levels";
@@ -24,7 +24,7 @@ const arrive = (o: Observation, id: string) => o.pods.find((p) => p.id === id)!.
 const warnings = (m: Mission, cmds: Command[], tick: number) => play(m, cmds, tick).floodWarnings;
 
 test("reveal timing: only the risk before the window, the sector and minute inside it", () => {
-  const m = descentLive(); // main1 at t41, default lead 8
+  const m = descentLive({ revealLead: DEFAULT_REVEAL_LEAD }); // main1 at t41, lead 8 (leg 1's own default is DESCENT_LIVE_REVEAL_LEAD, below)
   assert.equal(m.floodReveal!.lead, DEFAULT_REVEAL_LEAD);
   assert.deepEqual(warnings(m, [], 0), [{ risk: "flood risk: main shaft" }]);
   assert.deepEqual(warnings(m, [], 32), [{ risk: "flood risk: main shaft" }], "t32: still hidden (the window opens 8 ticks before t41)");
@@ -36,7 +36,14 @@ test("reveal timing: only the risk before the window, the sector and minute insi
   assert.equal(play(m, [], 42).sectors.find((s) => s.id === "main1")!.sealed, true);
 });
 
-test("revealLead: default 8, a custom lead moves the window, 0 never reveals before the seal", () => {
+test("leg 1 defaults to the longer DESCENT_LIVE_REVEAL_LEAD: main1 (seal t41) is named from t21", () => {
+  assert.equal(descentLive().floodReveal!.lead, DESCENT_LIVE_REVEAL_LEAD);
+  assert.equal(warnings(descentLive(), [], 20)![0].sectorId, undefined);
+  assert.equal(warnings(descentLive(), [], 21)![0].sectorId, "main1");
+  assert.equal(descentLive({ revealLead: 0 }).floodReveal!.lead, 0, "an explicit 0 (trust the tower) still wins");
+});
+
+test("revealLead: a custom lead moves the window, 0 never reveals before the seal", () => {
   const at = (opts: Parameters<typeof descentLive>[0], tick: number) => warnings(descentLive(opts), [], tick)![0];
   assert.equal(at({ revealLead: 3 }, 37)?.sectorId, undefined);
   assert.equal(at({ revealLead: 3 }, 38)?.sectorId, "main1");
@@ -54,7 +61,7 @@ test("revealLead applies to levels 2 and 3 too (and every DESCENT_LEVELS builder
   assert.equal(descentLive2().floodReveal!.lead, 8);
   assert.equal(descentLive3({ revealLead: 0 }).floodReveal!.lead, 0);
   for (const l of DESCENT_LEVELS) {
-    assert.equal(l.build().floodReveal!.lead, DEFAULT_REVEAL_LEAD, l.id);
+    assert.equal(l.build().floodReveal!.lead, l.id === "descent-live" ? DESCENT_LIVE_REVEAL_LEAD : DEFAULT_REVEAL_LEAD, l.id);
     assert.equal(l.build({ revealLead: 0 }).floodReveal!.lead, 0, l.id);
     assert.equal(l.build({ revealLead: 5 }).beaconBuildTicks, BEACON_BUILD_TICKS, l.id);
     assert.equal(l.build().earlyEnd, true, l.id);

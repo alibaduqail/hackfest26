@@ -212,16 +212,20 @@ export const DESCENT_LIVE_SOLUTIONS: Record<string, Command[]> = Object.fromEntr
 
 /** Candidate index of descentLive(a): `a` is an attempt number or { seed, attempt }. */
 export function descentLiveCandidateIndex(a: number | LevelOpts = 0): number {
-  const { seed, attempt } = levelOpts(a);
-  return pickFlood(0, DESCENT_LIVE_CANDIDATES.length, { seed, attempt });
+  const { attempt } = levelOpts(a);
+  // Leg 1 teaches the rule, so it ignores the seed: attempt 0 is always candidate 0 (main1, won by a beacon on the flood plus the shaft above).
+  // Later attempts (free-play retries) still rotate through the other floods without repeating the previous one.
+  return pickFlood(0, DESCENT_LIVE_CANDIDATES.length, { attempt });
 }
 
 /** Same world and pods as descent(), but only LIVE_START has a beacon. Every other sector is a dead zone: a pod waits 3 minutes blind before
  * entering it. The flood seals one of DESCENT_LIVE_CANDIDATES, picked from the attempt number; its sector and minute show in the observation
  * only `revealLead` ticks before the seal (before that: "flood risk: main shaft"). Beacons take BEACON_BUILD_TICKS to go live and the run ends
  * as soon as it is decided (observation.endReason). Run is longer than descent() so slow, unbeaconed runs can still arrive late and score. */
+export const DESCENT_LIVE_REVEAL_LEAD = 20; // leg 1 teaches the rule, so its flood shows 20 min ahead (later legs: DEFAULT_REVEAL_LEAD)
 export function descentLive(a: number | LevelOpts = 0): Mission {
-  const { revealLead } = levelOpts(a);
+  const o = typeof a === "number" ? { attempt: a } : a;
+  const { revealLead } = levelOpts({ ...o, revealLead: o.revealLead ?? DESCENT_LIVE_REVEAL_LEAD });
   const c = DESCENT_LIVE_CANDIDATES[descentLiveCandidateIndex(a)];
   const m = descent();
   for (const s of m.world.sectors) s.beacon = LIVE_START.includes(s.id);

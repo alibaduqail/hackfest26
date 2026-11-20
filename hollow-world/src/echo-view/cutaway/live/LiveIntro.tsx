@@ -26,7 +26,7 @@ export function LiveIntro({ mission, hint = LEVEL_HINTS[1], goal: goalText, onSt
         <h2 id="live-intro-title">Get {name} to the clinic</h2>
         <p>
           {mara ? `${name} leaves ${city(mara.origin)} for ${city(mara.dest)}. ` : ""}
-          The tower goes dark at minute {mission.towerDownAt}. {mission.floodReveal ? (mission.floodReveal.lead === 0 ? "The Directorate will flood a shaft, and nothing warns you before it seals." : "The Directorate will flood a shaft; you see which one only moments before it seals.") : mission.sealAt !== null && `The Directorate floods a shaft at minute ${mission.sealAt}.`}
+          The tower goes dark at minute {mission.towerDownAt}. {mission.floodReveal ? (mission.floodReveal.lead === 0 ? "The Directorate will flood a shaft, and nothing warns you before it seals." : `The Directorate will flood a shaft; you see which one ${mission.floodReveal.lead} minutes before it seals.`) : mission.sealAt !== null && `The Directorate floods a shaft at minute ${mission.sealAt}.`}
         </p>
         <ul className="live-intro-rules">
           <li><strong>The tower is dark.</strong> News only hops beacon to beacon.</li>

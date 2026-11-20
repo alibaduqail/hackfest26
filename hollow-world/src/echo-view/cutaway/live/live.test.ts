@@ -104,11 +104,13 @@ test("the no-beacon attempt ends once both clinic deliveries are trapped", () =>
 
 test("slow motion is capped and reserves time for the flood telegraph", () => {
   const run = createLive();
+  const { sealAt, floodReveal } = run.getSnapshot().mission;
+  const reveal = sealAt! - floodReveal!.lead; // 11 slow ticks are reserved from the moment the flood is named
   let slowTicks = 0;
   while (!run.getSnapshot().ended && !run.getSnapshot().observation.over) {
     const state = run.getSnapshot();
     if (state.slow) slowTicks++;
-    if (state.observation.tick >= 33 && state.observation.tick <= 41) assert.equal(state.slow, true);
+    if (state.observation.tick >= reveal && state.observation.tick < reveal + 11) assert.equal(state.slow, true);
     run.step();
   }
   assert.ok(slowTicks > 0 && slowTicks <= 16);
