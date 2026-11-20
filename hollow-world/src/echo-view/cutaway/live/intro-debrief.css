@@ -1,21 +1,81 @@
-/* LiveIntro + LiveDebrief. Import once from LiveScreen (see WIRING-INTRO-DEBRIEF.md). Uses the theme tokens already installed for .descent-live. */
-.descent-live .live-intro-backdrop { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: #0a1115cc; padding: 24px; }
-.descent-live .live-intro { max-width: 560px; display: grid; gap: 14px; background: var(--relay-panel, #17242a); border: 1px solid var(--line2); border-left: 3px solid var(--amber); padding: clamp(18px, 2.4vw, 32px); }
-.descent-live .live-intro p, .descent-live .live-intro-rules { margin: 0; color: var(--text2); font-size: clamp(14px, 1vw, 18px); line-height: 1.5; }
-.descent-live .live-intro-rules { list-style: none; padding: 0; display: grid; gap: 8px; }
-.descent-live .live-intro-rules li { border-top: 1px solid var(--line); padding-top: 8px; }
-.descent-live .live-intro-rules strong { color: var(--head); }
-.descent-live .live-intro-hint { background: var(--relay-panel, #17242a); color: var(--amberHi); border-left: 3px solid var(--amber); padding: 8px 10px; }
-.descent-live .live-intro button { justify-self: start; }
-.descent-live .live-debrief2 { display: grid; gap: 8px; }
-.descent-live .live-debrief2 h3 { margin-top: 8px; }
-.descent-live .live-margin { color: var(--head); font-weight: 600; }
-.descent-live .live-why { padding-left: 1.2em; display: grid; gap: 6px; color: var(--text2); font-size: 13px; line-height: 1.45; }
-.descent-live .live-compare { width: 100%; border-collapse: collapse; font-size: 13px; }
-.descent-live .live-compare th, .descent-live .live-compare td { padding: 6px 6px; border-top: 1px solid var(--line); text-align: left; font-weight: 500; color: var(--text2); }
-.descent-live .live-compare thead th { color: var(--text2); font: 650 11px var(--mono); text-transform: uppercase; border-top: 0; }
-.descent-live .live-compare .you { color: var(--head); background: #d2a76a1a; font-weight: 650; }
-.descent-live .live-compare td.never { color: var(--redText); }
-.descent-live .live-compare td.you.never { color: var(--redText); }
-.descent-live .live-tower-says { color: var(--text2); font: 12px/1.4 var(--mono); }
-.descent-live .live-next { color: var(--amberHi); }
+/* LiveIntro + LiveDebrief: quiet overlays on the art, no cards. A neutral scrim darkens the left of the screen for the text and leaves the
+   right of the art in view. Same type as camp and ending: mono kicker, Fraunces heading, mono figures, Relay nodes for actions. */
+
+/* The cutaway's old button chrome (:where(.descent) button) must not reach the Relay nodes. */
+.descent-live .rl-node:hover, .descent-live .rl-node[aria-pressed="true"] { background: transparent; border: 0; color: var(--text); }
+.descent-live .rl-node:disabled { opacity: 1; }
+.descent-live .rl-node:focus-visible { outline: none; }
+html[data-kbd] .descent-live .rl-node:focus-visible { outline: 1.5px solid rgba(228, 196, 148, .8); outline-offset: -4px; }
+
+.descent-live .live-intro-backdrop, .descent-live .live-debrief {
+  position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; padding: 64px 32px 64px 96px;
+  background: linear-gradient(90deg, rgba(var(--scrim), .96) 0, rgba(var(--scrim), .92) 40%, rgba(var(--scrim), .72) 70%, rgba(var(--scrim), .3) 100%);
+  animation: lv-fade .4s ease-out both;
+}
+.descent-live .live-intro, .lv-dl { display: flex; flex-direction: column; max-width: 480px; animation: lv-rise .5s var(--ease) both; }
+.descent-live .live-intro h2, .lv-dl h2 { margin: 0; font: 800 52px/1.04 var(--display); font-variation-settings: "opsz" 144; letter-spacing: -.01em; color: var(--head); text-wrap: balance; }
+.descent-live .live-intro .lv-kicker { margin-bottom: 16px; }
+.lv-lede { margin: 20px 0 0; font: 400 17px/1.5 var(--sans); color: var(--text2); }
+
+/* the rules as nodes on one hop line; the deadline node is Mara's (amber) */
+.descent-live .live-intro-rules { list-style: none; margin: 28px 0 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
+.descent-live .live-intro-rules li { position: relative; padding-left: 32px; font: 400 15px/1.45 var(--sans); color: var(--text2); }
+.descent-live .live-intro-rules li::before { content: ""; position: absolute; left: 0; top: 4px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--good); background: #0a1013; box-sizing: border-box; }
+.descent-live .live-intro-rules li::after { content: ""; position: absolute; left: 5px; top: 18px; bottom: -18px; border-left: 2px dotted rgba(126, 200, 179, .5); }
+.descent-live .live-intro-rules li:last-child::after { display: none; }
+.descent-live .live-intro-rules li.deadline::before { background: var(--amber); border-color: var(--amberHi); }
+.descent-live .live-intro-rules strong { font-weight: 600; color: var(--head); }
+.descent-live .live-intro-hint { margin: 24px 0 0; font: 400 15px/1.45 var(--sans); color: var(--amberText); }
+.lv-start { display: flex; align-items: center; gap: 16px; margin: 32px 0 0 -30px; }
+.lv-start .rl-node { flex-direction: row-reverse; }
+
+/* debrief */
+.descent-live .live-debrief { gap: 64px; }
+.lv-verdict { margin: 0 0 16px; font: 500 14px/1.4 var(--label, var(--mono)); color: var(--redText); }
+.live-debrief.won .lv-verdict { color: var(--good); }
+.live-debrief.replay .lv-verdict { color: var(--muted); }
+.descent-live .live-debrief .live-stars { display: flex; gap: 8px; margin: 20px 0 0; font: 400 56px/1 var(--display); color: var(--amber); }
+.descent-live .live-debrief .live-stars span { display: inline-block; animation: lv-star .36s var(--ease) both; }
+.descent-live .live-debrief .live-stars .lit { color: var(--amberHi); text-shadow: 0 0 18px rgba(210, 167, 106, .45); }
+.descent-live .live-debrief .live-stars .off { color: rgba(233, 224, 200, .14); animation-name: lv-fade; }
+.descent-live .live-debrief .live-stars.live-replay-tag { font: 500 14px/1.4 var(--label, var(--mono)); color: var(--muted); }
+.descent-live .live-end-reason { margin: 20px 0 0; font: 400 16px/1.5 var(--sans); color: var(--text2); }
+.descent-live .live-margin { margin: 12px 0 0; font: 400 13px/1.5 var(--label, var(--mono)); color: var(--text2); font-variant-numeric: tabular-nums; }
+.descent-live .live-next { margin: 12px 0 0; font: 400 15px/1.45 var(--sans); color: var(--amberText); }
+.descent-live .live-next strong { font-weight: 600; }
+.descent-live .live-note { margin: 12px 0 0; font: 400 13px/1.5 var(--label, var(--mono)); color: var(--muted); }
+.lv-actions { margin: 28px 0 0 -18px; }
+.lv-actions .rl-bar { justify-content: flex-start; }
+.lv-key { display: flex; align-items: center; gap: 8px; margin: 4px 0 0; font: 400 12px/1 var(--label, var(--mono)); color: var(--muted); }
+.lv-why { margin: 24px 0 0; font: 400 13px/1.5 var(--label, var(--mono)); color: var(--muted); }
+.lv-why summary { cursor: pointer; width: max-content; }
+.lv-why summary:hover { color: var(--text2); }
+.descent-live .live-why { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px; font: 400 14px/1.45 var(--sans); color: var(--text2); }
+
+.lv-dr { display: flex; flex-direction: column; gap: 6px; animation: lv-fade .6s .15s ease-out both; }
+.descent-live .live-tower-says { margin: 0; max-width: 420px; font: 400 12px/1.5 var(--label, var(--mono)); color: var(--muted); }
+.lv-race { overflow: visible; font-variant-numeric: tabular-nums; }
+.lv-race circle, .lv-race .x, .lv-race .path, .lv-race text.out { animation: lv-fade .3s var(--d, 0ms) ease-out both; }
+.lv-race .rung { stroke: var(--line); stroke-width: 1; stroke-dasharray: 2 4; }
+.lv-race .place { font: 500 12px/1 var(--label, var(--mono)); fill: var(--muted); }
+.lv-race text { font: 500 12px/1 var(--label, var(--mono)); fill: var(--text2); }
+.lv-race .col circle { fill: var(--text2); opacity: .6; }
+.lv-race .col .x { fill: none; stroke: var(--red); stroke-width: 2.4; stroke-linecap: round; }
+.lv-race .col circle.end { fill: #0a1013; stroke: var(--good); stroke-width: 2; opacity: 1; }
+.lv-race .col.dead text.out { fill: var(--redText); }
+.lv-race .col.you text { fill: var(--amberText); font-weight: 600; }
+.lv-race .col.you .path { stroke: var(--amber); stroke-width: 3; stroke-linecap: round; }
+.lv-race .col.you circle.end { fill: var(--amber); stroke: var(--amberHi); }
+.lv-race .col.you.dead text.out { fill: var(--redText); }
+
+@keyframes lv-fade { from { opacity: 0; } }
+@keyframes lv-rise { from { opacity: 0; transform: translateY(8px); } }
+@keyframes lv-star { 0% { opacity: 0; transform: scale(.4); } 70% { transform: scale(1.12); } 100% { opacity: 1; transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) {
+  .descent-live .live-intro-backdrop, .descent-live .live-debrief, .descent-live .live-intro, .lv-dl, .lv-dr, .lv-race *, .descent-live .live-debrief .live-stars span { animation: none; }
+}
+@media (max-width: 900px) {
+  .descent-live .live-intro-backdrop, .descent-live .live-debrief { padding: 32px 16px; align-items: flex-start; overflow: auto; flex-direction: column; gap: 32px; background: rgba(var(--scrim), .94); }
+  .descent-live .live-intro h2, .lv-dl h2 { font-size: 36px; }
+}
+.lv-actions button.rl-node:only-of-type { flex-direction: row-reverse; }

@@ -20,7 +20,8 @@ test("intro: who, where, deadline, the rule, the hint, a Start button", () => {
   assert.match(html, /minute 92/);
   assert.match(html, /Click a rail to bolt a beacon/); // level 1 hint
   assert.match(html, /role="dialog"[^>]*aria-modal="true"/);
-  assert.match(html, />Start <kbd>Space</);
+  assert.match(html, /class="rl-label">Start<\/span>/); // a Relay node, with the Space keycap beside it
+  assert.match(html, /<kbd>Space<\/kbd>/);
   assert.doesNotMatch(renderToStaticMarkup(h(LiveIntro, { mission: descentLive(), hint: null, onStart: noop })), /live-intro-hint/);
 });
 
@@ -30,8 +31,9 @@ test("debrief, no beacons: 0 stars, readable cause, tower / none / you all never
   assert.match(html, /0 of 3 stars/);
   assert.match(html, /No warning reached Mara Vale/);
   assert.match(html, /had no beacon/);
-  assert.match(html, /Tower<\/th><th[^>]*>No beacons<\/th><th[^>]*>You/);
-  assert.equal((html.match(/<td class="[^"]*never"/g) ?? []).length, 6); // 3 columns x (Mara, medicine)
+  assert.match(html, /Tower<\/th><th[^>]*>Tower \+ backup<\/th><th[^>]*>No beacons<\/th><th[^>]*>You/);
+  assert.equal((html.match(/<td class="[^"]*never"/g) ?? []).length, 8); // 4 columns x (Mara, medicine)
+  assert.match(html, /Backup tower back at min \d+ · no flood news reaches it/);
   assert.match(html, /Tower says: \d+ pod runs authorized; actual: \d+ ran\. Mara never arrives\./);
   assert.match(html, /Next star:<\/strong> Light the middle main shaft, the upper relay track/);
   assert.doesNotMatch(html, /main[01]\b/); // sector ids are shown by name

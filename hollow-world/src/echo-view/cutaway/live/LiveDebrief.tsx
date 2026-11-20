@@ -1,9 +1,13 @@
-// End panel for the live Descent: stars, the cause chain, Tower / No beacons / You, the next-star hint. Pure render from props; the
-// three baseline runs and the explanation come from src/echo (runBaseline, explainRun). Mounted by LiveScreen (see WIRING-INTRO-DEBRIEF.md).
+// End of a Descent run, as a quiet overlay on the art: the verdict and the stars on the left, the race down the shaft beside it (tower,
+// tower + backup, no beacons, you), one plain "Next star" line, Relay actions. Pure render from props; the baseline runs and the explanation
+// come from src/echo (runBaseline, explainRun). The race is decorative; a visually hidden table carries the same numbers for screen readers.
 import { useMemo } from "react";
 import { runBaseline, type RunOutcome } from "../../../echo/baseline";
 import { explainRun } from "../../../echo/explain";
+import { STANDBY_AFTER } from "../../../echo/tower";
 import type { Command, Mission } from "../../../echo/types";
+import { RelayBar, type RelayItem } from "../../relay/Relay";
+import { LiveRace, type RaceColumn } from "./LiveRace";
 import { placeName, plainText } from "./names";
 
 export interface LiveDebriefProps {
@@ -49,20 +53,49 @@ export function LiveDebrief({ mission, commands, stars, onRetry, onNext, onWatch
   const margin = lines.find(isMargin);
   const hint = nextStep(stars, mission, commands, base.you);
   const headline = stars ? "Clinic supplied" : base.you.mara !== null ? "Not fast enough" : "Deadline missed"; // never "missed" for a run that reached the clinic
-  const cols: [string, RunOutcome, string][] = [["Tower", base.tower, "tower"], ["No beacons", base.none, "none"], ["You", base.you, "you"]];
+  const descent = /^descent/.test(mission.id); // the backup-tower column only means something on the Descent levels
+  const cols: [string, RunOutcome, string][] = [["Tower", base.tower, "tower"], ...(descent ? [["Tower + backup", base.standby, "standby"] as [string, RunOutcome, string]] : []), ["No beacons", base.none, "none"], ["You", base.you, "you"]];
+  const race: RaceColumn[] = [
+    { id: "tower", head: ["tower", "only"], run: base.tower },
+    ...(descent ? [{ id: "standby", head: ["tower +", "backup"], run: base.standby }] : []),
+    { id: "none", head: ["no", "beacons"], run: base.none },
+    { id: "you", head: ["you"], run: base.you, you: true },
+  ];
+  const city = (id?: string) => mission.world.cities.find((c) => c.id === id)?.name ?? "";
+  const nurse = mission.pods.find((p) => p.nurse);
+  const items: RelayItem[] = [
+    ...(onNext && !replay ? [{ key: "next", label: nextLabel, tone: "primary" as const, onSelect: onNext, autoFocus: true }] : []),
+    ...(onRetry ? [{ key: "retry", label: retryLabel, tone: (onNext && !replay ? "secondary" : "primary") as RelayItem["tone"], onSelect: onRetry, autoFocus: !(onNext && !replay) }] : []),
+    ...(onWatchSolution ? [{ key: "solution", label: "Watch the solution", onSelect: onWatchSolution }] : []),
+    ...(onContinue && !replay ? [{ key: "continue", label: "Continue anyway", tone: "quiet" as const, onSelect: onContinue }] : []),
+  ];
   return (
-    <section className="live-debrief live-debrief2" aria-label="Run result">
-      <div className="eyebrow">RUN COMPLETE</div>
-      <h2>{headline}</h2>
-      {endReason && <p className="live-end-reason">{endReason}</p>}
-      {replay
-        ? <p className="live-stars live-replay-tag">Solution replay</p>
-        : <p className="live-stars" aria-label={stars + " of 3 stars"}>{"★".repeat(stars)}{"☆".repeat(3 - stars)}</p>}
-      {margin && !replay && <p className="live-margin">{margin}</p>}
-      <h3>What happened</h3>
-      <ol className="live-why">{why.map((l) => <li key={l}>{l}</li>)}</ol>
-      <h3>The same run, three ways</h3>
-      <table className="live-compare">
+    <section className={"live-debrief" + (replay ? " replay" : stars ? " won" : " lost")} aria-label="Run result">
+      <div className="lv-dl">
+        <p className="lv-verdict">Run complete</p>
+        <h2>{headline}</h2>
+        {replay
+          ? <p className="live-stars live-replay-tag">Solution replay</p>
+          : <p className="live-stars" aria-label={stars + " of 3 stars"}>{[0, 1, 2].map((i) => <span key={i} className={i < stars ? "lit" : "off"} style={{ animationDelay: i * 180 + "ms" }}>★</span>)}</p>}
+        {endReason && <p className="live-end-reason">{endReason}</p>}
+        {margin && !replay && <p className="live-margin">{margin}</p>}
+        {hint && !replay && <p className="live-next"><strong>Next star:</strong> {hint}</p>}
+        {stars >= 3 && !replay && !margin && <p className="live-next"><strong>Best possible run.</strong></p>}
+        {note && <p className="live-note">{note}</p>}
+        {items.length > 0 && <div className="lv-actions"><RelayBar items={items} label="After the run" /></div>}
+        {onRetry && <p className="lv-key"><kbd>R</kbd> {retryLabel.toLowerCase()}</p>}
+        <details className="lv-why">
+          <summary>What happened</summary>
+          <ol className="live-why">{why.map((l) => <li key={l}>{l}</li>)}</ol>
+        </details>
+      </div>
+      <div className="lv-dr">
+        <LiveRace cols={race} from={city(nurse?.origin)} to={city(nurse?.dest)} />
+        <p className="live-tower-says">{base.towerSays}</p>
+        {descent && <p className="live-tower-says">Backup tower back at min {mission.towerDownAt + STANDBY_AFTER} · no flood news reaches it</p>}
+      </div>
+      <table className="live-compare sr">
+        <caption>The same run, {cols.length === 4 ? "four" : "three"} ways</caption>
         <thead><tr><th scope="col" />{cols.map(([n, , k]) => <th key={k} scope="col" className={k === "you" ? "you" : ""}>{n}</th>)}</tr></thead>
         <tbody>
           {([["Nurse Mara", "mara"], ["Medicine", "medicine"]] as const).map(([label, key]) => (
@@ -73,16 +106,6 @@ export function LiveDebrief({ mission, commands, stars, onRetry, onNext, onWatch
           ))}
         </tbody>
       </table>
-      <p className="live-tower-says">{base.towerSays}</p>
-      {hint && !replay && <p className="live-next"><strong>Next star:</strong> {hint}</p>}
-      {stars >= 3 && !replay && <p className="live-next"><strong>Best possible run.</strong></p>}
-      {note && <p className="live-next">{note}</p>}
-      <div className="live-button-row">
-        {onRetry && <button className="live-primary" onClick={onRetry} autoFocus={!onNext}>{retryLabel} <kbd>R</kbd></button>}
-        {onNext && !replay && <button className="live-primary" onClick={onNext} autoFocus>{nextLabel}</button>}
-        {onContinue && !replay && <button onClick={onContinue}>Continue anyway</button>}
-        {onWatchSolution && <button onClick={onWatchSolution}>Watch the solution</button>}
-      </div>
     </section>
   );
 }
