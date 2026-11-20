@@ -1,96 +1,119 @@
-.descent-live { --relay-panel: #17242a; }
-.descent-live .live-status, .descent-live .live-button-row { display: flex; align-items: center; gap: clamp(12px, 2vw, 32px); }
-.descent-live .live-pack { display: grid; gap: 7px; color: var(--text2); font: 600 13px var(--mono); }
-.descent-live .live-pack strong { color: var(--amberHi); }
-.descent-live .live-pips { display: flex; gap: 5px; }
-.descent-live .live-pips i { width: 16px; height: 6px; background: var(--line); border-radius: 1px; }
-.descent-live .live-pips .charged { background: var(--amber); box-shadow: 0 0 9px #d2a76a55; }
-.descent-live .live-time { display: grid; gap: 4px; text-align: right; min-width: 7ch; }
-.descent-live .live-time span { color: var(--text2); font: 11px var(--mono); }
+/* The live Descent, in the game's own chrome (title, missions, camp): a slim rail on the left, the art as the hero, one Relay row under
+   it, no cards or pills. Fraunces for the name, Plex Mono for labels and figures in sentence case, amber = Mara and the primary action,
+   teal = signal, red = failure. Rail and Relay row ported from the 140-leg-redesign mock; the map marks are blackout.css. */
+.descent-live {
+  --ease: cubic-bezier(.23, 1, .32, 1); --scrim: 9, 13, 16;
+  position: relative; max-width: none; min-height: 100svh;
+  display: grid; grid-template-columns: 216px minmax(0, 1fr); column-gap: 40px; align-items: stretch; align-content: center;
+  padding: 32px 40px;
+}
+.descent-live .live-sr, .descent-live .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.descent-live kbd { display: inline-block; min-width: 20px; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(233, 224, 200, .14); border-bottom-width: 2px;
+  font: 500 11px/1.2 var(--label, var(--mono)); color: var(--text2); text-align: center; }
+
+/* rail */
+.lv-rail-wrap { display: flex; min-width: 0; }
+.descent-live .lv-rail { border: 0; }
+.lv-rail { display: flex; flex-direction: column; min-width: 0; width: 100%; padding-top: 4px; font: 400 13px/1.4 var(--label, var(--mono)); color: var(--text2); font-variant-numeric: tabular-nums; }
+.lv-back { align-self: flex-start; margin: 0 0 32px; color: var(--muted); text-decoration: none; font: 500 12px/1.2 var(--label, var(--mono)); }
+.lv-back::before { content: "← "; }
+.lv-back:hover { color: var(--amberText); }
+.lv-kicker { margin: 0 0 8px; font: 500 13px/1.3 var(--label, var(--mono)); color: var(--amberText); }
+.descent-live .lv-rail h1 { margin: 0; font: 800 36px/1.04 var(--display); font-variation-settings: "opsz" 144; letter-spacing: -.01em; color: var(--head); text-wrap: balance; }
+.lv-clock { display: flex; align-items: baseline; gap: 12px; margin: 32px 0 4px; }
+.descent-live .lv-clock time { font: 600 28px/1 var(--label, var(--mono)); color: var(--head); }
+.lv-clock span { color: var(--muted); font-size: 12px; }
+.lv-flood { margin: 0; min-height: 20px; color: var(--muted); }
+.lv-flood.warn { color: var(--amberText); }
+.lv-flood.sealed { color: var(--redText); }
+
+.lv-beacons { display: flex; flex-direction: column; gap: 8px; margin-top: 28px; }
+.lv-beacons b { font-weight: 600; color: var(--head); }
+.lv-beacons small { font-size: 12px; color: var(--muted); }
+.lv-dots { position: relative; display: flex; gap: 12px; width: max-content; }
+.lv-dots::before { content: ""; position: absolute; left: 6px; right: 6px; top: 50%; height: 0; border-top: 2px dotted rgba(126, 200, 179, .45); }
+.lv-dots i { position: relative; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--good); background: #0a1013; }
+.lv-dots i.lit { background: var(--amber); border-color: var(--amberHi); box-shadow: 0 0 10px rgba(210, 167, 106, .5); animation: lv-lit .32s var(--ease); }
+.descent-live .live-feedback { margin: 6px 0 0; min-height: 18px; color: var(--redText); font-size: 12px; }
+.descent-live .live-feedback span { display: inline-block; animation: reject-place .24s ease-in-out; }
+
+.descent-live .lv-label { margin: 24px 0 0; font: 500 12px/1.3 var(--label, var(--mono)); letter-spacing: 0; text-transform: none; color: var(--muted); }
+.lv-ladder { --dot: 10px; list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.lv-ladder li { position: relative; display: grid; grid-template-columns: 16px 40px 1fr; align-items: center; column-gap: 8px; color: var(--text2); }
+.lv-ladder li > i { width: var(--dot); height: var(--dot); margin-left: 3px; border-radius: 50%; border: 1.5px solid var(--muted); background: #0a1013; }
+.lv-ladder li::after { content: ""; position: absolute; left: 7px; top: calc(50% + 6px); height: 100%; width: 2px; background: var(--line); }
+.lv-ladder li:last-child::after { display: none; }
+.lv-stars { color: var(--amber); letter-spacing: .06em; font-size: 12px; }
+.lv-stars span { color: var(--line); }
+.lv-ladder em { font-style: normal; color: var(--muted); }
+.lv-ladder small { grid-column: 3; font-size: 11px; color: var(--muted); }
+.lv-ladder li.met > i { background: var(--amber); border-color: var(--amberHi); }
+.lv-ladder li.met { color: var(--head); }
+.lv-ladder li.met small { color: var(--amberText); }
+.lv-ladder li.missed { color: var(--muted); }
+.lv-ladder li.missed > i { border-color: var(--red); background: transparent; }
+.lv-ladder li.missed .lv-stars { color: var(--line); }
+.lv-ladder li.missed small { color: var(--redText); }
+
+.lv-arrive { margin: 20px 0 0; display: grid; gap: 4px; }
+.lv-arrive div { display: flex; justify-content: space-between; gap: 8px; }
+.lv-arrive dt { color: var(--muted); }
+.lv-arrive .mara dt { color: var(--amberText); }
+.lv-arrive dd { margin: 0; color: var(--head); }
+
+.descent-live #events { list-style: none; margin: auto 0 0; padding: 24px 0 0; border: 0; display: grid; gap: 8px; }
+.descent-live #events li { display: grid; grid-template-columns: 40px 1fr; gap: 4px; padding: 0; border: 0; font: 400 12px/1.4 var(--label, var(--mono)); color: var(--muted); }
+.descent-live #events time { font: inherit; color: var(--dim); }
+
+/* stage: the art, then the Relay row */
+.descent-live main.lv-stage { min-width: 0; width: min(100%, calc((100svh - 160px) * 1672 / 941)); display: flex; flex-direction: column; align-items: stretch; gap: 16px; }
+.descent-live .world-scroll { border: 0; border-radius: 4px; box-shadow: 0 0 0 1px rgba(233, 224, 200, .06); }
 .descent-live .live-world { outline-offset: -3px; }
 .descent-live .live-world.placeable { cursor: copy; }
-.descent-live .live-markers { position: absolute; inset: 0; pointer-events: none; }
-.descent-live .live-instructions { color: var(--text2); font-size: clamp(14px, 1vw, 19px); line-height: 1.4; }
-.descent-live .live-alert { display: grid; gap: 4px; margin: 14px 0; background: var(--relay-panel); border-left: 3px solid var(--amber); padding: 9px 10px; }
-.descent-live .live-alert small { color: var(--amberHi); font: 600 12px var(--mono); }
-.descent-live .live-alert strong { font-size: 14px; }
-.descent-live .live-alert.danger { border-color: var(--red); background: var(--redBg); }
-.descent-live .live-alert.danger small { color: var(--redText); }
-.descent-live .live-placement { min-width: 0; display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: start; gap: 5px 8px; }
-.descent-live #live-selection strong { display: block; font-size: 13px; text-transform: capitalize; }
-.descent-live #live-selection span, .descent-live .live-feedback { color: var(--text2); font-size: 12px; }
-.descent-live .live-feedback { grid-column: 1 / -1; color: var(--redText); min-height: 18px; }
-.descent-live kbd { font: 500 .77em var(--mono); color: inherit; opacity: .78; margin-left: 3px; }
-.descent-live .live-placement button { padding: .48em .54em; }
-.descent-live .live-goals, .descent-live .live-arrivals { padding: 0; font-size: 13px; margin: 0 0 12px; }
-.descent-live .live-goals li, .descent-live .live-arrivals div { display: flex; gap: 8px; align-items: baseline; padding: 5px 0; border-top: 1px solid var(--line); }
-.descent-live .live-goals li > :first-child { color: var(--amberHi); width: 42px; flex: none; }
-.descent-live .live-goals li.met, .descent-live .live-goals li.met > :first-child { color: var(--good); }
-.descent-live .live-goals li.missed { color: var(--redText); }
-.descent-live .live-arrivals { margin-top: 10px; }
-.descent-live .live-arrivals div { justify-content: space-between; color: var(--text2); }
-.descent-live .live-arrivals dd { color: var(--head); font-weight: 650; }
-.descent-live .live-debrief p { color: var(--text2); }
-.descent-live .live-debrief .live-stars.live-replay-tag { font: 600 13px/1 var(--mono, ui-monospace, monospace); font-size: 13px; letter-spacing: .18em; margin: 10px 0; text-transform: uppercase; }
-.descent-live .live-debrief .live-stars { color: var(--amberHi); font-size: 27px; letter-spacing: .15em; margin: 12px 0; }
-.descent-live .live-button-row { flex-wrap: wrap; gap: 8px; margin-top: 14px; }
-.descent-live footer nav { flex-direction: row; flex-wrap: wrap; gap: 8px; }
-.descent-live .live-primary { background: var(--amber); color: var(--ink); }
-@media (max-width: 570px) {
-  .descent-live .live-status { gap: 10px; }
-  .descent-live .live-pack { font-size: 11px; }
-  .descent-live h1 { font-size: 30px; }
-  .descent-live .live-pips i { width: 11px; }
-}
-
-.descent-live { padding-inline: clamp(12px,1.65vw,30px); padding-block: clamp(12px,2vh,26px); gap: clamp(10px,1.5vh,20px); }
-@media (min-width: 1081px) {
-  .descent-live main { grid-template-columns: minmax(0,1fr) clamp(250px,18vw,350px); gap: 15px; }
-}
-.descent-live .live-markers { isolation: isolate; }
-.descent-live .live-pips .spent { animation: pip-spent .3s ease-out; }
-.descent-live .live-feedback span { display: inline-block; animation: reject-place .24s ease-in-out; }
-.descent-live .live-alert.warning { background: var(--amberBg); }
-.descent-live .live-cursor {
-  position: absolute; z-index: 4; padding: 4px 6px; background: var(--stage); border: 1px solid currentColor;
-  font: 650 12px/1.2 var(--mono); pointer-events: none; white-space: nowrap;
-}
-.descent-live .live-cursor { margin: 12px 0 0 12px; color: var(--good); }
-.descent-live .live-cursor.invalid { color: var(--redText); }
-.descent-live .live-margins dd { text-align: right; }
-.descent-live .live-margins small { display: block; color: var(--text2); margin-top: 3px; }
-.descent-live .live-blind, .descent-live .live-next-star { font-size: 13px; line-height: 1.4; color: var(--text2); margin: 8px 0; }
-.descent-live .live-blind ul { padding-inline-start: 16px; }
-.descent-live { position: relative; }
-.descent-live > header { padding-right: 46px; } /* the fixed settings gear sits top-right; keep the beacons/clock HUD clear of it */
-@keyframes pip-spent { 50% { transform: translateY(-3px); background: var(--amber); } }
-@keyframes reject-place { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
-@media (max-width: 850px) {
-}
-
-.descent-live .live-hold-group { position: absolute; z-index: 4; left: 47%; top: 77%; padding: 5px 7px; background: var(--stage); border: 1px solid var(--redText); color: var(--redText); font: 650 12px/1.3 var(--mono); }
-.descent-live .live-hold-group ul { margin: 4px 0 0; padding-left: 15px; }
-
+.descent-live .live-world:focus-visible { outline: 1.5px solid rgba(228, 196, 148, .8); }
 .descent-live .live-overlay { pointer-events: none; }
-.descent-live .live-hint-caption { position: absolute; left: 50%; bottom: 3%; transform: translateX(-50%); z-index: 4; margin: 0; max-width: min(70%, 640px); padding: 8px 14px; background: var(--stage); border-left: 3px solid var(--amber); color: var(--amberHi); font-size: 14px; line-height: 1.4; pointer-events: none; }
-.descent-live .live-end-reason { margin: 0; color: var(--text2); font-size: 14px; }
+.descent-live .live-markers { position: absolute; inset: 0; pointer-events: none; isolation: isolate; }
 
-.descent-live .live-range { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; will-change: transform; }
+.lv-bar { position: relative; display: flex; align-items: flex-end; justify-content: space-between; gap: 8px 24px; min-height: 64px; }
+.descent-live nav.lv-controls { border: 0; padding: 0; display: flex; align-items: flex-end; flex-wrap: wrap; gap: 8px 24px; margin-left: -18px; }
+.lv-controls > .rl-bar:first-child .rl-node { flex-direction: row-reverse; } /* the lone Run node reads left to right; the bars keep label over dot */
+.lv-ready .rl-node[data-tone="primary"] .rl-dot { box-shadow: 0 0 0 4px rgba(10, 16, 19, .9), 0 0 0 6px rgba(228, 196, 148, .55), 0 0 14px rgba(210, 167, 106, .55); }
+/* the Relay nodes must not pick up the cutaway's old button chrome (:where(.descent) button) */
+.descent-live .rl-node, .descent-live .rl-node:hover, .descent-live .rl-node[aria-pressed="true"] { background: transparent; border: 0; color: var(--text); }
+.descent-live .rl-node:disabled { opacity: 1; }
+.descent-live .rl-node:focus-visible { outline: none; }
+html[data-kbd] .descent-live .rl-node:focus-visible { outline: 1.5px solid rgba(228, 196, 148, .8); outline-offset: -4px; }
+
+/* text on the art: no boxes, a dark text shadow so it reads over the pixels */
+.descent-live :is(.live-cursor, .live-ready-chip, .live-hold-group, .live-hint-caption) {
+  position: absolute; z-index: 4; pointer-events: none; white-space: nowrap; text-shadow: 0 1px 8px rgba(6, 11, 14, .95), 0 0 2px rgba(6, 11, 14, .95);
+}
+.descent-live .live-cursor { margin: 16px 0 0 16px; font: 600 13px/1.25 var(--label, var(--mono)); color: var(--amberText); }
+.descent-live .live-cursor.invalid { color: var(--redText); }
+.descent-live .live-ready-chip { left: 3%; top: 3.5%; font: 500 13px/1.2 var(--label, var(--mono)); color: var(--amberText); }
+.descent-live .live-hold-group { pointer-events: auto; left: 47%; top: 77%; font: 500 12px/1.3 var(--label, var(--mono)); color: var(--redText); }
+.descent-live .live-hold-group ul { margin: 4px 0 0; padding-left: 16px; }
+.descent-live .live-hint-caption { left: 50%; bottom: 3%; transform: translateX(-50%); margin: 0; max-width: min(64%, 600px); padding: 16px 48px; text-align: center; white-space: normal;
+  background: radial-gradient(closest-side, rgba(var(--scrim), .82), rgba(var(--scrim), .6) 60%, transparent); color: var(--amberText); font: 400 15px/1.45 var(--sans); }
 
 /* The failed run's missing chain, behind the debrief. Opacity and stroke only (no filters, they cost 200 ms frames on large SVGs). */
-.descent-live .live-range line, .descent-live .live-range polyline { fill: none; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.descent-live .live-range { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; will-change: transform; }
+.descent-live .live-range line { fill: none; stroke-linecap: round; vector-effect: non-scaling-stroke; }
 .descent-live .live-range .gap { stroke: var(--amberHi); stroke-width: 9px; stroke-dasharray: 10 8; opacity: .85; animation: gap-pulse 1.3s ease-in-out infinite alternate; }
 .descent-live .live-gap-mark { position: absolute; transform: translate(-50%, -50%); width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; z-index: 3;
-  border: 2px solid var(--amberHi); background: #10191ed9; color: var(--amberHi); font: 700 15px/1 var(--mono); }
-.descent-live .live-cause { margin: 6px 0 0; color: var(--head); font-size: 15px; line-height: 1.4; font-weight: 600; }
+  border: 2px solid var(--amberHi); background: #10191ed9; color: var(--amberHi); font: 600 15px/1 var(--label, var(--mono)); }
+
+@keyframes lv-lit { 0% { transform: scale(1.5); } 100% { transform: scale(1); } }
+@keyframes reject-place { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
 @keyframes gap-pulse { to { opacity: .4; } }
-@media (prefers-reduced-motion: reduce) { .descent-live .live-range .gap { animation: none; } }
-
-.descent-live .live-eyebrow, .descent-live .live-goals-title { text-transform: none; letter-spacing: 0; font: 600 12px var(--mono); color: var(--text2); }
-.descent-live .live-eyebrow { color: var(--amberHi); }
-
-/* Planning and the flood hold: Run is the next move. A static ring on the primary control and one short label on the map. */
-.descent-live .live-primary.ready { box-shadow: 0 0 0 3px var(--bg), 0 0 0 4px var(--amberHi); }
-.descent-live .live-ready-chip { position: absolute; left: 4.8%; top: 4%; z-index: 4; padding: 4px 8px; background: var(--stage);
-  border: 1px solid var(--amber); color: var(--amberHi); font: 600 12px/1.2 var(--mono); pointer-events: none; white-space: nowrap; }
-.descent-live .live-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) {
+  .lv-dots i.lit, .descent-live .live-feedback span, .descent-live .live-range .gap { animation: none; }
+}
+@media (max-width: 900px) {
+  .descent-live { grid-template-columns: minmax(0, 1fr); row-gap: 24px; padding: 24px 16px; align-content: start; }
+  .lv-rail { display: grid; grid-template-columns: 1fr 1fr; column-gap: 24px; }
+  .lv-rail > :is(.lv-back, .lv-kicker, h1, #events) { grid-column: 1 / -1; }
+  .descent-live .lv-rail h1 { font-size: 30px; }
+  .descent-live main.lv-stage { width: 100%; }
+  .lv-bar { flex-wrap: wrap; }
+}

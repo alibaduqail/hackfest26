@@ -25,6 +25,9 @@ import { Blackout } from "./Blackout";
 import { poolOf } from "./pools";
 import { warnChain } from "./track-light";
 import { LiveIntro } from "./LiveIntro";
+import { LiveRail } from "./LiveRail";
+import { RelayBar, RelayButton } from "../../relay/Relay";
+import "../../relay/relay.css";
 import { LEG_LEVELS, LEVEL_NAMES } from "../../journey/helpers";
 import "../../characters/bubble.css";
 import { LEVEL_HINTS, nextHint } from "./hints";
@@ -55,9 +58,6 @@ function starsOf(goals: { stars: 1 | 2 | 3; maraBy: number; medicineBy?: number 
   return goals.reduce<0 | 1 | 2 | 3>((n, g) => (by("MED-1", g.maraBy) && (g.medicineBy === undefined || by("SUP-3", g.medicineBy)) ? g.stars : n), 0);
 }
 const pillPos = (p: { x: number; y: number }) => ({ left: Math.min(.79, p.x) * 100 + "%", top: Math.min(.92, p.y) * 100 + "%" });
-function arrival(tick: number | null) {
-  return tick === null ? "En route" : "Minute " + tick;
-}
 
 export interface LiveScreenProps {
   onExit?: MouseEventHandler<HTMLAnchorElement>;
@@ -146,7 +146,6 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
   const previewId = introDone && target && canPlace(target) ? target : null;
   const focusId = introDone && keyboard && !hover && !previewId && !over && !solution ? selected : null;
   const joins = (id: string) => previewReach(graph, beaconed, id).linked.length;
-  const pressure = warning ? "Flood imminent" : sealed ? "Shaft flooded" : "Monitoring the shafts";
   const events = live.events.filter((e) =>
     alertKinds.has(e.kind) &&
     (e.kind !== "credential-reject" ||
@@ -326,56 +325,38 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
     return { x: (event.clientX - rect.left) / rect.width, y: (event.clientY - rect.top) / rect.height };
   }
 
+  const legTitle = journeyMode && legId ? LEGS.find((l) => l.id === legId)?.story.title ?? "The Descent" : "The Descent";
+  const [kicker, title] = legTitle.includes(" · ") ? legTitle.split(" · ") : ["Relay control" + (solution ? " · solution replay" : ""), legTitle];
+  const runState = over ? "Run ended" : live.planning ? "Planning" : holdForFlood ? "Held for the flood" : !playing ? "Paused"
+    : live.slow ? "Slow motion" : solution ? "Solution replay" : "Run active";
+  const floodLine = warning && flood
+    ? { tone: "warn" as const, text: logLocation(flood.id) + " floods in " + Math.max(0, untilFlood) }
+    : sealed && flood
+    ? { tone: "sealed" as const, text: "Flooded · " + logLocation(flood.id) }
+    : { tone: "" as const, text: risk.charAt(0).toUpperCase() + risk.slice(1) };
+  const focusState = (id: string) => queued.has(id) ? "Lighting up" : building.has(id) ? "Lit in " + liveIn(id)
+    : (obs.sectors.find((s) => s.id === id) ?? primary).beacon ? "Lit" : "Dark";
+
   return (
-    <div className="descent descent-live">
+    <div className={"descent descent-live" + (over ? " is-over" : "")}>
       <SettingsGear />
-      <header inert={!introDone}>
-        <div>
-          <a className="brand" href="?screen=title" onClick={onExit} aria-label="Back to the Echo title">← Back</a>
-          <h1>{journeyMode && legId ? LEGS.find((l) => l.id === legId)?.story.title : "The Descent"}</h1>
-        </div>
-        <div className="live-status">
-          <div className="live-pack" aria-live="polite" aria-atomic="true">
-            <span>
-              <strong>{remaining}</strong> / {mission.beaconBudget} beacons left{poolMore && <small className="live-pool"> · of your {pool}</small>}
-            </span>
-            <div className="live-pips" aria-hidden="true">
-              {Array.from(
-                { length: mission.beaconBudget ?? 0 },
-                (_, index) => (
-                  <i
-                    key={index}
-                    className={index < remaining
-                      ? "charged"
-                      : index === remaining && remaining !== mission.beaconBudget
-                      ? "spent"
-                      : ""}
-                  />
-                ),
-              )}
-            </div>
-          </div>
-          <div className="live-time">
-            <time id="live-clock">t+{String(obs.tick).padStart(2, "0")}</time>
-            <span>
-              {over
-                ? "Run ended"
-                : live.planning
-                ? "Planning"
-                : holdForFlood
-                ? "Held for the flood"
-                : !playing
-                ? "Paused"
-                : live.slow
-                ? "Slow motion"
-                : solution
-                ? "Solution replay"
-                : "Run active"}
-            </span>
-          </div>
-        </div>
-      </header>
-      <main inert={!introDone}>
+      <div className="lv-rail-wrap" inert={!introDone}>
+        <LiveRail
+          kicker={kicker} title={title} onExit={onExit} tick={obs.tick} runState={runState} flood={floodLine}
+          budget={mission.beaconBudget ?? 0} remaining={remaining} pool={poolMore ? pool : undefined}
+          goals={goals.map((goal) => {
+            const met = stars >= goal.stars;
+            const missed = !met && ((mara.arriveTick ?? obs.tick - 1) > goal.maraBy ||
+              (goal.medicineBy !== undefined && (medicine.arriveTick ?? obs.tick - 1) > goal.medicineBy));
+            return { ...goal, state: met ? "met" : missed ? "missed" : "" };
+          })}
+          mara={mara.arriveTick} medicine={medicine.arriveTick}
+          feedback={{ key: attempt, text: feedback }}
+          selection={logLocation(hover ?? selected) + " · " + focusState(hover ?? selected)}
+          events={events.map((e) => ({ key: [e.tick, e.kind, e.podId, e.sectorId].join("/"), tick: e.tick, text: plainLog(e.text) }))}
+        />
+      </div>
+      <main className="lv-stage" inert={!introDone}>
         <div className="world-scroll">
           <div
             className={"world live-world" + (hover && canPlace(hover) ? " placeable" : "")}
@@ -467,108 +448,34 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
             <Dialogue obs={obs} previous={previous} ended={over} stars={stars} coach={mission.id === "descent-live"} placed={live.commands.length} maraHost={maraHost} />
           </div>
         </div>
-        <aside aria-label="Relay controls and goals">
-          {over
-            ? (
-              journeyMode
-                ? won
-                  ? <LiveDebrief mission={mission} commands={live.commands} stars={stars} endReason={obs.endReason} onNext={() => endLeg()} nextLabel="Continue the journey" />
-                  : <LiveDebrief mission={mission} commands={live.commands} stars={stars} endReason={obs.endReason} onRetry={() => endLeg()} retryLabel="Retry leg" failed onContinue={() => endLeg(true)}
-                      note={`Retrying costs ${obs.tick + 15} minutes on the clock, 1 dose${live.commands.length ? `, and the ${live.commands.length} beacon${live.commands.length === 1 ? "" : "s"} you placed` : ""}.`} />
-                : <LiveDebrief mission={mission} commands={live.commands} stars={stars} endReason={obs.endReason} replay={solution} onRetry={() => restart(false)} retryLabel={solution ? "Play yourself" : undefined} onWatchSolution={solution ? undefined : () => restart(true)} />
-            )
-            : (
-              <>
-                <div className="eyebrow live-eyebrow">Relay control{solution ? " · solution replay" : ""}</div>
-                <h2>Blackout</h2>
-                <p className="live-sr" id="live-rail-help">Click a section of track, or use the arrow keys and Enter, to place a beacon.</p>
-                <div className={"live-alert" + (sealed ? " danger" : warning ? " warning" : "")}>
-                  <small>{pressure}</small>
-                  <strong>
-                    {warning && flood ? logLocation(flood.id) + " floods in " + Math.max(0, untilFlood)
-                      : sealed && flood ? "Flooded · " + logLocation(flood.id)
-                      : risk.charAt(0).toUpperCase() + risk.slice(1)}
-                  </strong>
-                </div>
-                <div className="live-placement">
-                  <p id="live-selection" aria-live="polite">
-                    <strong>{logLocation(hover ?? selected)}</strong>
-                    <span>
-                      {queued.has(hover ?? selected)
-                        ? "Lighting up"
-                        : building.has(hover ?? selected)
-                        ? "Lit in " + liveIn(hover ?? selected)
-                        : (obs.sectors.find((s) => s.id === (hover ?? selected)) ?? primary).beacon
-                        ? "Lit"
-                        : "Dark"}
-                    </span>
-                  </p>
-                  <button disabled={!introDone || !canPlace(hover ?? selected)} onClick={() => tryPlace(hover ?? selected)}>
-                    Place beacon <kbd>Enter</kbd>
-                  </button>
-                  <p className="live-feedback" role="status">{feedback && <span key={attempt}>{feedback}</span>}</p>
-                </div>
-                <h3 className="live-goals-title">Clinic deadlines</h3>
-                <ol className="live-goals">
-                  {goals.map((goal) => {
-                    const held = stars >= goal.stars;
-                    const missed = !held && ((mara.arriveTick ?? obs.tick - 1) > goal.maraBy ||
-                      (goal.medicineBy !== undefined && (medicine.arriveTick ?? obs.tick - 1) > goal.medicineBy));
-                    return (
-                      <li key={goal.stars} className={held ? "met" : missed ? "missed" : ""}>
-                        <span aria-label={goal.stars + " stars"}>{"★".repeat(goal.stars)}</span>
-                        <span>Mara ≤ {goal.maraBy}{goal.medicineBy ? " · Medicine ≤ " + goal.medicineBy : ""}</span>
-                        {(held || missed) && <span>{held ? "Met" : "Missed"}</span>}
-                      </li>
-                    );
-                  })}
-                </ol>
-                <dl className="live-arrivals">
-                  <div>
-                    <dt>Nurse Mara</dt>
-                    <dd>{arrival(mara.arriveTick)}</dd>
-                  </div>
-                  <div>
-                    <dt>Medicine</dt>
-                    <dd>{arrival(medicine.arriveTick)}</dd>
-                  </div>
-                </dl>
-              </>
-            )}
-          <ol id="events" aria-label="Latest system events">
-            {events.map((e) => (
-              <li key={[e.tick, e.kind, e.podId, e.sectorId].join("/")}>
-                <time>t+{e.tick}</time>
-                <span>{plainLog(e.text)}</span>
-              </li>
-            ))}
-          </ol>
-        </aside>
-      </main>
-      <footer inert={!introDone}>
-        <nav aria-label="Descent controls">
-          <button className={"live-primary" + (waiting ? " ready" : "")} onClick={toggleRun} disabled={over}>
-            {playing ? "Ⅱ Pause" : live.planning ? "▶ Run" : "▶ Resume"} <kbd>Space</kbd>
-          </button>
-          <div className="switch" role="group" aria-label="Run speed">
-            {([1, 2, 4] as const).map((speed) => (
-              <button
-                key={speed}
-                aria-pressed={live.speed === speed}
-                onClick={() => live.setSpeed(speed)}
-              >
-                {speed}×
-              </button>
-            ))}
-          </div>
-          {!journeyMode && <button onClick={() => restart(false)}>Restart</button>}
-          {!journeyMode && !over && (
-            <button onClick={() => restart(!solution)}>{solution ? "Play yourself" : "Watch the solution"}</button>
+        <p className="live-sr" id="live-rail-help">Click a section of track, or use the arrow keys and Enter, to place a beacon.</p>
+        <div className="lv-bar">
+          {!over && (
+            <nav className="lv-controls" aria-label="Descent controls">
+              <RelayButton key={live.planning ? "run" : "resume"} label={playing ? "Pause" : live.planning ? "Run" : "Resume"} tone="primary"
+                onSelect={toggleRun} disabled={!introDone} title="Space" className={waiting ? "lv-ready" : ""} />
+              <RelayBar size="sm" label="Run speed" value={String(live.speed)}
+                items={([1, 2, 4] as const).map((speed) => ({ key: String(speed), label: speed + "×", onSelect: () => live.setSpeed(speed) }))} />
+              {!journeyMode && (
+                <RelayBar label="Restart or watch" rest={null}
+                  items={[
+                    { key: "restart", label: "Restart", tone: "danger", hold: true, onSelect: () => restart(false) },
+                    { key: "solution", label: solution ? "Play yourself" : "Watch the solution", onSelect: () => restart(!solution) },
+                  ]} />
+              )}
+            </nav>
           )}
-        </nav>
-        <p className="fine">Simulated run · deterministic engine</p>
-        <div className="live-mara-slot" ref={setMaraHost} /> {/* Mara's speech strip: beside the controls, never over the map */}
-      </footer>
+          <div className="live-mara-slot" ref={setMaraHost} /> {/* Mara's speech strip: beside the controls, never over the map */}
+        </div>
+      </main>
+      {over && (
+        journeyMode
+          ? won
+            ? <LiveDebrief mission={mission} commands={live.commands} stars={stars} endReason={obs.endReason} onNext={() => endLeg()} nextLabel="Continue the journey" />
+            : <LiveDebrief mission={mission} commands={live.commands} stars={stars} endReason={obs.endReason} onRetry={() => endLeg()} retryLabel="Retry leg" failed onContinue={() => endLeg(true)}
+                note={`Retrying costs ${obs.tick + 15} minutes on the clock, 1 dose${live.commands.length ? `, and the ${live.commands.length} beacon${live.commands.length === 1 ? "" : "s"} you placed` : ""}.`} />
+          : <LiveDebrief mission={mission} commands={live.commands} stars={stars} endReason={obs.endReason} replay={solution} onRetry={() => restart(false)} retryLabel={solution ? "Play yourself" : undefined} onWatchSolution={solution ? undefined : () => restart(true)} />
+      )}
       {!introDone && <LiveIntro mission={mission} pool={poolMore ? pool : undefined} from={journeyMode && levelIndex > 0 ? LEVEL_NAMES[LEG_LEVELS[levelIndex - 1].at(-1)! - 1] : undefined} goal={`Nurse Mara reaches the deep clinic by minute ${goals[0].maraBy}.`} hint={INTRO_HINTS[levelIndex]} onStart={start} />}
     </div>
   );

@@ -5,6 +5,7 @@ import { LEVEL_HINTS } from "./hints";
 import { MaraBubble } from "../../characters/Bubble";
 import { legLine } from "../../characters/bubbles";
 import { podName } from "./names";
+import { RelayButton } from "../../relay/Relay";
 
 export interface LiveIntroProps {
   mission: Mission;
@@ -24,19 +25,22 @@ export function LiveIntro({ mission, hint = LEVEL_HINTS[1], goal: goalText, pool
     <div className="live-intro-backdrop">
       <MaraBubble text={legLine(mission)} />
       <section className="live-intro" role="dialog" aria-modal="true" aria-labelledby="live-intro-title">
-        <div className="eyebrow">YOU ARE THE RELAY</div>
+        <p className="lv-kicker">You are the relay</p>
         <h2 id="live-intro-title">Get {name} to the clinic</h2>
-        <p>
+        <p className="lv-lede">
           {mara ? `${name} leaves ${from ?? city(mara.origin)} for ${city(mara.dest)}. ` : ""}
           The tower goes dark at minute {mission.towerDownAt}. {mission.floodReveal ? (mission.floodReveal.lead === 0 ? "The Directorate will flood a shaft, and nothing warns you before it seals." : `The Directorate will flood a shaft; you see which one ${mission.floodReveal.lead} minutes before it seals.`) : mission.sealAt !== null && `The Directorate floods a shaft at minute ${mission.sealAt}.`}
         </p>
         <ul className="live-intro-rules">
           <li><strong>The tower is dark.</strong> News only hops beacon to beacon.</li>
           <li><strong>You have {mission.beaconBudget ?? 0} beacons{pool ? ` of your ${pool}` : ""}.</strong> Click a rail to bolt one in while the pods move.{mission.beaconBuildTicks ? ` A beacon takes ${mission.beaconBuildTicks} minutes to go live.` : ""}</li>
-          <li><strong>Deadline:</strong> {goal.text}</li>
+          <li className="deadline"><strong>Deadline.</strong> {goal.text}</li>
         </ul>
         {hint && <p className="live-intro-hint">{hint}</p>}
-        <button className="live-primary" onClick={onStart} autoFocus aria-label="Start the run">Start <kbd>Space</kbd></button>
+        <div className="lv-start">
+          <RelayButton label="Start" tone="primary" size="lg" onSelect={onStart} autoFocus title="Start the run" />
+          <kbd>Space</kbd>
+        </div>
       </section>
     </div>
   );

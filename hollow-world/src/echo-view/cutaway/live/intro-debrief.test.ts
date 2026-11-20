@@ -20,7 +20,8 @@ test("intro: who, where, deadline, the rule, the hint, a Start button", () => {
   assert.match(html, /minute 92/);
   assert.match(html, /Click a rail to bolt a beacon/); // level 1 hint
   assert.match(html, /role="dialog"[^>]*aria-modal="true"/);
-  assert.match(html, />Start <kbd>Space</);
+  assert.match(html, /class="rl-label">Start<\/span>/); // a Relay node, with the Space keycap beside it
+  assert.match(html, /<kbd>Space<\/kbd>/);
   assert.doesNotMatch(renderToStaticMarkup(h(LiveIntro, { mission: descentLive(), hint: null, onStart: noop })), /live-intro-hint/);
 });
 
@@ -96,16 +97,16 @@ test("Tower Down text names the Hollow cities (X Deep), never the surface ones",
 test("a late arrival with no star reads as one outcome: leg failed, no 'both arrived', the tower line is labelled as the tower's run", () => {
   const m = descentLive(1);
   const failed = renderToStaticMarkup(h(LiveDebrief, { mission: m, commands: [], stars: 0, onRetry: noop, failed: true, endReason: "Mara and the medicine have both arrived." }));
-  assert.match(failed, /LEG FAILED/);
+  assert.match(failed, /Leg failed/);
   assert.match(failed, /Arrived \d+ min late/);
   assert.doesNotMatch(failed, /both arrived/);
   assert.match(failed, /Tower-only run:/);
-  assert.match(renderToStaticMarkup(h(LiveDebrief, { mission: m, commands: [], stars: 0, onRetry: noop })), /RUN COMPLETE/);
+  assert.match(renderToStaticMarkup(h(LiveDebrief, { mission: m, commands: [], stars: 0, onRetry: noop })), /Run complete/);
 });
 
 test("journey intro: the leg starts where the last one ended, and the pack is shown against the leg's own beacons", () => {
   const out = renderToStaticMarkup(h(LiveIntro, { mission: descentLive(), from: "Relay level", pool: 15, onStart: noop }));
   assert.match(out, /Mara leaves Relay level for Deep Clinic/);
   assert.match(out, /You have 5 beacons of your 15\./);
-  assert.match(out, /aria-label="Start the run"/);
+  assert.match(out, /title="Start the run"/);
 });
