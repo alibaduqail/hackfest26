@@ -21,7 +21,8 @@ import { FREE_PLAY_SEED, heldAtFlood, useLive } from "./useLive";
 import { LiveDebrief } from "./LiveDebrief";
 import { analyzeRun } from "./cause";
 import { previewReach, sectorGraph } from "./reach";
-import { TrackLight } from "./TrackLight";
+import { Blackout } from "./Blackout";
+import { poolOf } from "./pools";
 import { warnChain } from "./track-light";
 import { LiveIntro } from "./LiveIntro";
 import { LEG_LEVELS, LEVEL_NAMES } from "../../journey/helpers";
@@ -95,6 +96,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
   const pill = useRef<HTMLSpanElement>(null);
   const [selected, setSelected] = useState(starterId);
   const [hover, setHover] = useState<string | null>(null);
+  const [keyboard, setKeyboard] = useState(false); // the selection preview follows the arrow keys; a mouse user sees only what they hover
   const ground = useRef<HTMLCanvasElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const scene = useRef<ReturnType<typeof createScene> | null>(null);
@@ -129,18 +131,20 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
   const lit = useMemo(() => new Set(live_), [live_.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
   const pending = useMemo(() => new Map<string, number | null>([...[...queued].map((id): [string, number | null] => [id, null]), ...[...building.keys()].map((id): [string, number | null] => [id, liveIn(id)])]),
     [beaconKey, obs.tick]); // eslint-disable-line react-hooks/exhaustive-deps
-  const ahead = useMemo(() => mara.status === "arrived" ? [] : mara.path.slice(Math.max(0, mara.at)), [mara.path.join(","), mara.at, mara.status]); // eslint-disable-line react-hooks/exhaustive-deps
   // Warn here: once the flood is announced, the sections its news must cross to reach Mara's fork (track-light.ts, pinned against the engine).
-  const chain = useMemo(() => flood && warning ? warnChain(mission.world.sectors, flood.id, mara.path, mara.at) : null, [flood?.id, warning, mission, mara.path.join(","), mara.at]); // eslint-disable-line react-hooks/exhaustive-deps
-  const floodMark = useMemo(() => flood && (warning || sealed) ? { id: flood.id, sealed } : null, [flood?.id, warning, sealed]); // eslint-disable-line react-hooks/exhaustive-deps
+  const newsChain = useMemo(() => flood ? warnChain(mission.world.sectors, flood.id, mara.path, mara.at) : null, [flood?.id, mission, mara.path.join(","), mara.at]); // eslint-disable-line react-hooks/exhaustive-deps
+  const chain = newsChain; // shown from the announcement until Mara hears (or the flood is behind her): a beacon placed after the seal still relays
+  const floodLead = mission.floodReveal?.lead ?? 10;
+  const floodMark = useMemo(() => flood && (warning || sealed) ? { id: flood.id, sealed, until: untilFlood, lead: floodLead } : null, [flood?.id, warning, sealed, untilFlood, floodLead]); // eslint-disable-line react-hooks/exhaustive-deps
   const held = obs.pods.filter((p) => heldAtFlood(p, obs));
   const holdForFlood = !!live.floodHold && !playing && !over; // the run paused itself at the flood announcement
   const waiting = !over && !solution && (live.planning || holdForFlood); // planning or held: Run is the next move
   const placementsOpen = !over && !solution && remaining > 0;
   const canPlace = (id: string) =>
     placementsOpen && !queued.has(id) && !building.has(id) && obs.sectors.find((s) => s.id === id)?.beacon === false;
-  const previewId = introDone && (hover ?? selected) && canPlace(hover ?? selected) ? (hover ?? selected) : null;
-  const focusId = introDone && !hover && !previewId && !over && !solution ? selected : null;
+  const target = hover ?? (keyboard ? selected : null);
+  const previewId = introDone && target && canPlace(target) ? target : null;
+  const focusId = introDone && keyboard && !hover && !previewId && !over && !solution ? selected : null;
   const joins = (id: string) => previewReach(graph, beaconed, id).linked.length;
   const pressure = warning ? "Flood imminent" : sealed ? "Shaft flooded" : "Monitoring the shafts";
   const events = live.events.filter((e) =>
@@ -154,7 +158,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
   const gaps = failed ? analyzeRun(mission, live.commands, stars).verdict.marks.filter((id) => tracks.has(id)) : [];
 
   useLayoutEffect(() => {
-    const world = createScene(canvas.current!, ground.current!, trim);
+    const world = createScene(canvas.current!, ground.current!, trim, { blackout: true });
     const overlay = mountEffects(lightCanvas.current!, fxCanvas.current!);
     effects.current = overlay;
     scene.current = world;
@@ -179,7 +183,6 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
     const hiddenChips = trapped.length > 1 ? new Set(trapped.map((p) => p.id)) : undefined;
     // Pause/resume, a flood hold, a speed change or a placement re-shows the same tick: keep its clock so pods never replay it from the start.
     const { start, duration } = (tween.current = tweenFor(tween.current, obs.tick, smooth, live.stepMs, performance.now()));
-    effects.current?.sync(obs, previous, duration, start);
     scene.current?.show(
       sceneFrame(obs, rejected.current),
       sceneFrame(previous),
@@ -190,6 +193,16 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
     );
   }, [obs, previous, playing, activeSector, warning, live.stepMs]);
 
+  // The blackout's pools of light: every live beacon, the ones on their way a little fainter, and the hover preview fainter still.
+  const previewKey = !over && !solution ? previewId : null;
+  useEffect(() => {
+    const pools = [
+      ...live_.filter((id) => tracks.has(id)).map((id) => ({ pool: poolOf(tracks.get(id)!), strength: 1 })),
+      ...[...queued, ...building.keys()].filter((id) => tracks.has(id)).map((id) => ({ pool: poolOf(tracks.get(id)!), strength: .72 })),
+      ...(previewKey && tracks.has(previewKey) ? [{ pool: poolOf(tracks.get(previewKey)!), strength: .45 }] : []),
+    ];
+    effects.current?.light(pools);
+  }, [beaconKey, live_.join(","), previewKey, mission]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!introDone || over) return;
     const h = nextHint(obs, seenHints.current);
@@ -372,12 +385,14 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
             aria-describedby="live-rail-help live-selection"
             onPointerMove={(event) => {
               if (!introDone || over || solution) return;
+              if (keyboard) setKeyboard(false);
               const point = railPoint(event);
               cursor.current = point;
               if (pill.current) Object.assign(pill.current.style, pillPos(point));
               setHover(hitSector(point.x, point.y, tracks)); // same id: React bails out, no render
             }}
             onPointerLeave={() => setHover(null)}
+            onBlur={() => setKeyboard(false)}
             onClick={(event) => {
               const { x, y } = railPoint(event);
               const id = hitSector(x, y, tracks);
@@ -385,6 +400,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
             }}
             onKeyDown={(event) => {
               if (!introDone || over || solution || (event.repeat && event.key === "Enter")) return;
+              if (event.key.startsWith("Arrow") || event.key === "Enter") setKeyboard(true);
               const move = event.key === "ArrowRight" || event.key === "ArrowDown"
                 ? 1
                 : event.key === "ArrowLeft" || event.key === "ArrowUp"
@@ -401,12 +417,12 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
               }
             }}
           >
+            <canvas ref={lightCanvas} className="live-overlay live-dark" aria-hidden="true" />
             <canvas ref={ground} aria-hidden="true" />
-            <canvas ref={lightCanvas} className="live-overlay" aria-hidden="true" />
             <div className="live-markers" aria-hidden="true">
               {!over && (
-                <TrackLight graph={graph} lit={lit} pending={pending} route={solution ? [] : ahead} flood={floodMark} chain={chain}
-                  pulses={obs.pulses} previousPulses={previous.pulses} tick={obs.tick} stepMs={live.stepMs}
+                <Blackout graph={graph} lit={lit} pending={pending} flood={floodMark} chain={chain}
+                  pulses={obs.pulses} tick={obs.tick} stepMs={live.stepMs}
                   preview={solution ? null : previewId} focus={focusId} />
               )}
               {failed && gaps.length > 0 && (
@@ -415,21 +431,10 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
                 </svg>
               )}
               {gaps.map((id) => <span key={"g" + id} className="live-gap-mark" style={atMidpoint(id)}>!</span>)}
-              {flood && (warning || sealed) && (
-                <span
-                  className={"live-water " + (sealed ? "sealed" : "warning")}
-                  style={{
-                    ...atMidpoint(flood.id),
-                    height: (sealed ? 8 : 1 + (10 - Math.max(0, untilFlood)) * 0.65) + "%",
-                  }}
-                >
-                </span>
-              )}
             </div>
             <canvas ref={canvas} role="img" aria-label="Five tunnel levels with moving pods and trackside beacons" />
             <canvas ref={fxCanvas} className="live-overlay" aria-hidden="true" />
             {waiting && introDone && <span className="live-ready-chip" role="status">{holdForFlood ? "Held for the flood · Run when ready" : "Place beacons · Run when ready"}</span>}
-            {warning && <span className="live-flood-chip">Flood in {Math.max(0, untilFlood)}</span>}
             {hover && !over && introDone && (
               <span
                 ref={pill}
@@ -437,7 +442,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
                 style={pillPos(cursor.current)}
               >
                 {canPlace(hover)
-                  ? (joins(hover) ? "Light it · joins the lit track" : "Light it · cut off, nothing lit touches it")
+                  ? (joins(hover) ? "Lights here · joins your light" : "Lights here · isolated, can't pass news")
                   : queued.has(hover)
                   ? "Lighting up"
                   : building.has(hover)
@@ -475,7 +480,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
             : (
               <>
                 <div className="eyebrow live-eyebrow">Relay control{solution ? " · solution replay" : ""}</div>
-                <h2>Light the track</h2>
+                <h2>Blackout</h2>
                 <p className="live-sr" id="live-rail-help">Click a section of track, or use the arrow keys and Enter, to place a beacon.</p>
                 <div className={"live-alert" + (sealed ? " danger" : warning ? " warning" : "")}>
                   <small>{pressure}</small>

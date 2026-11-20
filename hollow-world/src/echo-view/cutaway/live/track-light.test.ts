@@ -6,7 +6,7 @@ import { playRun } from "../../../echo/baseline";
 import { createEngine } from "../../../echo/engine";
 import type { Command, Mission } from "../../../echo/types";
 import { sectorGraph } from "./reach";
-import { chevrons, litEnds, litRuns, pulseEntry, warnChain } from "./track-light";
+import { litRuns, warnChain } from "./track-light";
 
 const place = (ids: string[], atTick = 0): Command[] => ids.map((sectorId) => ({ type: "placeBeacon", sectorId, atTick }));
 const nurse = (m: Mission) => m.pods.find((p) => p.nurse)!;
@@ -66,25 +66,7 @@ test("the engine's news front walks the chain one section per tick, then Mara he
   assert.ok(heard > 0);
 });
 
-test("lit ends: touching lit sections join, a lone one is cut off at both ends", () => {
-  const m = descentLive(0);
-  const g = sectorGraph(m.world.sectors);
-  const tracks = new Map([
-    ["link0", { a: [0, 0] as const, b: [1, 0] as const }],
-    ["link1", { a: [1, 0] as const, b: [2, 0] as const }],
-    ["main1", { a: [5, 5] as const, b: [6, 5] as const }],
-  ]);
-  const ends = litEnds(tracks, g, new Set(["link0", "link1", "main1"]));
-  assert.deepEqual(ends.get("link0"), { a: false, b: true });
-  assert.deepEqual(ends.get("link1"), { a: true, b: false });
-  assert.deepEqual(ends.get("main1"), { a: false, b: false });
+test("lit regions: touching lit sections form one region, a lone one is its own island", () => {
+  const g = sectorGraph(descentLive(0).world.sectors);
   assert.deepEqual(litRuns(g, new Set(["link0", "link1", "main1"])), [["link0", "link1"], ["main1"]]);
-});
-
-test("a pulse enters at the end shared with last tick's front; chevrons point down the section", () => {
-  assert.equal(pulseEntry({ a: [0, 0], b: [1, 0] }, [{ a: [1, 0], b: [2, 0] }]), "b");
-  assert.equal(pulseEntry({ a: [0, 0], b: [1, 0] }, []), null);
-  const marks = chevrons({ a: [0, 0], b: [0, 1] }, 100, 200, 50);
-  assert.equal(marks.length, 4);
-  assert.equal(marks[0].deg, 90);
 });

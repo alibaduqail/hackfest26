@@ -1,4 +1,4 @@
-// Hints for the Descent. The lit-track picture (planning label, warn-here chip, lit and dark rail, red flood) teaches the beacon rule, so
+// Hints for the Descent. The blackout picture (pools of light, warn-here outlines, red flood, the ripple that dies in the dark) teaches the beacon rule, so
 // no toast explains it in prose. Two kinds survive: the intro card's one line per leg (LEVEL_HINTS), and the in-run toasts (TOAST_LEVELS),
 // which only carry what the picture cannot: the order the pods are served in. Pure: the screen decides where to draw it.
 import { DESCENT_LAYOUT } from "../../../echo/descent";

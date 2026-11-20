@@ -1,0 +1,65 @@
+/* Blackout marks over the darkness. Boxes sized in world px (--w, --h) through container units: 1672 world px = the map's width.
+   Transform and opacity only (compositor work): no filters, they cost 200 ms frames before. */
+.descent-live .blackout { --lamp: #f2c98a; --ivory: #f3e7cf; --flood: #e0634f; position: absolute; inset: 0; pointer-events: none; container-type: size; }
+.descent-live .blackout i, .descent-live .blackout b, .descent-live .blackout span, .descent-live .blackout div { position: absolute; display: block; }
+.descent-live .blackout :is(.bo-pv i, .bo-need, .bo-flood, .bo-ripple) {
+  width: calc(var(--w) * 100cqw / 1672); height: calc(var(--h) * 100cqw / 1672); border-radius: 999px;
+  transform: translate(-50%, -50%) rotate(var(--rot)); box-sizing: border-box;
+}
+
+/* Hover and keyboard preview: the pool it would cast, and the pools it would join. */
+.descent-live .blackout .bo-pv { inset: 0; }
+.descent-live .bo-pv i { border: 2px solid transparent; }
+.descent-live .bo-pv [data-pv=self] { border: 2px dashed var(--lamp); }
+.descent-live .bo-pv [data-pv=self-iso] { border: 2px dotted var(--lamp); opacity: .75; }
+.descent-live .bo-pv [data-pv=join] { border: 1.5px solid var(--lamp); opacity: .55; }
+.descent-live .bo-pv [data-pv=focus] { border: 2px solid var(--ivory); opacity: .35; }
+
+/* Warn here: the pools the news still needs, outlined in the dark. */
+.descent-live .bo-need { border: 2px dashed var(--ivory); background: #f3e7cf0d; }
+.descent-live .bo-chip { transform: translateY(-50%); z-index: 4; padding: 4px 8px; background: var(--stage); border: 1px solid var(--ivory);
+  color: var(--ivory); font: 600 12px/1.2 var(--mono); white-space: nowrap; }
+.descent-live .bo-chip.done { border-color: var(--line2); color: var(--text2); }
+.descent-live .bo-count { transform: translate(-50%, -50%); color: var(--lamp); font: 600 18px/1 var(--mono); text-shadow: 0 0 4px var(--stage), 0 0 2px var(--stage); }
+
+/* The flood. Announced: its section flashes red under a siren. Sealed: water fills it. */
+.descent-live .bo-flood { background: radial-gradient(closest-side, #e0634fa6, #e0634f59 65%, #e0634f1f); border: 3px solid var(--flood);
+  animation: bo-flash .8s ease-in-out infinite alternate; }
+.descent-live .bo-water { overflow: hidden; }
+.descent-live .bo-water i { inset: 0; transform-origin: 50% 100%; transform: scaleY(var(--fill)); transition: transform .6s ease-out;
+  background: linear-gradient(#5fb2c2d9 0 3px, #2f7d90c4 3px, #164a5ce6); }
+.descent-live .bo-water.sealed i { transition-duration: 1.8s; transition-timing-function: cubic-bezier(.2, .7, .3, 1); }
+.descent-live .bo-flood-tag { transform: translate(-50%, -50%); z-index: 4; display: flex !important; align-items: center; gap: 6px;
+  padding: 4px 8px; background: var(--stage); border: 1px solid var(--flood); color: var(--redText); font: 650 13px/1.2 var(--mono); white-space: nowrap; }
+.descent-live .bo-flood-tag.sealed { background: var(--flood); color: var(--stage); text-transform: uppercase; }
+.descent-live .bo-siren { width: 20px; height: 16px; overflow: visible; }
+.descent-live .bo-siren .dome { fill: var(--flood); }
+.descent-live .bo-siren .base { fill: var(--redText); }
+.descent-live .bo-siren .rays { fill: none; stroke: var(--flood); stroke-width: 1.6; stroke-linecap: round; animation: bo-flash .45s steps(2, jump-none) infinite alternate; }
+
+/* The warning: a red ring runs out over each pool the news reaches this minute... */
+.descent-live .bo-ripple { border: 4px solid var(--flood); background: radial-gradient(closest-side, transparent 55%, #e0634f40); opacity: 0;
+  animation: bo-ripple var(--ms) ease-out both; }
+/* ...and breaks where the light ends: a broken arc facing into the dark section, left on the map as the place the news died. */
+.descent-live .bo-fizzle { width: calc(120 * 100cqw / 1672); height: calc(120 * 100cqw / 1672); transform: translate(-50%, -50%) rotate(var(--rot)); opacity: .85; }
+.descent-live .bo-fizzle svg { width: 100%; height: 100%; overflow: visible; }
+.descent-live .bo-fizzle path { fill: none; stroke: var(--flood); stroke-width: 5; stroke-linecap: round; stroke-dasharray: 10 8; }
+.descent-live .bo-fizzle path + path { opacity: .55; stroke-dasharray: 5 12; }
+.descent-live .bo-fizzle.now { animation: bo-fizzle var(--ms) ease-out both; }
+
+@keyframes bo-flash { from { opacity: .45; } to { opacity: 1; } }
+@keyframes bo-ripple {
+  from { opacity: 1; transform: translate(-50%, -50%) rotate(var(--rot)) scale(.55); }
+  to { opacity: 0; transform: translate(-50%, -50%) rotate(var(--rot)) scale(1.08); }
+}
+@keyframes bo-fizzle {
+  0%, 45% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--rot)) scale(.6); }
+  70% { opacity: 1; transform: translate(-50%, -50%) rotate(var(--rot)) scale(1.1); }
+  100% { opacity: .85; transform: translate(-50%, -50%) rotate(var(--rot)) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .descent-live .bo-flood, .descent-live .bo-siren .rays, .descent-live .bo-fizzle.now { animation: none; }
+  .descent-live .bo-flood { opacity: .85; }
+  .descent-live .bo-water i, .descent-live .bo-water.sealed i { transition: none; }
+  .descent-live .bo-ripple { animation: none; opacity: .8; transform: translate(-50%, -50%) rotate(var(--rot)); }
+}

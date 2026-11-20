@@ -10,7 +10,7 @@ export interface LineCtx { ended: boolean; stars: number; coach?: boolean; place
 /** All the wording lives here. {section} and {n} are filled from the observation. */
 export const LINES = {
   start: { who: "director", text: "I shut the tower down. Level 5 has no power. Nothing moves unless I say." },
-  beacon: { who: "mara", text: "Beacon's live. I can hear the next section." },
+  beacon: { who: "mara", text: "Dark down here. Outside the light, I won't hear a flood coming." },
   blind: { who: "director", text: "Hear that? Silence. Your pods are blind without my tower." },
   flood: { who: "director", text: "{section} floods in {n}. I didn't warn anyone. Did you?" },
   floodMara: { who: "mara", text: "Bolt a beacon on {place} and the shaft above. The news hops to me." },
