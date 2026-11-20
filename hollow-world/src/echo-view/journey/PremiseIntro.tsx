@@ -1,6 +1,4 @@
 import { useEffect, useRef } from "react";
-import directorImg from "../characters/art/director-a-portrait-64x64.png";
-import maraPortrait from "../characters/art/mara-portrait-64x64.png";
 import maraSprite from "../cutaway/art/mara.png";
 import podImg from "../cutaway/art/med-1.webp";
 import {
@@ -79,13 +77,12 @@ export function PremiseIntro({ onTitle, onDone }: Props) {
       // 1 the Director: cut in, no fade; the PA clicks off all at once
       const on = (s: number) => (t >= s && t < PAOFF ? 1 : 0);
       op($("dirMark"), on(DIR[0]));
-      op($("dirFace"), on(DIR[0]));
       DIR.forEach((s, i) => op($("d" + (i + 1)), on(s)));
       // 2 Mara: the lamp first, then her words in radio phrases
       op($("mara"), fadeIn(t, LAMP + 200, 400) * (1 - fadeIn(t, POD0 - 50, 150)));
       const pleaOut = 1 - fadeIn(t, B3A, 400);
       const tag = fadeIn(t, PL[0] - 200, 300) * pleaOut;
-      op($("cord"), tag); op($("ptag"), tag); op($("maraFace"), tag);
+      op($("cord"), tag); op($("ptag"), tag);
       PL.forEach((s, i) => {
         const e = $("pl" + i), f = fadeIn(t, s, 240);
         op(e, f * pleaOut);
@@ -191,7 +188,6 @@ export function PremiseIntro({ onTitle, onDone }: Props) {
           </defs>
           {/* 1. the Director: one cold line per level, cut in as each level dies */}
           <g fill="#c3cbcd" fontSize="28" role="group" aria-label="Tower address from the Director">
-            <image data-k="dirFace" href={directorImg} x="884" y="96" width="96" height="96" />
             <rect data-k="dirMark" x="996" y="118" width="12" height="12" fill="#e0634f" />
             <text data-k="d1" x="1024" y="136">This is the Director.</text>
             <text data-k="d2" x="1024" y="320">All transit is suspended.</text>
@@ -206,13 +202,12 @@ export function PremiseIntro({ onTitle, onDone }: Props) {
             <text x="420" y="124" textAnchor="middle" fill="#d9c49c" fontSize="16">Mara</text>
           </g>
           <g fontSize="20" fill="#e9e0c8" role="group" aria-label="Radio message from level 1">
-            <line data-k="cord" x1="420" y1="224" x2="420" y2="336" stroke="#e9e0c8" strokeOpacity=".28" strokeWidth="1.5" />
-            <image data-k="maraFace" href={maraPortrait} x="372" y="340" width="96" height="96" />
-            <text data-k="ptag" x="420" y="460" fontSize="16" fill="#90a59f">Level 1, open channel</text>
-            <text data-k="pl0" x="420" y="496">Anyone on the relay?</text>
-            <text data-k="pl1" x="420" y="528">Nurse Mara and the medicine</text>
-            <text data-k="pl2" x="420" y="560">have to reach the Deep Clinic.</text>
-            <text data-k="pl3" x="420" y="592" fill="#edcd95">You have to help.</text>
+            <line data-k="cord" x1="420" y1="224" x2="420" y2="420" stroke="#e9e0c8" strokeOpacity=".28" strokeWidth="1.5" />
+            <text data-k="ptag" x="420" y="444" fontSize="16" fill="#90a59f">Level 1, open channel</text>
+            <text data-k="pl0" x="420" y="484">Anyone on the relay?</text>
+            <text data-k="pl1" x="420" y="516">Nurse Mara and the medicine</text>
+            <text data-k="pl2" x="420" y="548">have to reach the Deep Clinic.</text>
+            <text data-k="pl3" x="420" y="580" fill="#edcd95">You have to help.</text>
           </g>
           <g data-k="clinic"><circle cx="1150" cy="888" r="9" fill="#0a1013" stroke="#7ec8b3" strokeWidth="2" /><circle data-k="clinicFill" cx="1150" cy="888" r="6" fill="#7ec8b3" opacity="0" /><text x="1150" y="864" textAnchor="middle" fill="#b4c4ba" fontSize="16">Deep Clinic</text></g>
           <g data-k="beacons" />
