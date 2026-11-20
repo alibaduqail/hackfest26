@@ -1,0 +1,239 @@
+/* The Journey screens. Same Strata tokens as game.css (theme.ts); reuses .g-screen .g-btn .g-kicker .g-stars .g-row. Desktop only. */
+.j-page { position: relative; z-index: 1; max-width: 1120px; margin: 0 auto; padding: 28px 28px 40px; display: flex; flex-direction: column; gap: 18px; min-height: 100%; justify-content: center; }
+.j-page *, .j-page *::before, .j-page *::after { box-sizing: border-box; }
+
+/* title */
+/* the title itself is Relay + .g-title from game.css; only the choice focus ring lives here */
+/* title backdrop: the 2D pixel-art Descent cutaway (bundled by Vite) under the mockup's radial shade; replaces game.css's .g-title dimmer on this screen */
+.j-title-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(ellipse 55% 45% at 50% 46%, rgba(13,18,22,.55), rgba(13,18,22,.82) 70%, rgba(13,18,22,.94)), url("../cutaway/art/descent.webp") center / cover no-repeat, #0d1216; image-rendering: pixelated; }
+.j-title::before { display: none; }
+
+/* supply bar */
+.j-bar { display: grid; grid-template-columns: 1fr 1.7fr 1fr; background: rgba(21,36,44,.94); border: 1px solid var(--line2); border-radius: 8px; box-shadow: 0 5px 22px #050d1260; }
+.j-res { display: flex; align-items: center; gap: 14px; padding: 14px 22px; position: relative; }
+.j-res + .j-res { border-left: 1px solid var(--line); }
+.j-res-ico { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; background: var(--panelHi); border: 1px solid var(--line2); color: var(--amber); flex: none; }
+.j-res-ico svg { width: 24px; height: 24px; }
+.j-res-clock .j-res-ico { color: var(--blue); }
+.j-res:last-child .j-res-ico { color: var(--good); }
+.j-res-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.j-res-body b { font-size: 30px; line-height: 1; font-weight: 700; color: var(--head); font-variant-numeric: tabular-nums; }
+.j-res-body b small { font-size: 14px; font-weight: 400; color: var(--muted); }
+.j-res-body b.over { color: var(--red); }
+.j-res-name { font-size: 13px; color: var(--text2); }
+.j-track { display: block; height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin-top: 7px; }
+.j-fill { display: block; height: 100%; background: var(--blue); border-radius: 3px; transition: width .4s ease-out; }
+.j-fill.over { background: var(--red); }
+.j-delta { font-style: normal; font-weight: 700; font-size: 14px; padding: 2px 9px; border-radius: 99px; border: 1px solid; white-space: nowrap; animation: j-pop .3s ease-out; }
+.j-delta.good { color: var(--good); border-color: var(--good); background: #7ec8b31a; }
+.j-delta.bad { color: var(--redText); border-color: var(--redLine); background: var(--redBg); }
+
+/* layout: card + trail map (the ending; the camp has its own layout below) */
+.j-camp-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; }
+.j-side { position: sticky; top: 24px; }
+.j-card { background: rgba(21,36,44,.94); border: 1px solid var(--line2); border-radius: 8px; padding: 26px 30px 24px; box-shadow: 0 5px 22px #050d1260; }
+.j-card h2 { margin: 6px 0 12px; font-size: 30px; line-height: 1.2; font-weight: 600; color: var(--head); letter-spacing: .01em; }
+.j-body { margin: 0 0 12px; font-size: 17px; line-height: 1.65; color: var(--text); max-width: 40em; }
+
+.j-actions { margin-top: 12px; }
+.j-actions .g-btn { padding: 11px 28px; font-size: 16px; }
+.j-hint { color: var(--muted); font-size: 13px; }
+
+/* trail map: the depth of the Hollow, strata-banded; done lit teal, next leg amber, ahead dim and dashed */
+.j-trail { background: linear-gradient(180deg, rgba(28,48,58,.96), rgba(13,22,28,.97)); border: 1px solid var(--line2); border-radius: 8px; padding: 14px 18px 12px 12px; box-shadow: 0 5px 22px #050d1260; }
+.j-trail ol { list-style: none; margin: 0; padding: 0; }
+.j-trail li { position: relative; display: grid; grid-template-columns: 30px 1fr auto; align-items: center; column-gap: 8px; padding: 11px 0; }
+.j-trail li:not(:last-child)::before { content: ""; position: absolute; left: 14px; top: 50%; height: 100%; border-left: 2px solid var(--line2); }
+.j-trail li.done:not(:last-child)::before { border-color: var(--good); }
+.j-trail li.current:not(:last-child)::before { border-color: var(--amberDim); }
+.j-trail li.ahead:not(:last-child)::before, .j-trail li.current + li.ahead::before { border-left-style: dashed; border-color: var(--line); }
+.j-dot { position: relative; z-index: 1; justify-self: center; width: 14px; height: 14px; border-radius: 50%; background: var(--stage); border: 2px solid var(--line2); display: grid; place-items: center; }
+.j-trail .done .j-dot { background: var(--good); border-color: var(--good); }
+.j-trail .current .j-dot { border-color: var(--amber); box-shadow: 0 0 8px #d2a76a88; }
+.j-trail .here .j-dot { width: 20px; height: 20px; background: var(--amber); border-color: var(--amberHi); box-shadow: 0 0 14px var(--amber); animation: j-lamp 2.4s ease-in-out infinite; }
+.j-lv { display: flex; flex-direction: column; min-width: 0; font-size: 15px; color: var(--muted); }
+.j-lv b { font-weight: 600; color: var(--text2); }
+.j-lv b span { font-weight: 400; color: var(--muted); margin-left: 4px; }
+.j-trail .done .j-lv b { color: var(--head); }
+.j-trail .current .j-lv b { color: var(--amberText); }
+.j-trail .ahead .j-lv b, .j-trail .ahead .j-lv b span { color: var(--dim); }
+.j-lv em { font-style: normal; font-size: 12px; color: var(--amberText); }
+.j-leg { display: flex; flex-direction: column; align-items: flex-end; font-size: 12px; color: var(--text2); line-height: 1.25; }
+.j-leg .g-stars { font-size: 13px; letter-spacing: .05em; }
+.j-leg-state { color: var(--dim); }
+.j-trail .current .j-leg-state { color: var(--amberText); }
+.j-trail li.j-camp { padding: 4px 0; }
+.j-trail li.j-camp .j-dot { width: 22px; height: 22px; border: 0; background: none; box-shadow: none; color: var(--dim); }
+.j-trail li.j-camp.done .j-dot { color: var(--good); }
+.j-camp .j-lv { font-size: 13px; color: var(--dim); }
+.j-camp.done .j-lv { color: var(--text2); }
+.j-trail.compact li { padding: 7px 0; }
+
+/* ending */
+.j-verdict { padding-top: 24px; padding-bottom: 22px; }
+.j-logcard { padding-top: 20px; padding-bottom: 14px; }
+.j-page .j-logcard h2 { margin-bottom: 0; }
+.j-stamp { display: inline-block; font-size: 15px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; padding: 4px 16px 4px 18px; border: 2px solid; border-radius: 4px; transform: rotate(-2deg); }
+.j-verdict.saved .j-stamp { color: var(--good); border-color: var(--good); }
+.j-verdict.late .j-stamp { color: var(--red); border-color: var(--red); background: var(--redBg); }
+.j-verdict h2 { margin-top: 16px; font-size: 34px; }
+.j-verdict.late { border-color: var(--redLine); }
+.j-score { display: flex; align-items: baseline; gap: 10px; margin: 0 0 14px; }
+.j-score b { font-size: 64px; line-height: 1; font-weight: 700; color: var(--amber); font-variant-numeric: tabular-nums; text-shadow: 0 0 24px rgba(210,167,106,.25); }
+.j-score span { color: var(--text2); font-size: 15px; }
+.j-closing { margin: 6px 0 20px; padding: 12px 18px; border-left: 3px solid var(--amber); background: var(--amberBg); color: var(--amberText); font-size: 18px; line-height: 1.5; }
+.j-verdict .j-bar { margin-top: 4px; background: var(--stage); box-shadow: none; }
+.j-verdict .j-actions { margin-top: 22px; }
+
+/* trail log: a timeline of every leg attempt and camp choice */
+.j-log { list-style: none; margin: 14px 0 0; padding: 0 0 0 4px; column-count: 2; column-gap: 40px; }
+.j-log li { break-inside: avoid; position: relative; display: grid; grid-template-columns: 1fr auto; column-gap: 14px; padding: 8px 0 8px 22px; border-left: 2px solid var(--line2); margin-left: 6px; }
+.j-log li::before { content: ""; position: absolute; left: -7px; top: 15px; width: 12px; height: 12px; border-radius: 50%; background: var(--good); border: 2px solid var(--panel); }
+.j-log li.choice::before { width: 10px; height: 10px; left: -6px; border-radius: 2px; transform: rotate(45deg); background: var(--amber); }
+.j-log li.failed::before { background: var(--red); }
+.j-log-title { font-weight: 600; color: var(--head); }
+.j-log li.choice .j-log-title { font-weight: 400; color: var(--amberText); }
+.j-log li.failed .j-log-title { color: var(--redText); }
+.j-log-detail { grid-column: 1 / -1; font-size: 14px; color: var(--text2); }
+.j-log li.choice .j-log-detail { color: var(--text); }
+
+@keyframes j-pop { 0% { transform: scale(.94); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes j-lamp { 50% { box-shadow: 0 0 22px var(--amberHi); } }
+@media (prefers-reduced-motion: reduce) { .j-delta, .j-trail .here .j-dot { animation: none; } .j-fill { transition: none; } }
+
+/* camp: no cards. The situation sits on the left over the Descent art; on the right the trail line forks at Mara into the choices
+   and rejoins at Continue down. Teal = the hop line, amber = Mara and the light, the same language as the title's Relay nodes. */
+.j-camp2 { display: grid; grid-template-columns: minmax(420px, 36%) 1fr; height: 100%; overflow: hidden; }
+.j-camp-bg { background: linear-gradient(90deg, rgba(11,16,20,.95) 0, rgba(11,16,20,.9) 30%, rgba(11,16,20,.7) 58%, rgba(11,16,20,.76) 100%), url("../cutaway/art/descent.webp") center / cover no-repeat, #0d1216; }
+.j-cl { position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: center; padding: 64px 32px 64px 96px; animation: j-rise .5s cubic-bezier(.23, 1, .32, 1) both; }
+.j-where { margin: 0 0 16px; font: 500 14px/1.4 var(--label, var(--mono)); color: var(--amberText); }
+.j-cl h2 { margin: 0; font: 800 56px/1.04 var(--display); font-variation-settings: "opsz" 144; letter-spacing: -.01em; color: var(--head); text-wrap: balance; }
+.j-supply { display: flex; flex-wrap: wrap; gap: 4px 0; margin: 24px 0 0; font: 400 14px/1.5 var(--label, var(--mono)); color: var(--text2); font-variant-numeric: tabular-nums; }
+.j-supply > span + span::before { content: "·"; margin: 0 12px; color: var(--dim); }
+.j-supply b { font-weight: 600; color: var(--head); }
+.j-supply b.over { color: var(--redText); }
+.j-sd { margin-left: 8px; }
+.j-sd.good { color: var(--good); }
+.j-sd.bad { color: var(--redText); }
+.j-key { margin: 8px 0 0; font: 400 13px/1.5 var(--label, var(--mono)); color: var(--muted); }
+
+.j-stage { position: relative; z-index: 1; min-width: 0; animation: j-fade .6s .1s ease-out both; }
+.j-rail, .j-fork { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+.j-rail-lines line { stroke-width: 2; }
+.j-rail-lines line.done { stroke: var(--good); opacity: .7; }
+.j-rail-lines line.ahead { stroke: var(--muted); stroke-dasharray: 3 6; opacity: .55; }
+.j-rail-lines circle.done { fill: var(--good); }
+.j-rail-lines circle.ahead { fill: #0a1013; stroke: var(--muted); stroke-width: 1.5; }
+.j-rail-lv { position: absolute; transform: translateY(-50%); white-space: nowrap; font: 400 13px/1.2 var(--label, var(--mono)); color: var(--muted); text-shadow: 0 1px 8px rgba(6,11,14,.9); }
+.j-rail-lv.done { color: var(--text2); }
+.j-rail-lv em { font-style: normal; color: var(--muted); margin-left: 8px; }
+.j-rail-lv .g-stars { font-size: 14px; }
+.j-rail-lv.here { font-size: 14px; color: var(--text2); }
+.j-rail-lv.here b { font-weight: 600; color: var(--amberText); margin-right: 4px; }
+
+.j-branch path { fill: none; stroke-linecap: butt; stroke: var(--good); stroke-width: 2; stroke-dasharray: 3 5; opacity: .5; transition: opacity .2s cubic-bezier(.23, 1, .32, 1); }
+.j-branch.lit path { stroke-dasharray: none; opacity: .95; }
+.j-branch.off path { opacity: .14; }
+.j-mara { position: absolute; z-index: 2; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; background: var(--amber); border: 2px solid var(--amberHi); }
+
+.j-fk { position: absolute; z-index: 4; display: grid; grid-template-columns: 16px 1fr; column-gap: 14px; align-items: start; text-align: left; padding: 12px 8px 12px; margin: 0; transform: translate(-16px, -22px); border: 0; border-radius: 14px; background: transparent; color: var(--text); font: inherit; cursor: pointer; }
+.j-fk-dot { grid-row: 1 / span 2; margin-top: 2px; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--good); background: #0a1013; transition: transform .2s cubic-bezier(.23, 1, .32, 1), background-color .15s, border-color .15s; }
+.j-fk-label { font: 600 16px/1.25 var(--label, var(--mono)); letter-spacing: .02em; color: var(--head); text-shadow: 0 1px 10px rgba(6,11,14,.9); transition: color .15s; }
+.j-fk-n { margin-right: 8px; font-weight: 500; color: var(--muted); }
+.j-fk-cost { grid-column: 2; font: 400 13px/1.5 var(--label, var(--mono)); text-shadow: 0 1px 8px rgba(6,11,14,.9); }
+.j-fk-cost .good { color: var(--good); }
+.j-fk-cost .bad { color: var(--redText); }
+.j-fk-cost .neutral, .j-fk-cost .sep { color: var(--muted); }
+@media (hover: hover) {
+  .j-fk:not(.passed):not(.picked):hover .j-fk-dot { transform: scale(1.3); border-color: var(--amberHi); background: #33504b; }
+  .j-fk:not(.passed):not(.picked):hover .j-fk-label { color: var(--amberText); }
+}
+.j-fk:focus-visible { outline: 1.5px solid rgba(228, 196, 148, .8); outline-offset: -4px; background: rgba(126, 200, 179, .06); }
+.j-fk:focus-visible .j-fk-dot { transform: scale(1.3); }
+.j-fk:active:not(.passed) .j-fk-dot { transform: scale(.8); transition-duration: .08s; }
+.j-fk.picked { cursor: default; }
+.j-fk.picked .j-fk-dot { background: var(--amber); border-color: var(--amberHi); }
+.j-fk.picked .j-fk-label { color: var(--amberText); }
+.j-fk.passed { cursor: default; }
+.j-fk.passed .j-fk-label, .j-fk.passed .j-fk-cost { opacity: .32; }
+.j-fk.passed .j-fk-dot { border-color: rgba(126, 200, 179, .32); }
+
+.j-go { position: absolute; z-index: 4; width: 0; height: 0; }
+.j-go .rl-bar { position: absolute; left: 0; top: 0; transform: translate(calc(-1 * var(--rl-padx) - var(--rl-dot) / 2), -50%); }
+.j-go .rl-node { flex-direction: row-reverse; }
+
+@keyframes j-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes j-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .j-cl, .j-stage { animation: none; } .j-fk, .j-fk-dot, .j-branch path { transition: none; } }
+
+/* ending (unslop redesign): verdict and score on the left, the whole descent as one trail line on the right; no cards */
+.j-end2 { display: grid; grid-template-columns: minmax(420px, 36%) 1fr; height: 100%; overflow: hidden; }
+.j-el { position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: center; padding: 64px 32px 64px 96px; animation: j-rise .5s cubic-bezier(.23, 1, .32, 1) both; }
+.j-verdict2 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; margin: 0 0 16px; font: 500 14px/1.4 var(--label, var(--mono)); color: var(--good); }
+.j-end2.late .j-verdict2 { color: var(--redText); }
+.j-verdict2 span { font-weight: 400; color: var(--muted); }
+.j-el h2 { margin: 0; font: 800 48px/1.06 var(--display); font-variation-settings: "opsz" 144; letter-spacing: -.01em; color: var(--head); text-wrap: balance; }
+.j-score2 { display: flex; align-items: baseline; gap: 12px; margin: 20px 0 0; font-variant-numeric: tabular-nums; }
+.j-score2 b { font: 800 112px/1 var(--display); font-variation-settings: "opsz" 144; letter-spacing: -.02em; color: var(--amberHi); }
+.j-score2 span { font: 400 14px/1.4 var(--label, var(--mono)); color: var(--muted); }
+.j-end2 .j-supply { margin-top: 24px; }
+.j-again { position: relative; width: 0; height: 56px; margin-top: 32px; }
+.j-again .rl-bar { --rl-padx: 14px; position: absolute; left: 0; top: 50%; transform: translate(calc(-1 * var(--rl-padx)), -50%); }
+.j-again .rl-node { flex-direction: row-reverse; }
+
+.j-er { position: relative; z-index: 1; display: flex; align-items: center; padding: 40px 0; min-width: 0; animation: j-fade .6s .1s ease-out both; }
+.j-recw { position: relative; --g: 0ms; margin: 0 32px 0 calc(45% - 7px); min-width: 0; }
+.j-recw.has-ghosts { --g: 900ms; } /* the ghost paths draw first, then the real trail draws over them */
+.j-rec { --gap: clamp(14px, 3.2vh, 30px); --dot: 14px; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--gap); }
+.j-rec li { position: relative; display: flex; align-items: center; gap: 16px; min-height: 24px; font: 400 13px/1.3 var(--label, var(--mono)); color: var(--muted); text-shadow: 0 1px 8px rgba(6,11,14,.9); animation: j-rise .45s calc(var(--i, 0) * 70ms + 150ms + var(--g, 0ms)) cubic-bezier(.23, 1, .32, 1) both; }
+.j-rec li > span { min-width: 0; overflow-wrap: anywhere; }
+.j-rec li > i { flex: none; width: 8px; height: 8px; margin: 0 3px; border-radius: 50%; background: var(--good); opacity: .8; }
+.j-rec li::after { content: ""; position: absolute; left: 6px; top: 50%; width: 2px; height: calc(100% + var(--gap)); background: var(--good); opacity: .6; }
+.j-rec li:last-child::after { display: none; }
+.j-rec li.leg > i { width: 14px; height: 14px; margin: 0; background: #0a1013; border: 2px solid var(--good); opacity: 1; }
+.j-rec li.leg.failed > i { border-color: var(--red); }
+.j-rec li.leg { font-size: 15px; color: var(--text2); }
+.j-rec li.leg b { font-weight: 600; color: var(--head); margin-right: 12px; }
+.j-rec li.leg em, .j-rec li.choice em { font-style: normal; color: var(--muted); }
+.j-rec li.leg em { margin-left: 12px; }
+.j-rec li.choice em { margin-right: 10px; }
+.j-rec li.choice > span { color: var(--text2); }
+.j-rec li.leg .g-stars { font-size: 14px; }
+.j-rec li.leg.failed .g-stars, .j-rec li.leg.failed em { color: var(--redText); }
+.j-rec li.start { color: var(--text2); }
+.j-rec li.mara { font-size: 15px; color: var(--head); }
+.j-rec li.mara > i { width: 18px; height: 18px; margin: -2px -2px -2px -2px; background: var(--amber); border: 2px solid var(--amberHi); opacity: 1; }
+.j-rec li.mara b { font-weight: 600; color: var(--amberText); margin-right: 12px; }
+.j-end2.late .j-rec li.mara b { color: var(--redText); }
+.j-rec li.ahead { color: var(--muted); }
+.j-rec li.ahead > i { background: #0a1013; border: 1.5px solid var(--muted); opacity: .8; }
+.j-rec li.mara:nth-last-child(2)::after { background: none; border-left: 2px dotted var(--muted); width: 0; opacity: .6; }
+@media (prefers-reduced-motion: reduce) { .j-el, .j-er, .j-rec li { animation: none; } }
+
+/* ending ghosts: the same three legs without you, as columns of a race beside the real trail. Dotted and neutral; a red cross where a run died; headers on top, outcomes in one row below. */
+.j-recw.has-ghosts { padding: 52px 0 56px; }
+.j-recw.has-ghosts .j-rec li::after { background: var(--amber); opacity: .75; } /* the real path is amber: it is the player's */
+.j-ghosts { position: absolute; top: 0; right: calc(100% - 7px); overflow: visible; pointer-events: none; }
+.j-ghosts circle, .j-ghosts .x, .j-ghosts text.out { animation: j-ghost .3s var(--d, 0ms) ease-out both; }
+.j-ghosts .shade { -webkit-mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent); mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent); }
+.j-ghosts .gh circle { fill: var(--text2); opacity: .6; }
+.j-ghosts .gh .x { fill: none; stroke: var(--red); stroke-width: 2.4; stroke-linecap: round; }
+.j-ghosts .gh circle.end { fill: #0a1013; stroke: var(--good); stroke-width: 2; opacity: 1; }
+.j-ghosts text { font: 500 12px/1 var(--label, var(--mono)); fill: var(--text2); }
+.j-ghosts .gh.dead text.out { fill: var(--redText); }
+.j-ghosts .gh.you text { fill: var(--amberText); font-weight: 600; }
+.j-claim { margin: 10px 0 0; font: 400 13px/1.5 var(--label, var(--mono)); color: var(--muted); font-variant-numeric: tabular-nums; }
+.j-claim b { font-weight: 600; color: var(--text2); }
+.j-claim b.bad { color: var(--redText); }
+@keyframes j-ghost { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .j-ghosts circle, .j-ghosts .x, .j-ghosts text.out { animation: none; } }
+
+/* camp consequence: drawn on the picked branch. Red = failure (dotted spur, dead end), teal = signal (beacons lit along the branch). */
+.j-csq circle, .j-csq path, .j-csq text { animation: j-ghost .28s var(--d, 0ms) ease-out both; }
+.j-csq.bad circle { fill: var(--red); opacity: .8; }
+.j-csq.bad path { fill: none; stroke: var(--red); stroke-width: 2; stroke-linecap: round; }
+.j-csq.good circle { fill: var(--good); stroke: rgba(126, 200, 179, .3); stroke-width: 5; }
+.j-csq text { font: 600 13px/1 var(--label, var(--mono)); paint-order: stroke; stroke: rgba(6,11,14,.94); stroke-width: 5px; stroke-linejoin: round; }
+.j-csq.bad text { fill: var(--redText); }
+.j-csq.good text { fill: var(--good); }
+@media (prefers-reduced-motion: reduce) { .j-csq circle, .j-csq path, .j-csq text { animation: none; } }

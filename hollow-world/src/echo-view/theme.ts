@@ -33,11 +33,14 @@ export const THEME = {
 
 export const FONT_SANS = `"Aptos", "Segoe UI", ui-sans-serif, system-ui, sans-serif`;
 export const FONT_MONO = `ui-monospace, SFMono-Regular, Menlo, monospace`;
+// Relay type: the title word and node labels (Google Fonts links in index.html and echo.html; the fallbacks are solid system faces).
+export const FONT_DISPLAY = `"Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia, serif`;
+export const FONT_LABEL = `"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace`;
 
 /** Puts the tokens on :root as CSS variables. Call once, before the first render. */
 export function installTheme() {
   const vars = Object.entries(THEME).map(([k, v]) => `--${k}:${v}`).join(";");
   const el = document.createElement("style");
-  el.textContent = `:root{${vars};--sans:${FONT_SANS};--mono:${FONT_MONO};color-scheme:dark}`;
+  el.textContent = `:root{${vars};--sans:${FONT_SANS};--mono:${FONT_MONO};--display:${FONT_DISPLAY};--label:${FONT_LABEL};color-scheme:dark}`;
   document.head.prepend(el);
 }

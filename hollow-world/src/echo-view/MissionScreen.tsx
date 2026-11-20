@@ -5,11 +5,13 @@ import { createEngine } from "../echo/engine";
 import { towerDown } from "../echo/missions";
 import type { EchoEngineApi, LogEvent, LogKind, Mission, Observation } from "../echo/types";
 import { drawMap, makeProjection, PULSE_MS, shakeOffset, type Fx, type Variant } from "./map";
-import { play, type Sound } from "./game/audio";
+import { ambience, play, type Sound } from "./game/audio";
 
 const STRATA_URL = "/strata.html"; // the Strata city sim, home of Sector 07
-import { EchoLog, Scoreboard, TowerBanner } from "./panels";
+import { EchoBanner, EchoLog, Scoreboard, TowerBanner } from "./panels";
+import { Legend } from "./Legend";
 import { EndCard } from "./EndCard";
+import { RelayBar } from "./relay/Relay";
 import "./echo.css";
 
 const SPEEDS = [1, 10, 60] as const;
@@ -19,30 +21,20 @@ const DISPATCH_MIN_TICK = 31; // the reroute beat needs the pod to depart at or 
 const css = `
 html,body,#root{margin:0;height:100%;background:var(--bg);color:var(--text);font:13px/1.45 var(--sans)}
 .echo-screen{position:relative;display:flex;flex-direction:column;height:100%}
-.echo-main{flex:1;display:grid;grid-template-columns:1fr 1fr 360px;gap:1px;background:var(--line);min-height:0}
-.echo-pane{position:relative;background:var(--stage);min-width:0;min-height:0}
-.echo-pane canvas{position:absolute;inset:0;width:100%;height:100%}
-.echo-pane::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 54% 43%,transparent 42%,#050e1670 100%)}
-.echo-cap{position:absolute;left:14px;top:12px;z-index:1;pointer-events:none}
-.echo-cap b{display:block;font-size:14px;letter-spacing:.04em}
-.echo-cap span{color:var(--muted)}
-.echo-overlay{position:absolute;left:14px;bottom:14px;z-index:1;max-width:calc(100% - 28px)}
-.echo-overlay .echo-card{padding:8px 12px}.echo-overlay .echo-title{margin:0 0 2px}
-.echo-overlay .echo-tower-lie{display:flex;flex-wrap:wrap;gap:0 16px;align-items:baseline}
-.echo-overlay .echo-claimed,.echo-overlay .echo-real{font-size:20px;margin:0}
+.echo-main{flex:1;display:grid;grid-template-columns:1fr 1fr 360px;gap:2px;background:var(--line);min-height:0}
 .echo-side{background:var(--bg);padding:12px;min-height:0;overflow:hidden}
 .echo-side .echo-panels{height:100%}
-.echo-bar{background:var(--panel);display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:8px 14px;border-top:1px solid var(--line)}
-.echo-bar button{background:var(--btn);color:var(--text);border:1px solid var(--line2);border-radius:5px;padding:6px 14px;font:inherit;cursor:pointer}.echo-bar button:hover:not(:disabled){border-color:var(--amber)}
-.echo-bar button[aria-pressed=true]{background:var(--amber);border-color:var(--amberHi);color:var(--ink);font-weight:600}
-.echo-bar button:disabled{opacity:.4;cursor:default}
-.echo-bar .echo-dispatch{border-color:var(--red);color:var(--redText)}
-.echo-bar .grow{flex:1}
-.echo-bar a{color:var(--amber);text-decoration:none}.echo-bar a:hover{text-decoration:underline}
+.echo-bar{background:var(--panel);display:flex;flex-wrap:wrap;gap:4px 20px;align-items:center;padding:2px 14px;border-top:1px solid var(--line)}
+.echo-bar .grow{flex:1;min-width:0;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.echo-speed{display:flex;align-items:center;gap:8px}
+.echo-speed-l{font-family:var(--label,var(--mono));font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.echo-speed .rl-node[data-selected] .rl-label{font-weight:700;text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:2px}
+.echo-speed .rl-node[data-selected] .rl-dot{background:var(--amber);border-color:var(--amberHi)}
+.echo-bar .echo-clock{font-family:var(--label,var(--mono));font-variant-numeric:tabular-nums;color:var(--text2)}
 .echo-ticker{display:flex;gap:8px;align-items:center;margin-bottom:8px;padding:5px 10px;background:var(--redBg);border:1px solid var(--redLine);border-radius:4px;color:var(--red);font-size:12px;letter-spacing:.06em;animation:echo-tick .5s ease-out}
 .echo-ticker b{flex:none;background:var(--red);color:var(--redBg);padding:0 6px;font-size:10px;letter-spacing:.25em}
 @keyframes echo-tick{from{opacity:0;transform:translateY(4px)}}
-.echo-hint{position:absolute;left:14px;bottom:14px;z-index:3;max-width:calc(100% - 28px);display:flex;flex-direction:column;gap:2px;text-align:left;background:var(--amberBg);color:var(--amberText);border:1px solid var(--amber);border-radius:6px;padding:10px 14px;font:inherit;font-size:16px;line-height:1.35;cursor:pointer;animation:echo-hint .35s ease-out;text-wrap:balance;hyphens:none}
+.echo-hint{position:absolute;left:14px;bottom:104px;z-index:3;max-width:calc(100% - 28px);display:flex;flex-direction:column;gap:2px;text-align:left;background:linear-gradient(var(--amberBg),var(--amberBg)),var(--panel);color:var(--amberText);border:1px solid var(--amber);border-radius:6px;padding:10px 14px;font:inherit;font-size:16px;line-height:1.35;cursor:pointer;animation:echo-hint .35s ease-out;text-wrap:balance;hyphens:none}
 .echo-hint small{color:var(--amberDim);font-size:11px;letter-spacing:.08em}
 @keyframes echo-hint{from{opacity:0;transform:translateY(6px)}}
 .echo-flash{position:absolute;inset:0;z-index:4;pointer-events:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(90,8,6,.38);box-shadow:inset 0 0 160px rgba(255,59,59,.55);animation:echo-flash 2s forwards}
@@ -81,12 +73,12 @@ const SCENE_KINDS = new Set<LogKind>(["tower-down", "credential-reject"]); // Ma
 const forMara = (e: LogEvent, yieldTo: string) =>
   SCENE_KINDS.has(e.kind) || (e.kind === "yield" ? yieldTo === DISPATCH_POD : e.podId === DISPATCH_POD);
 const SOUND: Record<string, Sound> = { down: "down", seal: "seal", yield: "yield", "yield-med": "yield", "arrive-med": "chime" };
-// Mission 1 is the tutorial: one hint card at a time, 5 s or click (2.5 s when another is waiting). Dismissal lasts for the page session.
+// Mission 1 is the tutorial: one hint card at a time; a newer beat replaces it after 2.5 s (5 s otherwise, or click). Dismissal lasts for the page session.
 const HINTS: Record<string, string> = {
   start: "Run the clock. Watch the tower on the left.",
   down: "The tower is dark. On the right, Echo takes over.",
   seal: "The Directorate sealed the tunnel. Watch Mara re-plan.",
-  "yield-med": "A passenger yields. Medicine goes first.",
+  "yield-med": "A passenger pod steps aside. Medicine goes first.",
 };
 const HINT_MS = 5000, HINT_MIN_MS = 2500;
 const hintsSeen = new Set<string>();
@@ -132,8 +124,8 @@ function collectFx(fx: Fx, history: LogEvent[], o: Observation, mission: Mission
   }
 }
 
-function MapPane({ obsRef, fxRef, variant, title, sub, children }: {
-  obsRef: MutableRefObject<Observation>; fxRef: MutableRefObject<Fx>; variant: Variant; title: string; sub: string; children?: React.ReactNode;
+function MapPane({ obsRef, fxRef, variant, kicker, title, sub, down, children }: {
+  obsRef: MutableRefObject<Observation>; fxRef: MutableRefObject<Fx>; variant: Variant; kicker: string; title: string; sub: string; down: boolean; children?: React.ReactNode;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
@@ -154,8 +146,9 @@ function MapPane({ obsRef, fxRef, variant, title, sub, children }: {
     return () => cancelAnimationFrame(raf);
   }, [variant, obsRef, fxRef]);
   return (
-    <div className="echo-pane">
-      <div className="echo-cap"><b>{title}</b><span>{sub}</span></div>
+    <div className={`echo-pane echo-pane-${variant}${down ? " is-down" : ""}`}>
+      <header className="echo-cap"><span className="echo-kicker">{kicker}</span><b>{title}</b><span>{sub}</span></header>
+      <div className="echo-map">
       <canvas
         ref={ref}
         onClick={(ev) => {
@@ -167,6 +160,7 @@ function MapPane({ obsRef, fxRef, variant, title, sub, children }: {
         }}
       />
       {children}
+      </div>
     </div>
   );
 }
@@ -220,8 +214,9 @@ export function MissionScreen({ mission: missionProp, allowDispatch = true, spee
   const pushHints = useCallback((ids: string[], idle: boolean) => {
     const fresh = ids.filter((id, i) => HINTS[id] && !hintsSeen.has(id) && ids.indexOf(id) === i);
     fresh.forEach((id) => hintsSeen.add(id));
-    hintQ.current.push(...fresh);
-    if (idle && fresh.length) nextHint();
+    if (!fresh.length) return;
+    hintQ.current = [fresh[fresh.length - 1]]; // one at a time: the newest beat replaces any waiting one
+    if (idle || performance.now() - hintAt.current >= HINT_MIN_MS) nextHint();
   }, [nextHint]);
   const hintOn = useRef(false);
   hintOn.current = !!hint;
@@ -291,6 +286,7 @@ export function MissionScreen({ mission: missionProp, allowDispatch = true, spee
   const endRef = useRef(onEnd);
   endRef.current = onEnd;
   const ended = useRef(false);
+  useEffect(() => { ambience(running && !echo.over); return () => ambience(false); }, [running, echo.over]); // quiet cave bed while a run goes
   useEffect(() => {
     if (!echo.over || ended.current) return;
     ended.current = true; // a Replay builds a new world but onEnd still fires once per mount
@@ -301,47 +297,45 @@ export function MissionScreen({ mission: missionProp, allowDispatch = true, spee
     const w = world.current;
     const atTick = Math.max(DISPATCH_MIN_TICK, echo.tick + 1);
     const res = [w.tower, w.echo].map((e) => e.act({ type: "dispatchMedical", podId: DISPATCH_POD, atTick })); // same tick on both engines
-    setNote(res.every((r) => r.ok) ? `Nurse Mara Vale dispatched for t+${atTick}` : `Dispatch refused: ${res.find((r) => !r.ok)?.reason}`);
+    setNote(res.every((r) => r.ok) ? `Mara dispatched · t+${atTick}` : `Refused: ${res.find((r) => !r.ok)?.reason}`);
   };
 
   return (
     <div className="echo-screen">
       <style>{css}</style>
       <div className="echo-main">
-        <MapPane obsRef={towerRef} fxRef={fxRef} variant="tower" title="Directorate alone" sub="one tower clears every flight">
+        <MapPane obsRef={towerRef} fxRef={fxRef} variant="tower" kicker="Centralized" title="Tower" sub="One tower clears every pod. Lose it and nothing can hear." down={!tower.towerUp}>
           <div className="echo-overlay">
             {story && (() => { const [beat, line] = tickerLine(story, tower, world.current.mission); return <div className="echo-ticker" key={beat} role="status"><b>BROADCAST</b>{line}</div>; })()}
             <TowerBanner obs={tower} />
           </div>
         </MapPane>
-        <MapPane obsRef={echoRef} fxRef={fxRef} variant="echo" title="Echo" sub="every pod navigates, beacons relay, three rules">
+        <MapPane obsRef={echoRef} fxRef={fxRef} variant="echo" kicker="Decentralized" title="Echo" sub="Every pod navigates. Beacons pass on floods and who goes first. No tower." down={!tower.towerUp}>
+          <div className="echo-overlay"><EchoBanner obs={echo} /></div>
           {hint && <button className="echo-hint" key={hint.id} onClick={nextHint}>{hint.text}<small>click to dismiss</small></button>}
         </MapPane>
         <div className="echo-side">
           <div className="echo-panels">
             <EchoLog obs={echo} log={historyRef.current} />
-            <Scoreboard obs={echo} normal={world.current.normal} />
+            <Scoreboard obs={echo} tower={tower} normal={world.current.normal} />
           </div>
         </div>
       </div>
+      <Legend />
       <div className="echo-bar">
-        <button onClick={() => (echo.over ? reset() : setRunning((r) => !r))}>{echo.over ? "Replay" : running ? "Pause" : "Run"}</button>
-        {speeds.map((s) => (
-          <button key={s} aria-pressed={speed === s} onClick={() => setSpeed(s)}>{s}×</button>
-        ))}
-        <button onClick={reset}>Reset</button>
-        {allowDispatch && (
-          <button className="echo-dispatch" disabled={!nurse || nurse.status !== "scheduled" || echo.over} onClick={dispatch}>
-            Dispatch Nurse Mara Vale
-          </button>
-        )}
+        <RelayBar label="Run controls" items={[
+          { key: "run", label: echo.over ? "Replay" : running ? "Pause" : "Run", tone: "primary", onSelect: () => (echo.over ? reset() : setRunning((r) => !r)) },
+          { key: "reset", label: "Reset", tone: "danger", hold: true, onSelect: reset },
+          ...(allowDispatch ? [{ key: "dispatch", label: "Dispatch Mara", disabled: !nurse || nurse.status !== "scheduled" || echo.over, onSelect: dispatch }] : []),
+        ]} />
+        <div className="echo-speed"><span className="echo-speed-l" aria-hidden>Speed</span><RelayBar label="Speed" value={String(speed)} items={speeds.map((s) => ({ key: String(s), label: `${s}×`, onSelect: () => setSpeed(s) }))} /></div>
         <span className="grow">{note}</span>
-        <a className="echo-strata" href={STRATA_URL}>Sector 07 city sim →</a>
-        <span>t+{echo.tick} / {echo.endTick}</span>
-        {onExit && <button onClick={onExit}>Abort mission</button>}
+        <RelayBar size="md" label="Elsewhere" rest={null} items={[{ key: "strata", label: "Sector 07 city sim", tone: "secondary", nav: true, href: STRATA_URL, onSelect: () => location.assign(STRATA_URL) }]} />
+        <span className="echo-clock">t+{echo.tick} / {echo.endTick}</span>
+        {onExit && <RelayBar size="sm" label="Leave" items={[{ key: "abort", label: "Abort mission", tone: "danger", hold: true, onSelect: onExit }]} />}
       </div>
       {story && fxRef.current.flashAt > 0 && performance.now() - fxRef.current.flashAt < FLASH_MS && (
-        <div className="echo-flash" key={fxRef.current.flashAt} aria-hidden><b>TOWER OFFLINE</b><span>the Directorate's tower has gone dark</span></div>
+        <div className="echo-flash" key={fxRef.current.flashAt} aria-hidden><b>Tower: off</b><span>the Directorate's tower has gone dark</span></div>
       )}
       {echo.over && !onEnd && <EndCard tower={tower} echo={echo} normal={world.current.normal} onReplay={reset} />}
     </div>

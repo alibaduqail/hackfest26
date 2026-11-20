@@ -71,7 +71,7 @@ function holds(o: Observation, c: Cond): boolean {
 }
 function say(c: Cond): string {
   const by = c.by === undefined ? "" : ` by minute ${c.by}`;
-  if (c.what === "mara") return `Mara reaches Lagos${by}`;
+  if (c.what === "mara") return `Mara reaches Lagos Deep${by}`;
   if (c.what === "nurses") return `all nurses arrive${by}`;
   if (c.half) return `half the supply runs arrive${by}`;
   return c.by === undefined ? "all supply runs arrive" : `the last supply run arrives${by}`;
@@ -105,10 +105,10 @@ function fromStory(id: keyof typeof TEXT.missions) {
 
 // ---- in-run beats: the Directorate's ticker lines (the game's own; missions override some) ----
 const TICKER: Story["ticker"] = {
-  before: "TOWER ONLINE · ALL FLIGHTS CLEARED BY THE DIRECTORATE",
-  down: "ALL FLIGHTS REMAIN AUTHORIZED",
-  seal: "TUNNEL CLOSED FOR YOUR SAFETY",
-  mid: "NETWORK STABLE · {claimed} FLIGHTS AUTHORIZED",
+  before: "Tower: on · every pod cleared by the Directorate",
+  down: "Every pod run is still authorized",
+  seal: "Tunnel closed for your safety",
+  mid: "Network stable · {claimed} pod runs authorized",
 };
 export const storyFor = (cm: CampaignMission): Story => ({ ticker: { ...TICKER, ...cm.ticker }, mara: cm.mara ?? {} });
 
@@ -120,7 +120,7 @@ const builder = (name: string): (() => Mission) | null => {
 export const CAMPAIGN: CampaignMission[] = [
   {
     id: "tower-down", number: 1, name: "Tower Down",
-    hook: "The tower goes dark. Get Nurse Mara Vale to Lagos.",
+    hook: "The tower goes dark. Get Nurse Mara Vale to Lagos Deep.",
     ...fromStory("tower-down"),
     objectives: goals("tower-down"),
     allowDispatch: true, defaultSpeed: 10, build: builder("towerDown"),
@@ -129,7 +129,7 @@ export const CAMPAIGN: CampaignMission[] = [
     id: "dead-zones", number: 2, name: "Dead Zones",
     hook: "Not enough beacons for every tunnel. Choose.",
     ...fromStory("dead-zones"),
-    ticker: { mid: "UNLICENSED RADIOS ENDANGER FLIGHTS · {claimed} FLIGHTS AUTHORIZED" },
+    ticker: { mid: "UNLICENSED RADIOS ENDANGER FLIGHTS · {claimed} POD RUNS AUTHORIZED" },
     objectives: goals("dead-zones"),
     allowDispatch: true, defaultSpeed: 10, build: builder("deadZones"),
   },
@@ -137,7 +137,7 @@ export const CAMPAIGN: CampaignMission[] = [
     id: "grounding", number: 3, name: "The Grounding",
     hook: "Weeks, not hours. The Directorate keeps cutting.",
     ...fromStory("grounding"),
-    ticker: { down: "THE GROUNDING IS TEMPORARY", mid: "ORDER IS RETURNING · {claimed} FLIGHTS AUTHORIZED" },
+    ticker: { down: "THE GROUNDING IS TEMPORARY", mid: "ORDER IS RETURNING · {claimed} POD RUNS AUTHORIZED" },
     objectives: goals("grounding"),
     allowDispatch: false, defaultSpeed: 300, build: builder("grounding"),
   },
@@ -145,7 +145,7 @@ export const CAMPAIGN: CampaignMission[] = [
     id: "ghost-flight", number: 4, name: "Ghost Flight",
     hook: "A medical pod with a forged signature wants the front of the queue.",
     ...fromStory("ghost-flight"),
-    ticker: { mid: "A MEDICAL CONVOY HAS PRIORITY · {claimed} FLIGHTS AUTHORIZED" },
+    ticker: { mid: "A MEDICAL CONVOY HAS PRIORITY · {claimed} POD RUNS AUTHORIZED" },
     objectives: goals("ghost-flight"),
     allowDispatch: true, defaultSpeed: 10, build: builder("ghostFlight"),
   },

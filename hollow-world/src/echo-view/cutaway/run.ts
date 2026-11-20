@@ -1,5 +1,7 @@
 import { createEngine } from "../../echo/engine";
 import { descent, DESCENT_BEATS, DESCENT_LAYOUT } from "../../echo/descent";
+import { descentLive2 } from "../../echo/descent2";
+import { descentLive3 } from "../../echo/descent3";
 import type { LogEvent, Observation, Pod } from "../../echo/types";
 
 export type System = "tower" | "echo";
@@ -60,8 +62,8 @@ const berths: Record<string, Point> = {
   "SUP-2": [.737, .407],
 };
 export function podPose(pod: Pod): Point {
-  if (pod.status === "arrived") return berths[pod.id];
-  if (pod.at < 0) return dock[pod.id];
+  if (pod.status === "arrived") return berths[pod.id] ?? ([.4 + (pod.id.charCodeAt(pod.id.length - 1) % 4) * .07, .944] as Point); // levels 2-3 bring pods with no fixed berth
+  if (pod.at < 0) return dock[pod.id] ?? tracks.get(pod.path[0])!.a;
   const track = tracks.get(pod.path[pod.at])!;
   let progress = pod.progress;
   if (track.shaft === "track" && track.order >= 6) {
@@ -140,6 +142,12 @@ export function captureStops(echo: ReturnType<typeof createRun>) {
 }
 
 const routeLabels: Record<string, string> = {
+  spur: "forged spur",
+  paxline: "passenger line",
+  mainA: "first main shaft",
+  bypA: "first bypass",
+  mainB: "second main shaft",
+  bypB: "second bypass",
   ramp: "depot ramp",
   link: "relay track",
   trunk: "junction track",
@@ -147,10 +155,10 @@ const routeLabels: Record<string, string> = {
   byp: "dry bypass",
 };
 const sectorNames = new Map(
-  descent().world.sectors.map((s) => [s.id, routeLabels[s.routeId] + " section " + (s.index + 1)]),
+  [descent(), descentLive2(), descentLive3()].flatMap((m) => m.world.sectors.map((s) => [s.id, routeLabels[s.routeId] + " section " + (s.index + 1)] as const)),
 );
 export function displayLocations(text: string) {
-  return text.replace(/\b[a-z]+\d+\b/g, (id) => sectorNames.get(id) ?? id);
+  return text.replace(/\b[A-Za-z]+\d+\b/g, (id) => sectorNames.get(id) ?? id);
 }
 export function describe(frame: Frame, beat: number): [string, string] {
   const { obs, arrived, rejected } = frame;
@@ -184,7 +192,7 @@ export function describe(frame: Frame, beat: number): [string, string] {
       return [
         "One pod per track section",
         obs.log.some((e) => e.kind === "yield")
-          ? "PAX-1 yields to MED-1 and waits at the junction boundary. Supply has priority over passengers."
+          ? "Passengers let Mara through and wait at the junction. Medical goes first."
           : "Medical, supply and passenger pods approach the same junction.",
       ];
     case 4:
@@ -203,15 +211,15 @@ export function describe(frame: Frame, beat: number): [string, string] {
       return [
         arrived.has(med.id) ? "Mara reaches the clinic" : "The nurse approaches",
         arrived.has(med.id)
-          ? "The bed lamp is on. The clinic still needs the medicine traveling separately on SUP-3."
+          ? "The bed lamp is on. The clinic still needs the medicine traveling separately."
           : "The clinic attendant is waiting at the end of the line.",
       ];
     default:
       return [
         arrived.has(supply.id) ? "Medicine reaches the deep clinic" : "Medicine approaches the clinic",
         arrived.has(supply.id)
-          ? "Mara is on duty. SUP-3 has arrived, and the clinic shelf now holds medicine."
-          : "SUP-3 is closing the last track section. The medicine shelf is still empty.",
+          ? "Mara is on duty. The medicine pod has arrived, and the clinic shelf now holds medicine."
+          : "The medicine pod is closing the last track section. The medicine shelf is still empty.",
       ];
   }
 }

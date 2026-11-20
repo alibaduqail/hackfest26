@@ -14,13 +14,18 @@ import { Debrief, type RunResult } from "./Debrief";
 import { MissionSelect } from "./MissionSelect";
 import { Prepare } from "./Prepare";
 import { hasSeen, isUnlocked, loadProgress, markSeen, saveStars, type Progress } from "./progress";
-import { SoundToggle } from "./SoundToggle";
+import { SettingsGear } from "./SettingsGear";
 import { Title } from "./Title";
+import { JourneyApp } from "../journey/JourneyApp";
 import "./game.css";
 
 const Descent = lazy(() => import("../cutaway/CutawayScreen").then(m => ({ default: m.CutawayScreen })));
 
-type Screen = "descent" | "title" | "missions" | "prologue" | "epilogue" | "briefing" | "prepare" | "run" | "debrief";
+const LiveDescent = lazy(() => import("../cutaway/live/LiveScreen").then(m => ({ default: m.LiveScreen })));
+const isDescent = (screen: string | null): screen is "descent" | "descent-live" =>
+  screen === "descent" || screen === "descent-live";
+
+type Screen = "journey" | "descent-live" | "descent" | "title" | "missions" | "prologue" | "epilogue" | "briefing" | "prepare" | "run" | "debrief";
 interface State { screen: Screen; cm?: CampaignMission; base?: Mission; placed?: Mission; result?: RunResult; run: number; then?: string } // then: mission to brief after the prologue
 
 const hasBudget = (m?: Mission) => typeof m?.beaconBudget === "number";
@@ -45,7 +50,8 @@ function runToEnd(m: Mission): RunResult {
 function initial(): State {
   const q = new URLSearchParams(location.search);
   const screen = q.get("screen") as Screen | null;
-  if (screen === "descent") return { screen, run: 0 };
+  if (isDescent(screen)) return { screen, run: 0 };
+  if (!screen || screen === "journey") return { screen: "journey", run: 0 }; // the front door; ?screen=title is still the old Echo title
   const cm = byId(q.get("mission")) ?? CAMPAIGN[0];
   if (screen === "missions" || screen === "prologue" || screen === "epilogue") return { screen, run: 0 };
   if (!screen || screen === "title" || !cm.build) return { screen: "title", run: 0 };
@@ -67,7 +73,8 @@ export function GameApp() {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
     e.preventDefault();
     history.pushState({fromEchoTitle: true}, "", e.currentTarget.href);
-    go({screen: "descent"});
+    const screen = new URL(e.currentTarget.href).searchParams.get("screen");
+    if (isDescent(screen)) go({ screen });
   }
   function leaveDescent() {
     if (history.state?.fromEchoTitle) {
@@ -77,13 +84,13 @@ export function GameApp() {
     const url = new URL(location.href);
     for (const key of ["screen", "beat", "mode", "clean", "autoplay"]) url.searchParams.delete(key);
     history.replaceState(null, "", url);
-    go({screen: "title"});
+    go({screen: "journey"});
   }
   useEffect(() => {
     function navigate() {
-      const entering = new URLSearchParams(location.search).get("screen") === "descent";
+      const screen = new URLSearchParams(location.search).get("screen");
       // The title can be reached from a campaign deep link without changing that URL.
-      if (entering || st.screen === "descent") setSt(s => ({ ...s, screen: entering ? "descent" : "title" }));
+      if (isDescent(screen) || isDescent(st.screen)) setSt(s => ({ ...s, screen: isDescent(screen) ? screen : "journey" }));
     }
     window.addEventListener("popstate", navigate);
     return () => window.removeEventListener("popstate", navigate);
@@ -100,8 +107,8 @@ export function GameApp() {
   const afterBriefing = () => (hasBudget(st.base) ? go({ screen: "prepare" }) : go({ screen: "run", placed: st.base, run: st.run + 1 }));
   const back = (): Screen | null => {
     switch (st.screen) {
-      case "missions": return "title";
-      case "prologue": return st.then ? "title" : "missions";
+      case "missions": return "journey";
+      case "prologue": return st.then ? "journey" : "missions";
       case "epilogue": return "missions";
       case "briefing": return "missions";
       case "prepare": return "briefing";
@@ -114,7 +121,7 @@ export function GameApp() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      if (st.screen === "descent") { leaveDescent(); return; }
+      if (isDescent(st.screen)) { leaveDescent(); return; }
       const to = back();
       if (to) go({ screen: to });
     };
@@ -122,16 +129,28 @@ export function GameApp() {
     return () => removeEventListener("keydown", onKey);
   });
 
-  if (st.screen === "descent") return (
-    <Suspense fallback={<p role="status">Loading the cutaway…</p>}>
-      <Descent onExit={e => {
-        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
-        e.preventDefault();
-        leaveDescent();
-      }} />
-    </Suspense>
-  );
-  return <>{withBackdrop(st.screen) && <Backdrop deep={st.screen === "prepare"} />}{screenFor()}<SoundToggle /></>;
+  if (isDescent(st.screen)) {
+    const Screen = st.screen === "descent-live" ? LiveDescent : Descent;
+    return (
+      <Suspense fallback={<p role="status">Loading the cutaway…</p>}>
+        <Screen onExit={e => {
+          if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+          e.preventDefault();
+          leaveDescent();
+        }} />
+      </Suspense>
+    );
+  }
+  if (st.screen === "journey") {
+    return (
+      <JourneyApp
+        onTowerDown={() => pick(ids[0], false)}
+        onStrata={() => location.assign("strata.html")}
+        onFreePlay={() => { history.pushState({ fromEchoTitle: true }, "", "?screen=descent-live"); go({ screen: "descent-live" }); }}
+      />
+    );
+  }
+  return <>{withBackdrop(st.screen) && <Backdrop deep={st.screen === "prepare"} />}{screenFor()}<SettingsGear /></>;
 
   function screenFor() {
   const { cm } = st;
@@ -139,7 +158,7 @@ export function GameApp() {
     case "title":
       return <Title onDescent={openDescent} onBegin={() => { const m = nextPlayable(progress); m ? pick(m.id) : go({ screen: "missions" }); }} onMissions={() => go({ screen: "missions" })} />;
     case "missions":
-      return <MissionSelect progress={progress} onPick={pick} onBack={() => go({ screen: "title" })} onStory={(s) => go({ screen: s, then: undefined })} />;
+      return <MissionSelect progress={progress} onPick={pick} onBack={() => go({ screen: "journey" })} onStory={(s) => go({ screen: s, then: undefined })} />;
     case "prologue":
       return (
         <Interlude kicker="Echo" title="Prologue" paras={PROLOGUE} onDone={() => {

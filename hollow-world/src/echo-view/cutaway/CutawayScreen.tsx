@@ -12,15 +12,16 @@ import {
   type System,
 } from "./run";
 import { createScene } from "./scene";
+import { podName } from "./live/names";
 import "./style.css";
 
 const rules = [
-  "Tower claims vs actual",
-  "Beacon relay · Rule 3 · credentials",
+  "What the tower says vs what is true",
+  "Beacon relay · Rule 3 · signatures",
   <>
     Rule 1 · one pod per section<br />Rule 2 · medical › supply › passenger
   </>,
-  "News hops · reroute",
+  "News hops · new route",
   "Care and medicine",
 ];
 const STEP_MS = 410;
@@ -235,7 +236,7 @@ export function CutawayScreen({ onExit }: { onExit?: MouseEventHandler<HTMLAncho
           </ol>
           <dl className="stats">
             <div>
-              <dt>flights authorized</dt>
+              <dt>pod runs authorized</dt>
               <dd id="claim" className={obs.towerUp ? "" : "offline"}>{obs.score.towerClaimed}</dd>
             </div>
             <div>
@@ -264,7 +265,7 @@ export function CutawayScreen({ onExit }: { onExit?: MouseEventHandler<HTMLAncho
               const place = p.status === "arrived" || p.at < 0
                 ? obs.cities.find((c) => c.id === city)!.name
                 : displayLocations(p.path[p.at]);
-              return p.label + ", " + p.status + " at " + place;
+              return podName(p) + ", " + p.status + " at " + place;
             }).join(". ")}
           </p>
         </aside>
