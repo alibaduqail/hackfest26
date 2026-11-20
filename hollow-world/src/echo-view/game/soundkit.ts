@@ -2,6 +2,8 @@
 // Signal path: every cue -> master (0.28) -> lowpass 3 kHz -> speakers, with two small generated-impulse reverbs
 // (a short "room" and a longer "hall", both darkened) fed by per-cue sends. Ambience (hum + far drips) rides a
 // separate gain that ducks under cues. No asset files; everything is synthesized from noise and sine partials.
+// Physical cues (clunk, tap, thud, relay click) use Kenney CC0 samples from public/audio, fetched lazily after the
+// first gesture; if loading fails the procedural voices in voices.ts play instead.
 // The context is created on a user gesture only (autoplay policy), never by play().
 export const GAIN_FLOOR = 0.001; // exponentialRampToValueAtTime rejects a literal 0 target
 const MASTER = 0.28;
@@ -59,12 +61,72 @@ function buildBus(c: AudioContext): Bus | null {
   } catch { return null; }
 }
 
+// ---- Kenney CC0 samples: three variants per cue, decoded once after the first gesture ----
+const SAMPLES = ["place", "remove", "tap", "seal", "relay"] as const;
+export type SampleName = (typeof SAMPLES)[number];
+const samples = new Map<SampleName, AudioBuffer[]>();
+const lastVariant = new Map<SampleName, number>();
+let loading = false;
+let loadPromise: Promise<void> | undefined;
+/** Resolves once the sample fetch has finished (used by the offline demo render to wait for decoding). */
+export const samplesReady = () => loadPromise ?? Promise.resolve();
+/** How many samples are decoded (0 means every sample cue is using its procedural fallback). */
+export const samplesLoaded = () => [...samples.values()].reduce((n, a) => n + a.length, 0);
+
+async function loadSamples(c: AudioContext) {
+  if (loading || typeof fetch !== "function" || typeof location === "undefined") return; // not a browser page: stay procedural
+  loading = true;
+  const base = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? "/";
+  for (const name of SAMPLES) {
+    const bufs: AudioBuffer[] = [];
+    for (let k = 0; k < 3; k++) {
+      try {
+        const res = await fetch(`${base}audio/${name}-${k}.ogg`);
+        if (res.ok) bufs.push(await c.decodeAudioData(await res.arrayBuffer()));
+      } catch { /* a missing sample just narrows the variants */ }
+    }
+    if (bufs.length) samples.set(name, bufs);
+  }
+}
+
+/** Play a sample through the bus (lowpassed, pitch-shifted, reverb-sent). Returns false when none is loaded, so the caller can fall back. */
+export function playSample(b: Bus, t: number, name: SampleName, { vol, rate = 1, lp = 2500, send }: { vol: number; rate?: number; lp?: number; send?: Send }): boolean {
+  const bufs = samples.get(name);
+  if (!bufs?.length) return false;
+  let k = Math.floor(Math.random() * bufs.length);
+  if (bufs.length > 1 && k === lastVariant.get(name)) k = (k + 1) % bufs.length; // never the same take twice in a row
+  lastVariant.set(name, k);
+  const src = b.ctx.createBufferSource(), fl = b.ctx.createBiquadFilter(), g = b.ctx.createGain();
+  src.buffer = bufs[k];
+  src.playbackRate.value = rate;
+  fl.type = "lowpass";
+  fl.frequency.value = lp;
+  g.gain.value = vol;
+  src.connect(fl);
+  fl.connect(g);
+  sink(b, g, send);
+  src.start(t);
+  return true;
+}
+
+/** Dev-only: with ?sfxlog=1 every cue call is appended to window.__sfxLog (off by default). */
+let logOn: boolean | undefined;
+export function logCue(fn: string, ...args: unknown[]) {
+  if (logOn === undefined) {
+    try { logOn = typeof location !== "undefined" && new URLSearchParams(location.search).get("sfxlog") === "1"; } catch { logOn = false; }
+  }
+  if (!logOn) return;
+  const w = globalThis as { __sfxLog?: { t: number; fn: string; args: unknown[] }[] };
+  (w.__sfxLog ??= []).push({ t: performance.now(), fn, args });
+}
+
 /** Create (once) and resume the shared AudioContext. Call from a user gesture. */
 export function unlockContext() {
   try {
     if (!ctx && typeof AudioContext !== "undefined") {
       ctx = new AudioContext();
       bus = buildBus(ctx);
+      loadPromise = loadSamples(ctx);
     }
     if (ctx?.state === "suspended") void ctx.resume();
   } catch { ctx = null; bus = null; }
@@ -171,7 +233,7 @@ export function startAmbience(manual = false) {
     if (!manual) {
       const next = () => {
         dripTimer = setTimeout(() => {
-          if (c.state === "running") drip(c.currentTime + 0.02);
+          if (c.state === "running") { logCue("drip"); drip(c.currentTime + 0.02); }
           next();
         }, rand(8000, 20000));
       };

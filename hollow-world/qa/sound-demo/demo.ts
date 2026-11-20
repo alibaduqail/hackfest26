@@ -2,7 +2,8 @@
 // for any timestamp. ?v=old uses the code copied from origin/21-descent-live (./old), ?v=new the current src.
 // Driven by ../sound-render.mjs; not part of the shipped app.
 const which = new URLSearchParams(location.search).get("v") === "old" ? "old" : "new";
-const SR = 44100, DUR = 34.5;
+const SR = 44100;
+let DUR = 34.5;
 type Item = { t: number; label: string; seg: "game" | "descent"; run: (api: Api) => void };
 interface Api { play(n: string, i?: number): void; s: Record<string, (...a: number[]) => void> }
 const G = (label: string, n: string, i = 0): [string, "game", (a: Api) => void] => [label, "game", (a) => a.play(n, i)];
@@ -34,7 +35,9 @@ function wav(l: Float32Array, r: Float32Array): string {
   return btoa(s);
 }
 
-(window as any).renderAudio = async (): Promise<string> => {
+type Ev = { t: number; fn: string; args: unknown[] }; // one __sfxLog entry, t in seconds on the video timeline
+(window as any).renderAudio = async (replay?: Ev[], dur?: number): Promise<string> => {
+  if (dur) DUR = dur;
   let vt = 0;
   const insts: OfflineAudioContext[] = []; // the old code keeps one context per module
   class Demo extends OfflineAudioContext {
@@ -51,9 +54,16 @@ function wav(l: Float32Array, r: Float32Array): string {
   const kit: any = which === "new" ? await import("../../src/echo-view/game/soundkit") : null;
   audio.setMuted(false); // creates the offline context through the real unlock()
   if (which === "old") sfx.unlock(); // old sfx.ts owns a second context
-  if (which === "new") audio.ambience(true);
+  if (which === "new" && !replay) audio.ambience(true);
+  if (kit) { await kit.samplesReady(); console.log("samples decoded:", kit.samplesLoaded()); }
   const api: Api = { play: (n, i) => audio.play(n as any, i), s: { playPlaceThunk: () => sfx.playPlaceThunk(vt * 1000), playHopBlip: () => sfx.playHopBlip(vt * 1000), playRejectBuzz: () => sfx.playRejectBuzz(vt * 1000), playFloodSplash: () => sfx.playFloodSplash(vt * 1000), playArrivalChime: () => sfx.playArrivalChime(vt * 1000), playStarDing: (i: number) => sfx.playStarDing(i, vt * 1000) } };
-  const events = [...items.map((it) => ({ t: it.t, f: () => it.run(api) })), ...(kit ? DRIPS.map((t) => ({ t, f: () => kit.drip(t) })) : [])].sort((a, b) => a.t - b.t);
+  const fromLog = (e: Ev) => ({ t: e.t, f: () => {
+    if (e.fn === "play") api.play(e.args[0] as string, e.args[1] as number);
+    else if (e.fn === "ambience") { if (kit) audio.ambience(e.args[0] as boolean); }
+    else if (e.fn === "drip") { if (kit) kit.drip(e.t); }
+    else api.s[e.fn](...(e.args as number[]));
+  } });
+  const events = replay ? replay.map(fromLog) : [...items.map((it) => ({ t: it.t, f: () => it.run(api) })), ...(kit ? DRIPS.map((t) => ({ t, f: () => kit.drip(t) })) : [])].sort((a, b) => a.t - b.t);
   for (const e of events) { vt = e.t; e.f(); }
   vt = 0;
   const bufs = await Promise.all(insts.map((c) => c.startRendering()));

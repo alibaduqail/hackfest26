@@ -1,7 +1,7 @@
 // Echo game sound: Web Audio synthesis only, no asset files (see soundkit.ts for the bus, voices.ts for the cues). Muted by default; the choice is kept in localStorage.
 // Every access is guarded: with storage blocked the choice lives in memory, with no AudioContext (Node, old browsers) every call is a no-op.
 // The context is created or resumed on the first user gesture only (autoplay policy); play() never creates it, so a page that loads with sound left on stays silent and context-free until then. The video-capture page (echo.html) never imports the toggle, so it stays silent.
-import { getCtx, startAmbience, stopAmbience, unlockContext } from "./soundkit";
+import { getCtx, logCue, startAmbience, stopAmbience, unlockContext } from "./soundkit";
 import { voices } from "./voices";
 
 const KEY = "echo-sound-v1";
@@ -37,6 +37,7 @@ export function unlock() {
 }
 /** Ask for the quiet cave ambience (faint hum, far drips) while a run is going; false stops it. Honours the mute switch. */
 export function ambience(want: boolean) {
+  logCue("ambience", want);
   wantAmbience = want;
   syncAmbience();
 }
@@ -54,6 +55,7 @@ export function unlockOnFirstGesture() {
 
 /** Play a sound if unmuted. `i` picks the pitch of a star ping. Never throws. */
 export function play(name: Sound, i = 0) {
+  logCue("play", name, i);
   if (isMuted()) return;
   try {
     const ctx = getCtx();

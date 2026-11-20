@@ -192,3 +192,8 @@ test("the same cue never plays identically twice: pitch and level vary", () => {
   }
   assert.ok(freqs.size > 1, "base pitch differs between plays");
 });
+
+test("the ?sfxlog dev hook is off by default: nothing is logged", () => {
+  playPlaceThunk(20000);
+  assert.equal((globalThis as { __sfxLog?: unknown }).__sfxLog, undefined);
+});

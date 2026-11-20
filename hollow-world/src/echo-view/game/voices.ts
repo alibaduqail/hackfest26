@@ -1,7 +1,7 @@
 // Cue voices for the Echo game and the Descent leg: physical, muffled, sparse. Each is a short burst of filtered noise
 // (the strike) plus a few decaying partials (the body), sent to the shared room/hall reverb. Every call draws fresh
 // pitch (±3%), level (±1 dB) and noise offset, so the same cue never repeats exactly. Nothing here is a plain tone.
-import { GAIN_FLOOR, duck, getBus, getCtx, noiseBuffer, rand, sink, vary, type Bus, type Send, type Vary } from "./soundkit";
+import { GAIN_FLOOR, duck, getBus, getCtx, noiseBuffer, playSample, rand, sink, vary, type Bus, type Send, type Vary } from "./soundkit";
 
 function env(g: GainNode, t: number, vol: number, rise: number, dur: number) {
   g.gain.setValueAtTime(GAIN_FLOOR, t);
@@ -52,7 +52,13 @@ function run(voice: Voice) {
 }
 
 /** Muffled metal clunk with a faint relay click behind it. `f` sets the weight. */
-const clunk = (f: number, vol: number, click: boolean): Voice => (b, t, v) => {
+const clunk = (f: number, vol: number, click: boolean, sample: "place" | "remove" = "place"): Voice => (b, t, v) => {
+  if (playSample(b, t, sample, { vol: 0.7 * vol * v.g, rate: (f / 170) * v.p, lp: 2200, send: { room: 0.3 } })) { // Kenney CC0 metal impact
+    if (click && playSample(b, t + 0.045, "relay", { vol: 0.3 * vol * v.g, rate: 1.1 * v.p, lp: 2800, send: { room: 0.5 } })) return;
+    if (!click) return;
+    hit(b, t + 0.045, { dur: 0.01, vol: 0.22 * vol * v.g, f: 2800 * v.p, kind: "bandpass", q: 2.5, send: { room: 0.5 } });
+    return;
+  }
   hit(b, t, { dur: 0.035, vol: 0.5 * vol * v.g, f: 900, kind: "bandpass", q: 0.8, send: { room: 0.3 } });
   part(b, t, { f: f * v.p, to: f * v.p * 0.62, dur: 0.12, vol: 0.55 * vol * v.g, send: { room: 0.3 } });
   part(b, t, { f: f * v.p * 2.76, dur: 0.07, vol: 0.2 * vol * v.g, send: { room: 0.3 } }); // inharmonic: metal, not a note
@@ -61,11 +67,13 @@ const clunk = (f: number, vol: number, click: boolean): Voice => (b, t, v) => {
 };
 /** Dull rock tap: no pitch worth naming. */
 const tap = (vol: number): Voice => (b, t, v) => {
+  if (playSample(b, t, "tap", { vol: 0.8 * vol * v.g, rate: 0.9 * v.p, lp: 1100, send: { room: 0.2 } })) return; // Kenney CC0 soft impact, dulled
   hit(b, t, { dur: 0.05, vol: 0.4 * vol * v.g, f: 520 * v.p, send: { room: 0.2 } });
   part(b, t, { f: 88 * v.p, to: 58, dur: 0.14, vol: 0.45 * vol * v.g, send: { room: 0.15 } });
 };
 /** A single soft relay click. `pitch` shifts the click (the hop tick climbs). */
 const relay = (pitch: number, vol: number): Voice => (b, t, v) => {
+  if (playSample(b, t, "relay", { vol: 0.7 * vol * v.g, rate: Math.min(pitch, 2) * v.p, lp: 2600, send: { room: 0.3 } })) return; // Kenney CC0 click
   hit(b, t, { dur: 0.012, vol: 0.7 * vol * v.g, f: 2200 * pitch * v.p, kind: "bandpass", q: 3, send: { room: 0.3 } });
   hit(b, t, { dur: 0.03, vol: 0.4 * vol * v.g, f: 600, send: { room: 0.2 } });
   part(b, t, { f: 140 * pitch * v.p, to: 100, dur: 0.05, vol: 0.25 * vol * v.g });
@@ -86,6 +94,10 @@ const down: Voice = (b, t, v) => { // distant rumble and a few pebbles
 };
 const seal: Voice = (b, t, v0) => { // heavy muffled door / rock thud with a room tail
   const v = { p: v0.p, g: v0.g * 0.55 };
+  if (playSample(b, t, "seal", { vol: 1.1 * v0.g, rate: 0.72 * v0.p, lp: 1000, send: { room: 0.8, hall: 0.4 } })) { // Kenney CC0 plate impact, slowed and dulled, with a procedural sub tail
+    part(b, t, { f: 41 * v.p, to: 30, dur: 0.5, vol: 0.5 * v.g, rise: 0.006, send: { room: 0.8 } });
+    return;
+  }
   part(b, t, { f: 64 * v.p, to: 34, dur: 0.6, vol: 0.95 * v.g, rise: 0.006, send: { room: 0.8, hall: 0.4 } });
   part(b, t, { f: 41 * v.p, to: 30, dur: 0.45, vol: 0.5 * v.g, rise: 0.006, send: { room: 0.8 } });
   hit(b, t, { dur: 0.22, vol: 0.9 * v.g, f: 280, send: { room: 0.8, hall: 0.4 } });
@@ -118,7 +130,7 @@ const star = (i: number): Voice => (b, t, v) => {
 
 export const voices = {
   place: () => run(clunk(170, 1, true)),
-  remove: () => run(clunk(118, 0.55, false)),
+  remove: () => run(clunk(118, 0.55, false, "remove")),
   empty: () => run(tap(1)),
   down: () => run(down),
   seal: () => run(seal),

@@ -17,4 +17,5 @@ Character portraits and sprites for Mara and the Director are original pixel art
 
 ## Sound
 
-All sound effects are synthesized at runtime in `src/echo-view/game/soundkit.ts` and `voices.ts` (filtered noise, sine partials, a generated reverb impulse). No audio files or third-party samples are shipped.
+- **Kenney "Impact Sounds" and "Interface Sounds"** (https://kenney.nl/assets/impact-sounds, https://kenney.nl/assets/interface-sounds), created by Kenney, released under Creative Commons Zero (CC0 1.0). Fifteen short clips are used, as `public/audio/{place,remove,tap,seal,relay}-{0,1,2}.ogg`: `impactMetal_medium_000-002` (place), `impactMetal_light_000-002` (remove), `impactSoft_medium_000-002` (tap), `impactPlate_heavy_000-002` (seal), `click_002-004` (relay). They are loaded after the first click or key press and played lowpassed, pitch-shifted and through a reverb.
+- Everything else (bell, rumble, pebbles, flood rush, start swell, ambience hum and drips, and the fallback for every cue above if a sample fails to load) is synthesized at runtime in `src/echo-view/game/soundkit.ts` and `voices.ts`.
