@@ -32,6 +32,9 @@ class FakeParam {
     this.calls.push(["exp", v, t]);
     return this;
   }
+  setTargetAtTime() {
+    return this;
+  }
 }
 class FakeNode {
   connect(target: unknown) {
@@ -51,6 +54,10 @@ class FakeGain extends FakeNode {
 class FakeBiquad extends FakeNode {
   type: BiquadFilterType = "lowpass";
   frequency = new FakeParam();
+  Q = new FakeParam();
+}
+class FakeConvolver extends FakeNode {
+  buffer: unknown = null;
 }
 class FakeBufferSource extends FakeNode {
   buffer: unknown = null;
@@ -69,6 +76,7 @@ class FakeCtx {
   destination = {};
   gains: FakeGain[] = [];
   oscillators: FakeOsc[] = [];
+  biquads: FakeBiquad[] = [];
   constructor() {
     created = this;
   }
@@ -83,7 +91,12 @@ class FakeCtx {
     return g;
   }
   createBiquadFilter() {
-    return new FakeBiquad();
+    const b = new FakeBiquad();
+    this.biquads.push(b);
+    return b;
+  }
+  createConvolver() {
+    return new FakeConvolver();
   }
   createBufferSource() {
     return new FakeBufferSource();
@@ -156,13 +169,26 @@ test("a 40ms per-sound cooldown suppresses rapid repeats, but star is exempt", (
   assert.ok(ctx.oscillators.length > afterOneStar, "star pings are exempt from the cooldown");
 });
 
-test("hop blip resets its rising-pitch streak after 800ms of silence", () => {
+test("hop tick climbs in pitch within a streak and resets after 800ms of silence", () => {
+  // The tick is a bandpassed click; its centre frequency carries the pitch (±3% random variation per play).
+  const click = () => ctx.biquads.filter((b) => b.type === "bandpass").at(-1)!.frequency.value;
   playHopBlip(6000);
-  const first = ctx.oscillators.at(-1)!.frequency.value;
+  const first = click();
   playHopBlip(6050); // well under 800ms: streak continues, pitch rises
-  const second = ctx.oscillators.at(-1)!.frequency.value;
-  assert.ok(second > first);
-  playHopBlip(6900); // more than 800ms after the second hop: streak resets
-  const third = ctx.oscillators.at(-1)!.frequency.value;
-  assert.equal(third, first, "pitch returns to the base after the idle reset");
+  playHopBlip(6100);
+  const third = click();
+  assert.ok(third > first * 1.1, "two hops later the click is clearly higher");
+  playHopBlip(7000); // more than 800ms after the last hop: streak resets
+  const reset = click();
+  assert.ok(Math.abs(reset / first - 1) < 0.07, "pitch returns to the base after the idle reset");
+});
+
+test("the same cue never plays identically twice: pitch and level vary", () => {
+  const freqs = new Set<number>();
+  for (let i = 0; i < 6; i++) {
+    const before = ctx.oscillators.length;
+    playPlaceThunk(10000 + i * 100);
+    freqs.add(ctx.oscillators[before].frequency.value);
+  }
+  assert.ok(freqs.size > 1, "base pitch differs between plays");
 });

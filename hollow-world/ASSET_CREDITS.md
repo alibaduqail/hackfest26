@@ -14,3 +14,7 @@ The latin-subset woff2 files are self-hosted in `hollow-world/public/fonts/`; no
 ## Characters
 
 Character portraits and sprites for Mara and the Director are original pixel art drawn for this project.
+
+## Sound
+
+All sound effects are synthesized at runtime in `src/echo-view/game/soundkit.ts` and `voices.ts` (filtered noise, sine partials, a generated reverb impulse). No audio files or third-party samples are shipped.

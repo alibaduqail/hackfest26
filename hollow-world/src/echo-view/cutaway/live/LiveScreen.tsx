@@ -3,7 +3,7 @@ import { DESCENT_LEVELS } from "../../../echo/descent-levels";
 import { LEGS } from "../../../echo/journey-events";
 import type { LegId, LegResult } from "../../../echo/journey";
 import type { LogEvent, Mission, Observation, Pod } from "../../../echo/types";
-import { play } from "../../game/audio";
+import { ambience, play } from "../../game/audio";
 import { THEME } from "../../theme";
 import { SettingsGear } from "../../game/SettingsGear";
 import { applyLayout } from "../layouts";
@@ -181,6 +181,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
     };
   }, []);
   useEffect(sfx.unlockOnFirstGesture, []);
+  useEffect(() => { ambience(playing && !over); return () => ambience(false); }, [playing, over]); // quiet cave bed while the leg runs
   useEffect(() => {
     if (warning && !previous.floodWarnings?.some((w) => w.sectorId !== undefined)) play("down");
     if (sealedNow.length > previous.sectors.filter((s) => s.sealed).length) {
