@@ -82,6 +82,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
   const goals = level.goalsFor({ seed: legMission ? journeySeed : FREE_PLAY_SEED, attempt: runAttempt }); // the flood candidate has its own star table
   const poolMore = journeyMode && pool !== undefined && pool > (mission.beaconBudget ?? 0); // the pack holds more than this leg may use
   const [introDone, setIntroDone] = useState(false);
+  const [maraHost, setMaraHost] = useState<HTMLElement | null>(null);
   const [hintText, setHintText] = useState<string | null>(null);
   const seenHints = useRef(new Set<number>([1])); // level 1's hint is on the intro card
   const finished = useRef(false);
@@ -452,7 +453,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
             )}
             {hintText && !over && <p className="live-hint-caption" role="status">{hintText}</p>}
             {/* characters: Director + Mara dialogue (src/echo-view/characters) */}
-            <Dialogue obs={obs} previous={previous} ended={over} stars={stars} coach={mission.id === "descent-live"} placed={live.commands.length} />
+            <Dialogue obs={obs} previous={previous} ended={over} stars={stars} coach={mission.id === "descent-live"} placed={live.commands.length} maraHost={maraHost} />
           </div>
         </div>
         <aside aria-label="Relay controls and goals">
@@ -555,6 +556,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
           )}
         </nav>
         <p className="fine">Simulated run · deterministic engine</p>
+        <div className="live-mara-slot" ref={setMaraHost} /> {/* Mara's speech strip: beside the controls, never over the map */}
       </footer>
       {!introDone && <LiveIntro mission={mission} pool={poolMore ? pool : undefined} from={journeyMode && levelIndex > 0 ? LEVEL_NAMES[LEG_LEVELS[levelIndex - 1].at(-1)! - 1] : undefined} goal={`Nurse Mara reaches the deep clinic by minute ${goals[0].maraBy}.`} hint={INTRO_HINTS[levelIndex]} onStart={start} />}
     </div>

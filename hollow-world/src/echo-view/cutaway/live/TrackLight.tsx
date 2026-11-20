@@ -1,6 +1,6 @@
 // "Light the track": the one placement vocabulary. Every section is dark; a beacon lights its own section along the rail; lit sections
 // that hear each other (reach.ts) meet end to end and read as one line of light; an end with no lit neighbour fades out, cut off.
-// Mara's route ahead is chevrons on the rail, the flood pulses red on its section, the warn-here chain is a dashed outline along the
+// Mara's route ahead is chevrons on the rail, the flood pulses red on its section, the warn-here chain is one clean dashed band along the
 // track, and flood news runs along the lit line one section per tick (the engine's own seal pulses).
 // Performance: stroke and opacity only, no filters. The static layer re-renders per tick; the hover preview is attribute writes on
 // pre-rendered paths (no React render per pointer move); the two looping/animated bits live in their own small composited SVG.
@@ -29,12 +29,6 @@ export interface TrackLightProps {
 
 const px = (t: Pick<Track, "a" | "b">) => [t.a[0] * W, t.a[1] * H, t.b[0] * W, t.b[1] * H] as const;
 const d = (t: Pick<Track, "a" | "b">) => { const [x1, y1, x2, y2] = px(t); return `M${x1} ${y1}L${x2} ${y2}`; };
-function offset(t: Track, by: number) {
-  const [x1, y1, x2, y2] = px(t);
-  const len = Math.hypot(x2 - x1, y2 - y1) || 1;
-  const nx = (-(y2 - y1) / len) * by, ny = ((x2 - x1) / len) * by;
-  return `M${x1 + nx} ${y1 + ny}L${x2 + nx} ${y2 + ny}`;
-}
 const plural = (n: number) => n + (n === 1 ? " beacon" : " beacons");
 
 function TrackLightBody({ graph, lit, pending, route, flood, chain, pulses, previousPulses, tick, stepMs }: Omit<TrackLightProps, "preview" | "focus">) {
@@ -48,6 +42,8 @@ function TrackLightBody({ graph, lit, pending, route, flood, chain, pulses, prev
   for (const p of pulses) if (p.kind === "seal") heard.current.ids.add(p.sectorId);
   const seal = pulses.filter((p) => p.kind === "seal" && tracks.has(p.sectorId));
   const before = previousPulses.filter((p) => p.kind === "seal" && tracks.has(p.sectorId));
+  // While the warn-here chain still needs beacons it is the foreground: its sections lose their dark-rail dots and route chevrons, and the rest of the dark rail and route marks dim.
+  const warnOpen = new Set((chain ?? []).filter((id) => !lit.has(id) && !pending.has(id)));
   const chainLeft = chain ? chain.filter((id) => !lit.has(id) && !pending.has(id)).length : 0;
   const head = chain?.length ? tracks.get(chain[0]) : flood ? tracks.get(flood.id) : undefined;
   return (
@@ -66,15 +62,20 @@ function TrackLightBody({ graph, lit, pending, route, flood, chain, pulses, prev
             );
           })}
         </defs>
-        <g className="tl-dark">
+        <g className={"tl-dark" + (warnOpen.size ? " calm" : "")}>
           {all.map((t) => <path key={t.sectorId} className="bed" d={d(t)} />)}
-          {all.filter((t) => !shown.has(t.sectorId)).map((t) => <path key={t.sectorId} className={"rail" + (t.level >= 3 ? " deep" : "")} d={d(t)} />)}
+          {all.filter((t) => !shown.has(t.sectorId) && !warnOpen.has(t.sectorId)).map((t) => <path key={t.sectorId} className={"rail" + (t.level >= 3 ? " deep" : "")} d={d(t)} />)}
         </g>
         {chain && chain.map((id) => {
           const t = tracks.get(id);
           if (!t) return null;
           const done = lit.has(id) || pending.has(id);
-          return <path key={id} className={"tl-warn" + (done ? " done" : "")} d={offset(t, 14) + offset(t, -14)} />;
+          return (
+            <g key={id} className={"tl-warn" + (done ? " done" : "")}>
+              <path className="band" d={d(t)} />
+              <path className="dash" d={d(t)} />
+            </g>
+          );
         })}
         {[...ends.keys()].map((id) => {
           const t = tracks.get(id)!;
@@ -88,8 +89,8 @@ function TrackLightBody({ graph, lit, pending, route, flood, chain, pulses, prev
           );
         })}
         {flood?.sealed && tracks.has(flood.id) && <path className="tl-flood sealed" d={d(tracks.get(flood.id)!)} />}
-        <g className="tl-route">
-          {route.filter((id) => tracks.has(id) && !(flood?.sealed && flood.id === id)).flatMap((id) =>
+        <g className={"tl-route" + (warnOpen.size ? " calm" : "")}>
+          {route.filter((id) => tracks.has(id) && !(flood?.sealed && flood.id === id) && !warnOpen.has(id)).flatMap((id) =>
             chevrons(tracks.get(id)!, W, H).map((c, i) => (
               <path key={id + i} className={lit.has(id) ? "on-lit" : ""} d="M-5 -6L2 0L-5 6" transform={`translate(${c.x} ${c.y}) rotate(${c.deg})`} />
             ))

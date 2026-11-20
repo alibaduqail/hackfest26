@@ -23,5 +23,13 @@
   .descent-live .dialogue { animation: none !important; }
   .descent-live .dialogue.out { transition: none; }
 }
-/* The map's teaching hint sits bottom-centre; lift it clear while Mara's strip is up. */
-.descent-live .live-world:has(.dialogue.mara) .live-hint-caption { bottom: 19%; }
+/* Mara's strip is drawn in the footer slot, beside the control row, so it never covers the map's track, labels or warn-here chain (it used to sit over
+   the bottom-left of the map at the flood moment). Same portrait and strip, smaller; the slot's right edge lines up with the map's. */
+.descent-live footer { position: relative; }
+.descent-live .live-mara-slot { position: absolute; right: 0; bottom: 0; z-index: 3; pointer-events: none; }
+.descent-live .live-mara-slot .dialogue.mara { position: static; align-items: flex-end; animation: dlg-in-bottom .3s ease-out; }
+.descent-live .live-mara-slot .dialogue img { width: 56px; height: 56px; filter: none; }
+.descent-live .live-mara-slot .dialogue p { margin: 0; width: clamp(230px, 28vw, 360px); padding: 7px 12px 8px; font-size: 14px; line-height: 1.25; }
+.descent-live .live-mara-slot .dialogue small { margin-bottom: 3px; font-size: 11px; }
+@media (min-width: 1081px) { .descent-live .live-mara-slot { right: calc(clamp(250px, 18vw, 350px) + 15px); } }
+@media (max-width: 1080px) { .descent-live .live-mara-slot { position: static; margin-top: 8px; } }

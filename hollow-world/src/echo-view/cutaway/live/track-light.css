@@ -22,9 +22,14 @@
 .descent-live .tl-route path { stroke: var(--tl-ivory); stroke-width: 2.5px; opacity: .55; }
 .descent-live .tl-route path.on-lit { stroke: var(--stage); opacity: .8; }
 
-/* Warn here: a dashed outline along the sections the flood news must cross to reach Mara's fork. */
-.descent-live .tl-warn { stroke: var(--tl-ivory); stroke-width: 2px; stroke-dasharray: 6 6; stroke-linecap: butt; opacity: .9; }
-.descent-live .tl-warn.done { stroke-dasharray: none; opacity: .3; }
+/* Warn here: one clean band along the sections the flood news must cross to reach Mara's fork, a single dashed line down its middle. While it needs
+   beacons it is the foreground: those sections drop their dark-rail dots and route chevrons (TrackLight.tsx), so nothing crosses it. */
+.descent-live .tl-warn .band { stroke: var(--tl-ivory); stroke-width: 26px; stroke-linecap: butt; opacity: .3; }
+.descent-live .tl-warn .dash { stroke: #fff6e4; stroke-width: 4px; stroke-dasharray: 14 9; stroke-linecap: butt; }
+.descent-live .tl-dark.calm .rail { opacity: .22; }
+.descent-live .tl-route.calm path { opacity: .25; }
+.descent-live .tl-warn.done .band { opacity: .06; }
+.descent-live .tl-warn.done .dash { stroke-dasharray: none; opacity: .3; }
 .descent-live .tl-chip { position: absolute; transform: translateY(-50%); z-index: 4; padding: 4px 8px; background: var(--stage);
   border: 1px solid var(--tl-ivory); color: var(--tl-ivory); font: 600 12px/1.2 var(--mono); white-space: nowrap; }
 .descent-live .tl-chip.done { border-color: var(--line2); color: var(--text2); }
