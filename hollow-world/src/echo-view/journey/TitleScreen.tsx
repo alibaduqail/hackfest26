@@ -10,7 +10,7 @@ import { useParallax } from "./useParallax";
 const PremiseIntro = lazy(() => import("./PremiseIntro").then((m) => ({ default: m.PremiseIntro })));
 
 /** The front door: the name and Relay nodes over the 2D Descent still (.j-title-bg: the far parallax layer; the wordmark is the mid layer; the Relay nodes stay still). Nothing else. */
-export function TitleScreen({ onBegin, onContinue, onTowerDown, onStrata, onFreePlay }: TitleProps) {
+export function TitleScreen({ onBegin, onContinue }: TitleProps) {
   // Begin / Continue / New journey leave through the sonar burst + fade to black (beginTransition); repeat activations while it plays are ignored.
   const leave = (go: () => void, from?: Element | null) => beginTransition(from ?? document.querySelector(".g-title-main .rl-node[data-tone=primary] .rl-dot"), go);
   const dotOf = (e?: { currentTarget: EventTarget | null }) => (e?.currentTarget instanceof Element ? e.currentTarget.querySelector(".rl-dot") : null);
@@ -40,10 +40,6 @@ export function TitleScreen({ onBegin, onContinue, onTowerDown, onStrata, onFree
         { key: "begin", label: "New journey", tone: "secondary", onSelect: (e) => leave(onBegin, dotOf(e)) },
       ]
     : [{ key: "begin", label: "Begin", tone: "primary", autoFocus: true, onSelect: (e) => leave(onBegin, dotOf(e)) }];
-  const more: RelayItem[] = [];
-  if (onTowerDown) more.push({ key: "tower", label: "Tower Down", tone: "quiet", nav: true, onSelect: onTowerDown });
-  if (onStrata) more.push({ key: "strata", label: "The city Echo keeps alive", tone: "quiet", nav: true, onSelect: onStrata });
-  if (onFreePlay) more.push({ key: "free", label: "Descent", tone: "quiet", nav: true, onSelect: onFreePlay });
   return (
     <>
     <div className="j-title-bg" ref={bg} aria-hidden="true" />
@@ -51,7 +47,6 @@ export function TitleScreen({ onBegin, onContinue, onTowerDown, onStrata, onFree
     <div className={"g-screen g-title j-title" + (intro === "hold" ? " pi-hold" : intro === "reveal" ? " pi-reveal" : "")}>
       <h1 ref={mark} aria-label="Echo"><span aria-hidden>ECHO</span><i aria-hidden>ECHO</i></h1>
       <RelayBar size="lg" label="Start" className="g-title-main" items={main} />
-      {more.length > 0 && <RelayBar size="md" label="More" className="g-title-more" rest={null} items={more} />}
     </div>
     </>
   );

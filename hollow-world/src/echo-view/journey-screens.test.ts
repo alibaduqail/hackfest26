@@ -49,7 +49,10 @@ test("trail log lists every attempt and choice in order; attempt is 0-based", ()
 
 test("screens render real journey state", () => {
   const title = html(h(TitleScreen, { onBegin: noop, onTowerDown: noop, onStrata: noop, onFreePlay: noop }));
-  for (const s of ["ECHO", "Begin", "Tower Down", "The city Echo keeps alive", "Descent"]) assert.ok(title.includes(s), s);
+  for (const s of ["ECHO", "Begin"]) assert.ok(title.includes(s), s);
+  for (const s of ["Tower Down", "The city Echo keeps alive", "Descent", "g-title-more"]) assert.ok(!title.includes(s), `title shows no ${s} link`);
+  const saved = html(h(TitleScreen, { onBegin: noop, onContinue: noop }));
+  assert.ok(saved.includes("Continue") && saved.includes("New journey") && !saved.includes("Begin"), "a save shows Continue and New journey only");
 
   const first = camp(start);
   for (const s of ["Outfitting the Relay", "Extra beacons", "+4 beacons", "\u22121 dose", "Leave now", "Before the first leg", `/ ${LIMIT} min`]) assert.ok(first.includes(s), s);
