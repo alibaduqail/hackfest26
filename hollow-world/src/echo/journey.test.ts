@@ -208,3 +208,14 @@ test("replay guard: a 'Watch the solution' result never scores, spends beacons o
   assert.notEqual(after, s);
   assert.equal(after.res.clock, s.res.clock + ok.maraAt!);
 });
+
+test("a Scavenge that runs the clock past the limit ends the journey instead of leaving a dead camp", () => {
+  const camp: JourneyState = { ...startJourney(1), res: { beacons: 0, clock: LIMIT - 5, doses: 3 } };
+  const s = choose(camp, "scavenge");
+  assert.equal(s.phase, "ending");
+  assert.equal(s.legIndex, LEGS.length);
+  assert.ok(s.res.clock > LIMIT);
+  assert.equal(ending(s).kind, "late"); // does not throw, and is not "saved"
+  const ok = choose({ ...camp, res: { ...camp.res, clock: 100 } }, "scavenge"); // plenty of time: stays in camp as before
+  assert.equal(ok.phase, "camp");
+});

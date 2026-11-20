@@ -3,7 +3,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createElement as h } from "react";
 import { renderToStaticMarkup as html } from "react-dom/server";
-import { applyEffect, consequenceOf, formatEffect, retriesOf, starsFromLog, trailModel, trailRows } from "./journey/helpers";
+import { applyEffect, consequenceOf, formatEffect, retriesOf, starsFromLog, stoppedAt, trailModel, trailRows } from "./journey/helpers";
 import { campEvent, choose, completeLeg, ending, LIMIT, startJourney } from "../echo/journey";
 import { ghostData, ghostHead, ghostOutcome } from "./journey/ghosts";
 import { names, played, start } from "./journey/sample";
@@ -104,4 +104,11 @@ test("only choices with a reveal get a consequence on the fork, tone from their 
   assert.deepEqual(consequenceOf(tower.find((c) => c.id === "trust-tower")!), { tone: "bad", tag: "flood · unannounced" });
   assert.equal(consequenceOf(tower.find((c) => c.id === "verify-beacons")!)?.tone, "good");
   assert.equal(consequenceOf(campEvent(startJourney(1)).choices[0]), null, "outfitting has no reveal");
+});
+
+test("the ending's stop point comes from the legs actually won, not the last level finished", () => {
+  const res = (legId: "descent1" | "descent2" | "descent3", stars: 0 | 1 | 2 | 3) => ({ kind: "leg" as const, legId, attempt: 0, result: { legId, stars, maraAt: stars ? 80 : null, medicineAt: stars ? 85 : null, beaconsPlaced: 2, ticks: 60 } });
+  assert.equal(stoppedAt([res("descent1", 2), res("descent2", 0), res("descent3", 2)]), "Flooded shaft"); // leg II never won, a later leg did
+  assert.equal(stoppedAt([res("descent1", 0)]), "Relay level");
+  assert.equal(stoppedAt([res("descent1", 3), res("descent2", 3), res("descent3", 1)]), null); // all won: she reached the clinic
 });
