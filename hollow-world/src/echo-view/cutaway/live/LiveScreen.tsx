@@ -1,4 +1,4 @@
-import { type MouseEventHandler, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, type MouseEventHandler, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { DESCENT_LEVELS } from "../../../echo/descent-levels";
 import { LEGS } from "../../../echo/journey-events";
 import type { LegId, LegResult } from "../../../echo/journey";
@@ -18,12 +18,15 @@ import * as sfx from "./sfx";
 import trim from "./art/shaft-trim.png";
 import { FREE_PLAY_SEED, heldAtFlood, useLive } from "./useLive";
 import { LiveDebrief } from "./LiveDebrief";
+import { analyzeRun } from "./cause";
+import { liveLinks, previewReach, sectorGraph } from "./reach";
 import { LiveIntro } from "./LiveIntro";
 import { LEVEL_HINTS, nextHint } from "./hints";
 import { Dialogue } from "../../characters/Dialogue";
 import "./live.css";
 import "./intro-debrief.css";
 
+let hopDemoShown = false; // the one-time dot that hops along the first link, once per page session
 const alertKinds = new Set(["blind", "beacon-placed", "credential-reject", "seal", "seal-heard", "hold", "reroute"]);
 const logLocation = (id: string) => plainText(id).replace(/^./, (c) => c.toUpperCase());
 
@@ -46,6 +49,15 @@ function starsOf(goals: { stars: 1 | 2 | 3; maraBy: number; medicineBy?: number 
   const by = (id: string, t = Infinity) => (pods.find((p) => p.id === id)?.arriveTick ?? Infinity) <= t;
   return goals.reduce<0 | 1 | 2 | 3>((n, g) => (by("MED-1", g.maraBy) && (g.medicineBy === undefined || by("SUP-3", g.medicineBy)) ? g.stars : n), 0);
 }
+const mid = (id: string) => along(tracks.get(id)!, 0.5);
+/** A link between two beacon midpoints, bent through the track point the two sections share so it follows the rail. */
+function linkPoints(a: string, b: string): [number, number][] {
+  const ta = tracks.get(a)!;
+  const tb = tracks.get(b)!;
+  const shared = [ta.a, ta.b].find((p) => [tb.a, tb.b].some((q) => p[0] === q[0] && p[1] === q[1]));
+  return [mid(a), ...(shared ? [shared] : []), mid(b)].map((p) => [p[0], p[1]]);
+}
+const pts = (l: [number, number][]) => l.map((p) => p.join(",")).join(" ");
 const pillPos = (p: { x: number; y: number }) => ({ left: Math.min(.79, p.x) * 100 + "%", top: Math.min(.92, p.y) * 100 + "%" });
 function arrival(tick: number | null) {
   return tick === null ? "En route" : "Minute " + tick;
@@ -83,6 +95,8 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
   const [selected, setSelected] = useState(starterId);
   const [hover, setHover] = useState<string | null>(null);
   const [firstPlacement, setFirstPlacement] = useState(false);
+  const [hop, setHop] = useState<[number, number][] | null>(null);
+  const rangeLayer = useRef<SVGSVGElement>(null);
   const ground = useRef<HTMLCanvasElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const scene = useRef<ReturnType<typeof createScene> | null>(null);
@@ -110,6 +124,13 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
   const hoverTrack = hover ? tracks.get(hover) : undefined;
   const linked = new Set(hoverTrack ? [...tracks].filter(([id, t]) => id !== hover && neighbors(hoverTrack, t)).map(([id]) => id) : []);
   const activeSector = tracks.get(mara.path[mara.at]);
+  // Beacon range, from the engine's own beacon graph: who hears whom. Every sector with a beacon, live or on its way, counts for the links.
+  const graph = useMemo(() => sectorGraph(mission.world.sectors), [mission]);
+  const live_ = obs.sectors.filter((s) => s.beacon !== false).map((s) => s.id);
+  const beaconed = new Set([...live_, ...queued, ...building.keys()]);
+  const pending = new Set([...queued, ...building.keys()]);
+  const beaconKey = [...beaconed].sort().join(",");
+  const links = liveLinks(graph, beaconed);
   const over = live.ended;
   const warnSections = flood && warning
     ? [flood.id, obs.sectors.find((s) => s.routeId === flood.routeId && s.index === flood.index - 1)?.id]
@@ -118,6 +139,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
   const placementsOpen = !over && !solution && remaining > 0;
   const canPlace = (id: string) =>
     placementsOpen && !queued.has(id) && !building.has(id) && obs.sectors.find((s) => s.id === id)?.beacon === false;
+  const previewId = introDone && (hover ?? selected) && canPlace(hover ?? selected) ? (hover ?? selected) : null;
   const pressure = warning ? "Flood imminent" : sealed ? "Shaft flooded" : "Monitoring the shafts";
   const events = live.events.filter((e) =>
     alertKinds.has(e.kind) &&
@@ -126,6 +148,8 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
   ).slice(-3);
   const stars = starsOf(goals, obs.pods);
   const won = stars > 0 && mara.arriveTick !== null;
+  const failed = over && !solution && stars === 0;
+  const gaps = failed ? analyzeRun(mission, live.commands, stars).verdict.marks.filter((id) => tracks.has(id)) : [];
 
   useLayoutEffect(() => {
     const world = createScene(canvas.current!, ground.current!, trim);
@@ -160,6 +184,24 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
     );
   }, [obs, previous, playing, activeSector, warning, live.stepMs]);
 
+  // The range preview is written straight onto pre-rendered elements (data-pv): hovering never re-renders the SVG.
+  useEffect(() => {
+    const svg = rangeLayer.current;
+    if (!svg) return;
+    svg.querySelectorAll("[data-pv]").forEach((e) => e.removeAttribute("data-pv"));
+    if (!previewId) return;
+    const { linked, dark } = previewReach(graph, beaconed, previewId);
+    const set = (sel: string, v: string) => svg.querySelector(sel)?.setAttribute("data-pv", v);
+    set(`[data-seg="${previewId}"]`, "self");
+    for (const n of linked) {
+      set(`[data-seg="${n}"]`, "hear");
+      set(`[data-edge="${[previewId, n].sort().join("|")}"]`, "link");
+    }
+    for (const n of dark) {
+      set(`[data-seg="${n}"]`, "dark");
+      set(`[data-edge="${[previewId, n].sort().join("|")}"]`, "gap");
+    }
+  }, [previewId, beaconKey, graph]);
   useEffect(() => {
     if (!introDone || over) return;
     const h = nextHint(obs, seenHints.current);
@@ -234,6 +276,10 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
     const result = live.place(id);
     if (result.ok) {
       setFirstPlacement(true);
+      if (!hopDemoShown) { // one subtle dot along the first link: this is how news travels
+        const next = previewReach(graph, beaconed, id).linked[0];
+        if (next) { hopDemoShown = true; setHop(linkPoints(id, next)); }
+      }
       const [x, y] = lamp(tracks.get(id)!);
       sfx.playPlaceThunk();
       fx.spawnParticles(x, y, 8, THEME.amberHi);
@@ -361,12 +407,40 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
             <canvas ref={ground} aria-hidden="true" />
             <canvas ref={lightCanvas} className="live-overlay" aria-hidden="true" />
             <div className="live-markers" aria-hidden="true">
-              {!over && !solution && (
-                <svg className="live-route" viewBox="0 0 1 1" preserveAspectRatio="none">
-                  {mara.path.map((id) => tracks.get(id)).filter((t) => !!t).map((t) => (
-                    <line key={t!.sectorId} x1={t!.a[0]} y1={t!.a[1]} x2={t!.b[0]} y2={t!.b[1]} />
+              {!over && (
+                <svg className="live-range" viewBox="0 0 1 1" preserveAspectRatio="none" ref={rangeLayer}>
+                  {[...beaconed].filter((id) => tracks.has(id)).map((id) => {
+                    const t = tracks.get(id)!;
+                    return <line key={"c" + id} className={"cov" + (pending.has(id) ? " soft" : "")} x1={t.a[0]} y1={t.a[1]} x2={t.b[0]} y2={t.b[1]} />;
+                  })}
+                  {!solution && mara.path.map((id) => tracks.get(id)).filter((t) => !!t).map((t) => (
+                    <g key={"r" + t!.sectorId} className={"route" + (beaconed.has(t!.sectorId) ? "" : " dark")}>
+                      <line className="under" x1={t!.a[0]} y1={t!.a[1]} x2={t!.b[0]} y2={t!.b[1]} />
+                      <line x1={t!.a[0]} y1={t!.a[1]} x2={t!.b[0]} y2={t!.b[1]} />
+                    </g>
                   ))}
+                  {links.filter(([a, b]) => tracks.has(a) && tracks.has(b)).map(([a, b]) => (
+                    <polyline key={"l" + a + b} className={"link" + (pending.has(a) || pending.has(b) ? " soft" : "")} points={pts(linkPoints(a, b))} />
+                  ))}
+                  {!solution && [...graph].flatMap(([id, ns]) => ns.filter((n) => n > id && tracks.has(id) && tracks.has(n)).map((n) => (
+                    <polyline key={"e" + id + n} className="pv-edge" data-edge={id + "|" + n} points={pts(linkPoints(id, n))} />
+                  )))}
+                  {!solution && [...tracks.values()].map((t) => <line key={"s" + t.sectorId} className="pv-seg" data-seg={t.sectorId} x1={t.a[0]} y1={t.a[1]} x2={t.b[0]} y2={t.b[1]} />)}
                 </svg>
+              )}
+              {failed && gaps.length > 0 && (
+                <svg className="live-range" viewBox="0 0 1 1" preserveAspectRatio="none">
+                  {gaps.map((id) => { const t = tracks.get(id)!; return <line key={id} className="gap" x1={t.a[0]} y1={t.a[1]} x2={t.b[0]} y2={t.b[1]} />; })}
+                </svg>
+              )}
+              {gaps.map((id) => <span key={"g" + id} className="live-gap-mark" style={atMidpoint(id)}>!</span>)}
+              {hop && !over && (
+                <span
+                  className="live-hop"
+                  style={{ "--x0": hop[0][0] * 100 + "%", "--y0": hop[0][1] * 100 + "%", "--x1": hop[hop.length - 1][0] * 100 + "%", "--y1": hop[hop.length - 1][1] * 100 + "%",
+                    "--xs": hop[hop.length > 2 ? 1 : 0][0] * 100 + "%", "--ys": hop[hop.length > 2 ? 1 : 0][1] * 100 + "%" } as CSSProperties}
+                  onAnimationEnd={() => setHop(null)}
+                />
               )}
               {!over && obs.sectors.filter((s) =>
                 s.beacon === false || queued.has(s.id) || hover === s.id ||

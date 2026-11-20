@@ -1,9 +1,10 @@
 // End panel for the live Descent: stars, the cause chain, Tower / No beacons / You, the next-star hint. Pure render from props; the
 // three baseline runs and the explanation come from src/echo (runBaseline, explainRun). Mounted by LiveScreen (see WIRING-INTRO-DEBRIEF.md).
 import { useMemo } from "react";
-import { runBaseline, type RunOutcome } from "../../../echo/baseline";
+import type { RunOutcome } from "../../../echo/baseline";
 import { explainRun } from "../../../echo/explain";
 import type { Command, Mission } from "../../../echo/types";
+import { analyzeRun, darkSections } from "./cause";
 import { placeName, plainText } from "./names";
 
 export interface LiveDebriefProps {
@@ -24,36 +25,25 @@ export interface LiveDebriefProps {
 const when = (t: number | null) => (t === null ? "never" : `minute ${t}`);
 const isMargin = (l: string) => /^(Next star|Best possible)/.test(l);
 
-/** The dark sections on Mara's route, named in plain words: where she waited blind, else (she never got through) the unlit sections of her planned path, the flooded one first. */
-function darkSections(mission: Mission, commands: Command[], o: RunOutcome): string[] {
-  const placed = new Set(commands.flatMap((c) => (c.type === "placeBeacon" ? [c.sectorId] : [])));
-  const dark = (id: string) => mission.world.sectors.find((s) => s.id === id)?.beacon === false && !placed.has(id);
-  const mara = mission.pods.find((p) => p.nurse);
-  const blind = [...new Set(o.log.filter((l) => l.kind === "blind" && l.podId === mara?.id && l.sectorId && dark(l.sectorId)).map((l) => l.sectorId!))];
-  const planned = (mara?.path ?? []).filter(dark);
-  const flood = o.mara === null && mission.sealSectorId && planned.includes(mission.sealSectorId) ? [mission.sealSectorId] : []; // the flooded shaft only matters when the news never reached her
-  return [...new Set([...flood, ...(blind.length ? blind : planned)])].slice(0, 3);
-}
-
 function nextStep(stars: number, mission: Mission, commands: Command[], o: RunOutcome): string | null {
   if (stars >= 3) return null;
-  const names = darkSections(mission, commands, o).map((id) => placeName(id));
+  const names = darkSections(mission, commands, o.log, o.mara).map((id) => placeName(id));
   if (names.length) return `Light ${names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0]}.`;
   return stars === 0 ? "Light Mara's route." : "Beat the next deadline.";
 }
 
 export function LiveDebrief({ mission, commands, stars, onRetry, onNext, onWatchSolution, onContinue, retryLabel = "Retry", nextLabel = "Next level", endReason, note, replay = false }: LiveDebriefProps) {
-  const base = useMemo(() => runBaseline(mission, commands), [mission, commands]);
+  const { base, verdict } = useMemo(() => analyzeRun(mission, commands, stars), [mission, commands, stars]);
   const lines = useMemo(() => explainRun(base.you.log, mission).map((l) => plainText(l).replace(/^./, (c) => c.toUpperCase())), [base, mission]);
   const why = lines.filter((l) => !isMargin(l));
   const margin = lines.find(isMargin);
   const hint = nextStep(stars, mission, commands, base.you);
-  const headline = stars ? "Clinic supplied" : base.you.mara !== null ? "Not fast enough" : "Deadline missed"; // never "missed" for a run that reached the clinic
   const cols: [string, RunOutcome, string][] = [["Tower", base.tower, "tower"], ["No beacons", base.none, "none"], ["You", base.you, "you"]];
   return (
     <section className="live-debrief live-debrief2" aria-label="Run result">
       <div className="eyebrow">RUN COMPLETE</div>
-      <h2>{headline}</h2>
+      <h2>{verdict.headline}</h2>
+      {verdict.cause && !replay && <p className="live-cause">{verdict.cause}</p>}
       {endReason && <p className="live-end-reason">{endReason}</p>}
       {replay
         ? <p className="live-stars live-replay-tag">Solution replay</p>
