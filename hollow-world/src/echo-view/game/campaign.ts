@@ -105,10 +105,10 @@ function fromStory(id: keyof typeof TEXT.missions) {
 
 // ---- in-run beats: the Directorate's ticker lines (the game's own; missions override some) ----
 const TICKER: Story["ticker"] = {
-  before: "TOWER ONLINE · ALL FLIGHTS CLEARED BY THE DIRECTORATE",
-  down: "ALL POD RUNS REMAIN AUTHORIZED",
-  seal: "TUNNEL CLOSED FOR YOUR SAFETY",
-  mid: "NETWORK STABLE · {claimed} POD RUNS AUTHORIZED",
+  before: "Tower: on · every pod cleared by the Directorate",
+  down: "Every pod run is still authorized",
+  seal: "Tunnel closed for your safety",
+  mid: "Network stable · {claimed} pod runs authorized",
 };
 export const storyFor = (cm: CampaignMission): Story => ({ ticker: { ...TICKER, ...cm.ticker }, mara: cm.mara ?? {} });
 

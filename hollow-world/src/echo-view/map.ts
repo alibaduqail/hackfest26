@@ -3,6 +3,7 @@
 import { FONT_SANS, THEME } from "./theme";
 import type { Observation, Pod, Priority, Sector } from "../echo/types";
 import { cityBoxes, cityLabel, overlaps, placeTag, type Box } from "./labels";
+import { podName } from "./cutaway/live/names";
 
 export type Variant = "tower" | "echo";
 /** View-only effects, kept by the screen in wall-clock ms so they stay readable at 60x. Not part of the contract. */
@@ -401,7 +402,7 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
       ctx.strokeStyle = COLORS.ghost; ctx.lineWidth = 1.6; ctx.setLineDash([2, 2]);
       ctx.beginPath(); ctx.arc(xy[0], xy[1], r + 1, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
       ctx.fillStyle = COLORS.ghost; ctx.font = `11px ${FONT_SANS}`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
-      ctx.fillText(`${p.id} forged`, xy[0] + 9, xy[1] - 9);
+      ctx.fillText("Fake medical pod", xy[0] + 9, xy[1] - 9);
       ctx.globalAlpha = 1;
       continue;
     }
@@ -421,7 +422,8 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
     }
     const y = echo ? o.fx?.yields.find((q) => q.podId === p.id && o.time - q.born < YIELD_MS) : undefined;
     if (y) {
-      const txt = `${p.id} yields to ${y.to}`;
+      const toPod = obs.pods.find((q) => q.id === y.to);
+      const txt = `${podName(p)} waits for ${toPod ? podName(toPod) : y.to}`;
       ctx.font = `bold 12px ${FONT_SANS}`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
       const [bx, by, bw, bh] = placeTag(xy, ctx.measureText(txt).width + 10, 17, used, w, h);
       used.push([bx, by, bw, bh]);
@@ -433,10 +435,10 @@ export function drawMap(ctx: CanvasRenderingContext2D, obs: Observation, o: Draw
     }
     if (p.id === nurse?.id && p.status !== "arrived") {
       ctx.font = `600 12px ${FONT_SANS}`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
-      const [bx, by, bw, bh] = placeTag(xy, ctx.measureText(p.label).width + 10, 16, used, w, h);
+      const [bx, by, bw, bh] = placeTag(xy, ctx.measureText(podName(p)).width + 10, 16, used, w, h);
       used.push([bx, by, bw, bh]);
       ctx.fillStyle = "rgba(58,26,24,0.9)"; ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 3); ctx.fill();
-      ctx.fillStyle = THEME.redText; ctx.fillText(p.label, bx + 5, by + bh / 2 + 0.5);
+      ctx.fillStyle = THEME.redText; ctx.fillText(podName(p), bx + 5, by + bh / 2 + 0.5);
     }
   }
 

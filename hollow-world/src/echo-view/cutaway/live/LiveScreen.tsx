@@ -8,7 +8,7 @@ import { THEME } from "../../theme";
 import { SettingsGear } from "../../game/SettingsGear";
 import { applyLayout } from "../layouts";
 import { along, type Frame, neighbors, podPose, tracks } from "../run";
-import { plainText } from "./names";
+import { plainLog, plainText, podName } from "./names";
 import { createScene, lamp } from "../scene";
 import "../style.css";
 import { hitSector, RAIL_HEIGHT, RAIL_WIDTH } from "./hit";
@@ -19,6 +19,7 @@ import trim from "./art/shaft-trim.png";
 import { FREE_PLAY_SEED, heldAtFlood, useLive } from "./useLive";
 import { LiveDebrief } from "./LiveDebrief";
 import { LiveIntro } from "./LiveIntro";
+import "../../characters/bubble.css";
 import { LEVEL_HINTS, nextHint } from "./hints";
 import { Dialogue } from "../../characters/Dialogue";
 import "./live.css";
@@ -60,9 +61,11 @@ export interface LiveScreenProps {
   attempt?: number; // journey mode: the leg's failed tries so far, and the journey's seed: together they picked the flood candidate when the mission was built
   seed?: number;
   onLegEnd?: (result: LegResult, opts?: { continueAnyway?: boolean }) => void;
+  /** Journey mode: the run just ended and the debrief is showing, before the player confirms. The journey saves the result here so a reload from the debrief resumes at the next camp, not the start of this leg. */
+  onLegResult?: (result: LegResult) => void;
 }
 
-export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = false, attempt: journeyAttempt = 0, seed: journeySeed, onLegEnd }: LiveScreenProps) {
+export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = false, attempt: journeyAttempt = 0, seed: journeySeed, onLegEnd, onLegResult }: LiveScreenProps) {
   applyLayout(legMission?.id ?? "descent-live"); // the shared track map must match this level before anything reads it
   const levelIndex = Math.max(0, DESCENT_LEVELS.findIndex((l) => l.id === legMission?.id));
   const level = DESCENT_LEVELS[levelIndex];
@@ -256,8 +259,12 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
   function endLeg(continueAnyway = false) {
     if (finished.current || !onLegEnd || !legId || solution) return; // a solution replay never records a leg
     finished.current = true;
-    onLegEnd({ legId, stars, maraAt: mara.arriveTick, medicineAt: medicine.arriveTick, beaconsPlaced: live.commands.length, ticks: obs.tick }, continueAnyway ? { continueAnyway } : undefined);
+    onLegEnd(legResult(), continueAnyway ? { continueAnyway } : undefined);
   }
+  function legResult(): LegResult {
+    return { legId: legId!, stars, maraAt: mara.arriveTick, medicineAt: medicine.arriveTick, beaconsPlaced: live.commands.length, ticks: obs.tick };
+  }
+  useEffect(() => { if (over && journeyMode && legId && !solution && onLegResult) onLegResult(legResult()); }, [over]); // eslint-disable-line react-hooks/exhaustive-deps -- once per run end
   function restart(watch: boolean) {
     setIntroDone(true);
     seenHints.current = new Set([1]);
@@ -429,7 +436,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
                 onKeyDown={(e) => e.stopPropagation()}
               >
                 <summary>{held.length} pods held at the flood</summary>
-                <ul>{held.map((p) => <li key={p.id}>{p.label}</li>)}</ul>
+                <ul>{held.map((p) => <li key={p.id}>{podName(p)}</li>)}</ul>
               </details>
             )}
             {hintText && !over && <p className="live-hint-caption" role="status">{hintText}</p>}
@@ -512,7 +519,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
             {events.map((e) => (
               <li key={[e.tick, e.kind, e.podId, e.sectorId].join("/")}>
                 <time>t+{e.tick}</time>
-                <span>{plainText(e.text)}</span>
+                <span>{plainLog(e.text)}</span>
               </li>
             ))}
           </ol>

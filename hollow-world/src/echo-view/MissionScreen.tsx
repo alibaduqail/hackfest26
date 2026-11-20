@@ -78,7 +78,7 @@ const HINTS: Record<string, string> = {
   start: "Run the clock. Watch the tower on the left.",
   down: "The tower is dark. On the right, Echo takes over.",
   seal: "The Directorate sealed the tunnel. Watch Mara re-plan.",
-  "yield-med": "A passenger yields. Medicine goes first.",
+  "yield-med": "A passenger pod steps aside. Medicine goes first.",
 };
 const HINT_MS = 5000, HINT_MIN_MS = 2500;
 const hintsSeen = new Set<string>();
@@ -304,13 +304,13 @@ export function MissionScreen({ mission: missionProp, allowDispatch = true, spee
     <div className="echo-screen">
       <style>{css}</style>
       <div className="echo-main">
-        <MapPane obsRef={towerRef} fxRef={fxRef} variant="tower" kicker="Centralized" title="Tower" sub="One tower clears every flight. Lose it and the network is blind." down={!tower.towerUp}>
+        <MapPane obsRef={towerRef} fxRef={fxRef} variant="tower" kicker="Centralized" title="Tower" sub="One tower clears every pod. Lose it and nothing can hear." down={!tower.towerUp}>
           <div className="echo-overlay">
             {story && (() => { const [beat, line] = tickerLine(story, tower, world.current.mission); return <div className="echo-ticker" key={beat} role="status"><b>BROADCAST</b>{line}</div>; })()}
             <TowerBanner obs={tower} />
           </div>
         </MapPane>
-        <MapPane obsRef={echoRef} fxRef={fxRef} variant="echo" kicker="Decentralized" title="Echo" sub="Every pod navigates. Beacons relay seals and yields. No tower." down={!tower.towerUp}>
+        <MapPane obsRef={echoRef} fxRef={fxRef} variant="echo" kicker="Decentralized" title="Echo" sub="Every pod navigates. Beacons pass on floods and who goes first. No tower." down={!tower.towerUp}>
           <div className="echo-overlay"><EchoBanner obs={echo} /></div>
           {hint && <button className="echo-hint" key={hint.id} onClick={nextHint}>{hint.text}<small>click to dismiss</small></button>}
         </MapPane>
@@ -335,7 +335,7 @@ export function MissionScreen({ mission: missionProp, allowDispatch = true, spee
         {onExit && <RelayBar size="sm" label="Leave" items={[{ key: "abort", label: "Abort mission", tone: "danger", hold: true, onSelect: onExit }]} />}
       </div>
       {story && fxRef.current.flashAt > 0 && performance.now() - fxRef.current.flashAt < FLASH_MS && (
-        <div className="echo-flash" key={fxRef.current.flashAt} aria-hidden><b>TOWER OFFLINE</b><span>the Directorate's tower has gone dark</span></div>
+        <div className="echo-flash" key={fxRef.current.flashAt} aria-hidden><b>Tower: off</b><span>the Directorate's tower has gone dark</span></div>
       )}
       {echo.over && !onEnd && <EndCard tower={tower} echo={echo} normal={world.current.normal} onReplay={reset} />}
     </div>

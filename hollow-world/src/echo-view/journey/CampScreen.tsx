@@ -1,5 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { LIMIT } from "../../echo/journey";
+import { MaraBubble } from "../characters/Bubble";
+import { campLine } from "../characters/bubbles";
 import { RelayButton } from "../relay/Relay";
 import { applyEffect, consequenceOf, formatEffect, LEG_IDS, LEG_NAMES, retryCosts, trailModel } from "./helpers";
 import { useEnterKey } from "./keys";
@@ -62,7 +64,11 @@ export function CampScreen({ event, res, limit = LIMIT, legIndex, attempt, log, 
 
   const choice = event.choices.find((c) => c.id === picked);
   const pickIdx = event.choices.findIndex((c) => c.id === picked);
-  const pick = (id: string) => { if (picked) return; setPicked(id); onPick?.(id); };
+  const pick = (id: string) => {
+    if (picked) return;
+    setPicked(id); onPick?.(id);
+    if (id === "retry") onContinue(id); // the retry card has one choice and nothing to preview: one press retries, no second Enter
+  };
 
   useEffect(() => {
     const onKey = (e: globalThis.KeyboardEvent) => {
@@ -115,6 +121,7 @@ export function CampScreen({ event, res, limit = LIMIT, legIndex, attempt, log, 
         <p className="j-key">{picked ? "Enter to continue down" : n === 1 ? "Press 1 to choose" : `Press 1–${n} to choose`}</p>
       </section>
 
+      <MaraBubble text={campLine(event.id)} resetKey={`${event.id}-${legIndex}-${attempt}`} />
       <div className="j-stage" ref={stage}>
         <TrailRail legIndex={legIndex} log={log} x={g.sx} maraY={g.maraY} contY={g.contY} height={size.h} />
         <svg className="j-fork" width="100%" height={size.h} aria-hidden>
