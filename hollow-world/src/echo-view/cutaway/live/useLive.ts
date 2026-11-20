@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createEngine } from "../../../echo/engine";
 import { descentLive } from "../../../echo/descent";
 import { DESCENT_LEVELS } from "../../../echo/descent-levels";
@@ -204,15 +204,23 @@ export function createLive(spec: LiveSpec = LEVEL_1) {
 export function useLive(spec: LiveSpec = FREE_PLAY) {
   const [run] = useState(() => createLive(spec));
   const state = useSyncExternalStore(run.subscribe, run.getSnapshot, run.getSnapshot);
+  // When the shown tick started. A placement (or speed change) publishes a new state but not a new tick: the timer then waits only the
+  // rest of the step, so placing beacons never holds the clock back (each placement used to restart the full step wait).
+  const clock = useRef<{ obs: Observation | null; at: number }>({ obs: null, at: 0 });
   useEffect(() => {
-    if (!state.playing) return;
+    if (!state.playing) {
+      clock.current.obs = null; // a resume starts a full step
+      return;
+    }
     if (document.hidden) {
       run.togglePause();
       return;
     }
+    const now = performance.now();
+    if (clock.current.obs !== state.observation) clock.current = { obs: state.observation, at: now };
     const timer = setTimeout(() => {
       if (run.getSnapshot() === state) run.step();
-    }, state.stepMs);
+    }, Math.max(0, state.stepMs - (now - clock.current.at)));
     return () => clearTimeout(timer);
   }, [run, state]);
   useEffect(() => {

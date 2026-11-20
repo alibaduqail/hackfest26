@@ -11,10 +11,11 @@ import mara from "./art/mara.png";
 import loader from "./art/loader.png";
 import technician from "./art/technician.png";
 import attendant from "./art/attendant.png";
+import maraPod from "../characters/art/mara-sprite-32x48.png";
 
 const W = 1672, H = 941;
 const floors = [.07, .247, .419, .61, .789, 1];
-const spriteUrls = { med, freight, passenger, forged, mara, loader, technician, attendant };
+const spriteUrls = { med, freight, passenger, forged, mara, loader, technician, attendant, maraPod };
 type Sprite = keyof typeof spriteUrls;
 type Box = { x: number; y: number; w: number; h: number };
 export function lamp(track: Track): Point {
@@ -99,6 +100,22 @@ export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasEleme
       c.fillStyle = T.amber;
       c.fillRect(-width / 2, -height, width, height);
     }
+    c.restore();
+  }
+  /** Mara (head and shoulders of her sprite) behind the MED-1 pod's rear window. Static: it only moves with the pod. */
+  function maraInPod(c: CanvasRenderingContext2D, x: number, y: number, flip: boolean) {
+    const img = images.get("maraPod")!;
+    if (!img.complete || !img.naturalWidth) return;
+    c.save();
+    c.translate(x, y);
+    if (flip) c.scale(-1, 1);
+    c.beginPath();
+    c.rect(1, -35, 36, 14); // the window pane, in pod-local px (pod is drawn 112x41, centred, bottom at y)
+    c.clip();
+    c.imageSmoothingEnabled = false;
+    c.drawImage(img, 4, 0, 24, 26, 10, -36, 18, 19);
+    c.fillStyle = "#2b6b6a33"; // glass tint over her
+    c.fillRect(1, -35, 36, 14);
     c.restore();
   }
   function crate(x: number, y: number, medical = false) {
@@ -369,6 +386,7 @@ export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasEleme
         for (const p of pods) {
           const x = p.px + (p.x - p.px) * t, y = p.py + (p.y - p.py) * t;
           drawSprite(live, p.ship, x, y, 112, 41, p.facesLeft);
+          if (p.ship === "med") maraInPod(live, x, y, p.facesLeft); // characters: Mara rides MED-1
           if (p.fake) {
             const crossX = x + (p.facesLeft ? 34 : -34);
             line(live, crossX - 8, y - 12, crossX + 8, y - 26, T.red, 3);

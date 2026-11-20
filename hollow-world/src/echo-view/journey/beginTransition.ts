@@ -7,6 +7,8 @@ const RING_STAGGER_MS = 140;
 const RING_COLORS = ["#e8c48f", "#7ec8b3", "#d2a76a"]; // amberHi, teal, amber
 const REDUCED_MS = 150;
 
+import { flushSync } from "react-dom";
+
 const reduced = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 let busy = false;
 
@@ -51,14 +53,15 @@ export function beginTransition(from: Element | null, go: () => void) {
   const finish = () => { if (done) return; done = true; root.remove(); busy = false; };
   const fadeIn = black.animate([{ opacity: 0 }, { opacity: 1 }], { duration: fadeMs, easing: "ease-in", fill: "forwards" });
   fadeIn.onfinish = () => {
-    try { go(); } catch (e) { finish(); throw e; }
+    // Commit the next screen now (a state update from an animation callback is otherwise rendered in a later task, after the rAF below),
+    // then wait two frames so it has painted under the black before the black fades out: no frame of the old screen or a half-built one.
+    try { flushSync(go); } catch (e) { finish(); throw e; }
     root.style.pointerEvents = "none";
-    // let the next screen mount and paint under the black, then fade the black out
-    requestAnimationFrame(() => {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
       const out = black.animate([{ opacity: 1 }, { opacity: 0 }], { duration: inMs, easing: "ease-out", fill: "forwards" });
       out.onfinish = finish;
       out.oncancel = finish;
-    });
+    }));
   };
   fadeIn.oncancel = finish;
   setTimeout(finish, FADE_MS + IN_MS + 2500); // safety net: never leave a black screen behind

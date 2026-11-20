@@ -7,7 +7,7 @@ Props-only components in `src/echo-view/journey/`, wired by `JourneyApp.tsx` (th
 import { TitleScreen, CampScreen, EndingScreen, TrailMap } from "./journey"; // index.ts also imports journey.css
 ```
 
-Mount the existing `<Backdrop />` behind them (as GameApp does for the Title). The screens use `.g-screen`, so they scroll on their own.
+No Strata `<Backdrop />` behind camp and ending: their opaque `.j-camp-bg` covers the viewport, so it would only cost frames. The screens use `.g-screen`, so they scroll on their own.
 
 ## TitleScreen
 `<TitleScreen onBegin onContinue? onTowerDown? onStrata? onFreePlay? />`
