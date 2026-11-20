@@ -50,7 +50,9 @@ export function choose(s: JourneyState, choiceId: string): JourneyState {
   if (!c) return s;
   const res = { beacons: at0(s.res.beacons + (c.effect.beacons ?? 0)), clock: at0(s.res.clock + (c.effect.clock ?? 0)), doses: at0(s.res.doses + (c.effect.doses ?? 0)) };
   const pending = c.effect.nextRevealLead === undefined ? s.pending : { ...s.pending, revealLead: c.effect.nextRevealLead };
-  return { ...s, res, pending, phase: c.id === "scavenge" ? "camp" : "leg", log: [...s.log, { kind: "choice", eventId: ev.id, choiceId: c.id }] };
+  const log: LogEntry[] = [...s.log, { kind: "choice", eventId: ev.id, choiceId: c.id }];
+  if (c.id === "scavenge" && res.clock > LIMIT) return { ...s, res, pending, phase: "ending", legIndex: LEGS.length, attempt: 0, log }; // the scavenge ran out the clock: the patient is lost, so go to the ending instead of a camp that cannot go anywhere
+  return { ...s, res, pending, phase: c.id === "scavenge" ? "camp" : "leg", log };
 }
 
 /** The mission to play now, with the leg's budget (min of the leg cap and the beacons carried) and any carried-over reveal. */

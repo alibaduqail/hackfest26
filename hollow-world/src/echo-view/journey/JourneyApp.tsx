@@ -61,7 +61,7 @@ export function JourneyApp({ onTowerDown, onStrata, onFreePlay }: JourneyAppProp
       </>
     );
   }
-  if (s.phase === "leg") return <Leg s={s} play={play} toTitle={() => setS(null)} />;
+  if (s.phase === "leg") return <Leg s={s} play={play} remember={(next) => { save(next); setSaved(next); }} toTitle={() => setS(null)} />;
   // No Strata <Backdrop/> here: camp and ending paint their own opaque .j-camp-bg over the whole viewport, so the live Pixi city was never
   // visible, yet its WebGL init and 30 sim minutes of catch-up (~300 ms of long tasks) landed exactly on the fade in from black.
   return (
@@ -86,7 +86,7 @@ export function JourneyApp({ onTowerDown, onStrata, onFreePlay }: JourneyAppProp
 /** ending() lists every leg and choice (the trail log shows those); the card keeps the supplies line and the tower comparison. */
 const tower = (e: ReturnType<typeof ending>) => ({ ...e, lines: e.lines.slice(-2) });
 
-function Leg({ s, play, toTitle }: { s: JourneyState; play: (s: JourneyState) => void; toTitle: () => void }) {
+function Leg({ s, play, remember, toTitle }: { s: JourneyState; play: (s: JourneyState) => void; remember: (s: JourneyState) => void; toTitle: () => void }) {
   const cur = useMemo(() => currentLeg(s), [s]); // only mounted in phase "leg" (currentLeg throws on an ending state)
   const [LiveScreen] = useState(() => liveModule?.LiveScreen ?? LazyLive); // fixed per mount: a type change mid-leg would remount the run
   return (
@@ -94,6 +94,7 @@ function Leg({ s, play, toTitle }: { s: JourneyState; play: (s: JourneyState) =>
       <LiveScreen
         key={`${s.legIndex}-${s.attempt}-${s.log.length}`}
         mission={cur.mission} legId={cur.legId} attempt={0} seed={s.seed} journeyMode // attempt 0: every retry of a leg faces the same flood (see currentLeg)
+        onLegResult={(r: LegResult) => remember(completeLeg(s, r))} // the debrief is up: save the finished leg now, so a reload resumes at the camp it leads to
         onLegEnd={(r: LegResult, o?: { continueAnyway?: boolean }) => play(completeLeg(s, r, { advance: o?.continueAnyway }))}
         onExit={(e: MouseEvent<HTMLAnchorElement>) => { e.preventDefault(); toTitle(); }}
       />

@@ -3,7 +3,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createElement as h } from "react";
 import { renderToStaticMarkup as html } from "react-dom/server";
-import { applyEffect, consequenceOf, formatEffect, retriesOf, starsFromLog, trailModel, trailRows } from "./journey/helpers";
+import { applyEffect, consequenceOf, formatEffect, retriesOf, starsFromLog, stoppedAt, trailModel, trailRows } from "./journey/helpers";
 import { campEvent, choose, completeLeg, ending, LIMIT, startJourney } from "../echo/journey";
 import { ghostData, ghostHead, ghostOutcome } from "./journey/ghosts";
 import { names, played, start } from "./journey/sample";
@@ -85,14 +85,15 @@ test("a failed leg shows its retry in the camp and the ending", () => {
 
 test("the ending's counterfactual paths come from the engine, and the player's path from the log", () => {
   const g = ghostData(done.seed, log);
-  assert.deepEqual(g.paths.map((p) => p.id), ["tower", "none", "you"]);
+  assert.deepEqual(g.paths.map((p) => p.id), ["tower", "none", "standby", "you"]);
   assert.equal(g.paths[0].reached, 0, "the dark tower never gets Mara through leg 1");
   assert.ok(g.claimed > g.actual, "the tower claims more pod runs than ran");
-  const you = g.paths[2];
+  assert.equal(g.paths[2].reached, 0, "a backup tower is still central: it cannot carry the flood news");
+  const you = g.paths[3];
   assert.equal(you.reached, 3);
   assert.equal(you.minute, log.flatMap((l) => (l.kind === "leg" && l.result.maraAt !== null && l.result.stars > 0 ? [l.result.maraAt] : [])).reduce((a, b) => a + b, 0));
   assert.deepEqual(ghostOutcome(g.paths[0]), ["never"]);
-  assert.deepEqual(ghostHead({ ...g.paths[0], label: "tower + backup" }), ["tower +", "backup"]);
+  assert.deepEqual(ghostHead({ ...g.paths[0], label: "tower + backup" }), ["tower", "+ backup"]);
   assert.deepEqual(ghostOutcome({ ...g.paths[0], stuckAt: 92 }), ["min 92", "late"]);
   const end = html(h(EndingScreen, { ending: ending(done), res: done.res, log, choiceNames: names, ghosts: g, onAgain: noop }));
   assert.ok(end.includes("tower claimed"));
@@ -103,4 +104,11 @@ test("only choices with a reveal get a consequence on the fork, tone from their 
   assert.deepEqual(consequenceOf(tower.find((c) => c.id === "trust-tower")!), { tone: "bad", tag: "flood · unannounced" });
   assert.equal(consequenceOf(tower.find((c) => c.id === "verify-beacons")!)?.tone, "good");
   assert.equal(consequenceOf(campEvent(startJourney(1)).choices[0]), null, "outfitting has no reveal");
+});
+
+test("the ending's stop point comes from the legs actually won, not the last level finished", () => {
+  const res = (legId: "descent1" | "descent2" | "descent3", stars: 0 | 1 | 2 | 3) => ({ kind: "leg" as const, legId, attempt: 0, result: { legId, stars, maraAt: stars ? 80 : null, medicineAt: stars ? 85 : null, beaconsPlaced: 2, ticks: 60 } });
+  assert.equal(stoppedAt([res("descent1", 2), res("descent2", 0), res("descent3", 2)]), "Flooded shaft"); // leg II never won, a later leg did
+  assert.equal(stoppedAt([res("descent1", 0)]), "Relay level");
+  assert.equal(stoppedAt([res("descent1", 3), res("descent2", 3), res("descent3", 1)]), null); // all won: she reached the clinic
 });

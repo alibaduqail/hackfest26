@@ -13,6 +13,12 @@
 .descent-live .dialogue.out { opacity: 0; transition: opacity .35s ease-in; }
 @keyframes dlg-in-top { from { transform: translateY(-40px); opacity: 0; } }
 @keyframes dlg-in-bottom { from { transform: translateY(60px); opacity: 0; } }
+/* Narrow maps (the aside drops below, or sits tight): the full-size Director strip spans most of the map and covers the TOWER OFFLINE label and the pod tags on L1-L2.
+   Shrink only the Director so it stays in the top-right corner and leaves them readable. */
+@media (max-width: 1180px) {
+  .descent-live .dialogue.director img { width: 128px; height: 128px; }
+  .descent-live .dialogue.director p { width: clamp(190px, 26vw, 250px); padding: 8px 12px 10px; font-size: 14px; }
+}
 @media (prefers-reduced-motion: reduce) {
   .descent-live .dialogue { animation: none !important; }
   .descent-live .dialogue.out { transition: none; }
