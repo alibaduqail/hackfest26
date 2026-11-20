@@ -24,7 +24,13 @@ type LiveState = {
   feedback: string | null;
   stepMs: number;
   slow: boolean;
+  planning: boolean; // the intro is gone and the clock has not started: place beacons, then Run
+  floodHold: string | null; // the run paused itself for this announced flood (sector id) until the player resumes
 };
+
+/** Slow ticks between a flood's announcement and the automatic hold: the slow-motion beat runs into the pause. 0 with reduced motion. */
+export const FLOOD_HOLD_LEAD = 2;
+const named = (obs: Observation) => (obs.floodWarnings ?? []).flatMap((w) => (w.sectorId !== undefined ? [w.sectorId + "@" + w.at] : []));
 
 export function heldAtFlood(pod: Pod, obs: Observation): boolean {
   return pod.status === "holding" && obs.sectors.some((sector) => sector.sealed && sector.id === pod.path[pod.at + 1]);
@@ -71,6 +77,11 @@ export function createLive(spec: LiveSpec = LEVEL_1) {
   let events: LogEvent[] = [];
   let queued = new Set<string>();
   let feedback: string | null = null;
+  // Auto-pause at each flood announcement, once per flood: `announced` remembers every telegraph seen, `holdIn` counts the slow lead-in.
+  let announced = new Set(named(observation));
+  let holdIn: number | null = null;
+  let floodHold: string | null = null;
+  let reducedMotion = false;
   const listeners = new Set<() => void>();
 
   function snapshot(): LiveState {
@@ -97,6 +108,8 @@ export function createLive(spec: LiveSpec = LEVEL_1) {
       remaining,
       slow,
       stepMs: 600 / speed / (slow ? 0.35 : 1),
+      planning: !started && !ended && !solution,
+      floodHold,
     };
   }
   let state = snapshot();
@@ -121,6 +134,9 @@ export function createLive(spec: LiveSpec = LEVEL_1) {
     commands = [];
     queued = new Set();
     feedback = null;
+    announced = new Set(named(observation));
+    holdIn = null;
+    floodHold = null;
     publish();
   }
   function place(sectorId: string): Result {
@@ -134,11 +150,7 @@ export function createLive(spec: LiveSpec = LEVEL_1) {
     feedback = result.ok ? null : result.reason ?? "placement refused";
     if (result.ok) {
       commands = [...commands, command];
-      queued = new Set(queued).add(sectorId);
-      if (!started) {
-        started = true;
-        playing = true;
-      }
+      queued = new Set(queued).add(sectorId); // placing never starts the clock: planning waits for Run
     }
     publish();
     return result;
@@ -164,11 +176,23 @@ export function createLive(spec: LiveSpec = LEVEL_1) {
       (!warning(mission, previous) && warning(mission, observation)) ||
       (!warning(mission, observation) && !blindApproach(observation))
     ) override = false;
+    if (holdIn !== null && --holdIn <= 0) hold();
+    const fresh = named(observation).filter((id) => !announced.has(id));
+    if (fresh.length && !solution) {
+      fresh.forEach((id) => announced.add(id));
+      floodHold = fresh[0].split("@")[0];
+      holdIn = reducedMotion ? 0 : FLOOD_HOLD_LEAD;
+      if (holdIn === 0) hold();
+    } else fresh.forEach((id) => announced.add(id));
     if (complete(observation)) playing = false;
     publish();
   }
-  function start() { // the intro's Start button: unpause in one click
-    if (!state.ended) { playing = true; started = true; }
+  function hold() { // the flood is named: stop the clock so the player can light the warning chain
+    holdIn = null;
+    playing = false;
+  }
+  function start() { // Run: start (or resume) the clock
+    if (!state.ended) { playing = true; started = true; holdIn = null; floodHold = null; }
     publish();
   }
   function togglePause() {
@@ -176,8 +200,13 @@ export function createLive(spec: LiveSpec = LEVEL_1) {
     if (!state.ended) {
       playing = !playing;
       started = true;
+      holdIn = null; // pausing by hand during the lead-in is the beat; resuming clears the flood hold
+      if (playing) floodHold = null;
     }
     publish();
+  }
+  function setReducedMotion(value: boolean) {
+    reducedMotion = value;
   }
   function setSpeed(next: Speed) {
     speed = next;
@@ -196,6 +225,7 @@ export function createLive(spec: LiveSpec = LEVEL_1) {
     togglePause,
     start,
     setSpeed,
+    setReducedMotion,
     retry: () => reset(false), // the same flood on every retry (a new page load draws a new one), like a journey leg
     watchSolution: () => reset(true),
   };
@@ -223,6 +253,13 @@ export function useLive(spec: LiveSpec = FREE_PLAY) {
     }, Math.max(0, state.stepMs - (now - clock.current.at)));
     return () => clearTimeout(timer);
   }, [run, state]);
+  useEffect(() => {
+    const motion = matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => run.setReducedMotion(motion.matches);
+    sync();
+    motion.addEventListener("change", sync);
+    return () => motion.removeEventListener("change", sync);
+  }, [run]);
   useEffect(() => {
     function hide() {
       if (document.hidden && run.getSnapshot().playing) run.togglePause();

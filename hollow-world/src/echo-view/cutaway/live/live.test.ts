@@ -81,6 +81,8 @@ test("pause, speed, and slow override control the advertised cadence", () => {
   while (run.getSnapshot().observation.tick < 33) run.step(); // the telegraph (t33 for the first flood) starts the slow-motion window
   assert.equal(run.getSnapshot().slow, true);
   assert.equal(run.getSnapshot().stepMs, 300 / 0.35);
+  assert.equal(run.getSnapshot().playing, false); // the flood announcement held the run (planning.test.ts); resume, then pause by hand
+  run.togglePause();
   run.togglePause();
   assert.equal(run.getSnapshot().playing, false);
   assert.equal(run.getSnapshot().slow, false);

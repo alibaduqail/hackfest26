@@ -1,5 +1,6 @@
 // Director and Mara talk over the Descent map. Mount once inside the map (.world); it listens to the run through props only.
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Observation } from "../../echo/types";
 import { enqueue, holdMs, type Line, type LineCtx, newLines } from "./lines";
 import directorImg from "./art/director-a-portrait-64x64.png";
@@ -12,7 +13,8 @@ const WHO = {
 };
 const FADE_MS = 350;
 
-export function Dialogue({ obs, previous, ended, stars, coach, placed }: { obs: Observation; previous: Observation } & LineCtx) {
+/** `maraHost`: where Mara's strip is drawn (an element outside the map, so it never covers the track). Without it she sits bottom-left on the map. */
+export function Dialogue({ obs, previous, ended, stars, coach, placed, maraHost }: { obs: Observation; previous: Observation; maraHost?: HTMLElement | null } & LineCtx) {
   const fired = useRef(new Set<string>());
   const queue = useRef<Line[]>([]);
   const busy = useRef(false);
@@ -57,14 +59,16 @@ export function Dialogue({ obs, previous, ended, stars, coach, placed }: { obs: 
     return () => { clearTimeout(fade); clearTimeout(done); };
   }, [cur]);
 
+  const node = cur && (
+    <div className={`dialogue ${cur.line.who}${out ? " out" : ""}`} role="status" aria-live="polite" key={cur.n}>
+      <img src={WHO[cur.line.who].img} alt="" width={192} height={192} />
+      <p><small>{WHO[cur.line.who].label}</small>{cur.line.text}</p>
+    </div>
+  );
   return (
     <div className="dialogue-layer"> {/* clips the slide-in at the map edge so it never adds scrollbars */}
-      {cur && (
-        <div className={`dialogue ${cur.line.who}${out ? " out" : ""}`} role="status" aria-live="polite" key={cur.n}>
-          <img src={WHO[cur.line.who].img} alt="" width={192} height={192} />
-          <p><small>{WHO[cur.line.who].label}</small>{cur.line.text}</p>
-        </div>
-      )}
+      {cur && !(cur.line.who === "mara" && maraHost) && node}
+      {cur && cur.line.who === "mara" && maraHost && createPortal(node, maraHost)}
     </div>
   );
 }

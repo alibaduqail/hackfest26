@@ -1,8 +1,9 @@
 import { FONT_MONO, FONT_SANS, THEME as T } from "../theme";
 import type { Pod } from "../../echo/types";
 import { podName } from "./live/names";
+import { inSignal } from "./live/pools";
 import { along, type Frame, neighbors, podPose, type Point, type Track, tracks } from "./run";
-import { frameProgress } from "./motion";
+import { buildRoute, compileRoute, frameProgress, restFacing, sampleRoute } from "./motion";
 import med from "./art/med-1.webp";
 import freight from "./art/supply.webp";
 import passenger from "./art/pax-1.webp";
@@ -34,7 +35,10 @@ function color(p: Pod, rejected: boolean) {
 function overlaps(a: Box, b: Box) {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 }
-export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasElement, trimUrl?: string) {
+/** blackout (the live Descent): pods outside a beacon's light are dim silhouettes with a headlamp, every pod shows whether it can hear,
+ * and the art's bystanders sit back in the dark. Off for the scripted cutaway, which keeps its lit look. */
+export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasElement, trimUrl?: string, opts: { blackout?: boolean } = {}) {
+  const dark = !!opts.blackout;
   const lamps = new Map([...tracks].map(([id, track]) => [id, lamp(track)])); // tracks differ per Descent level (layouts.ts), so read them per scene
   const images = new Map<Sprite, HTMLImageElement>();
   const ground = backdrop.getContext("2d")!;
@@ -150,8 +154,60 @@ export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasEleme
     c.fillStyle = ink;
     c.fillText(label, box.x + box.w / 2, box.y + box.h / 2);
   }
+  /** A small warm beam ahead of a pod in the dark. */
+  function headlamp(c: CanvasRenderingContext2D, x: number, y: number, left: boolean) {
+    const fx = x + (left ? -54 : 54), fy = y - 14;
+    const beam = c.createRadialGradient(fx, fy, 0, fx, fy, 46);
+    beam.addColorStop(0, "#ffe2a866");
+    beam.addColorStop(1, "#ffe2a800");
+    c.save();
+    c.globalCompositeOperation = "lighter";
+    c.fillStyle = beam;
+    c.beginPath();
+    c.moveTo(fx, fy - 4);
+    c.lineTo(fx + (left ? -46 : 46), fy - 18);
+    c.lineTo(fx + (left ? -46 : 46), fy + 14);
+    c.closePath();
+    c.fill();
+    c.restore();
+    circle(c, fx, fy, 3, "#ffe2a8");
+  }
+  /** Above the pod's tail: radio arcs when it can hear (inside the light), crossed-out arcs when it cannot. */
+  function hearing(c: CanvasRenderingContext2D, x: number, y: number, left: boolean, on: boolean) {
+    const gx = x + (left ? 40 : -40), gy = y - 50;
+    const ink = on ? T.amberHi : "#9aa4a1";
+    c.save();
+    c.lineCap = "round";
+    c.fillStyle = "#10191ef2";
+    c.strokeStyle = on ? T.amber + "aa" : "#56605e";
+    c.lineWidth = 1.5;
+    c.beginPath();
+    c.arc(gx, gy, 16, 0, Math.PI * 2);
+    c.fill();
+    c.stroke();
+    circle(c, gx - 5, gy + 5, 2.6, ink);
+    c.strokeStyle = ink;
+    c.lineWidth = 2.4;
+    for (const r of [7, 12]) {
+      c.beginPath();
+      c.arc(gx - 5, gy + 5, r, -Math.PI / 2, 0);
+      c.stroke();
+    }
+    if (!on) line(c, gx - 10, gy + 10, gx + 10, gy - 10, T.redText, 2.4);
+    c.restore();
+  }
+  /** The pod just heard the flood news: a red "!" over it. */
+  function heardFlash(c: CanvasRenderingContext2D, x: number, gy: number, t: number) {
+    const r = 16 + 3 * Math.sin(Math.min(1, t) * Math.PI);
+    circle(c, x, gy, r, T.red);
+    c.font = "700 23px " + FONT_SANS;
+    c.textAlign = "center";
+    c.textBaseline = "middle";
+    c.fillStyle = T.ink;
+    c.fillText("!", x, gy + 1);
+  }
   let anim = 0;
-  function show(frame: Frame, previous: Frame, level: number, duration: number, hiddenChips?: ReadonlySet<string>) {
+  function show(frame: Frame, previous: Frame, level: number, duration: number, hiddenChips?: ReadonlySet<string>, started?: number) {
     cancelAnimationFrame(anim);
     function render(duration: number) {
       cancelAnimationFrame(anim);
@@ -203,9 +259,11 @@ export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasEleme
         crate(.66 * W, .906 * H, true);
       }
       ground.imageSmoothingEnabled = false;
+      if (dark) ground.globalAlpha = .4;
       drawSprite(ground, "loader", .249 * W, .228 * H, 43, 64);
       drawSprite(ground, "technician", .207 * W, .407 * H, 43, 64);
       drawSprite(ground, "attendant", .96 * W, .949 * H, 43, 64);
+      ground.globalAlpha = 1;
       if (nurse) {
         const x = .878 * W, y = .875 * H, glow = ground.createRadialGradient(x, y, 2, x, y, 105);
         glow.addColorStop(0, T.good + "a0");
@@ -265,7 +323,7 @@ export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasEleme
         ground.fillRect(x - 16, y - 24, 148, 24);
         for (let i = 0; i < 7; i++) line(ground, x - 14 + i * 20, y - 2, x + i * 20, y - 22, T.red, 6);
         line(ground, x - 16, y, x + 132, y, T.red, 4);
-        fixedTag("SEALED · MAIN SHAFT", tr.b[0] - .07, tr.b[1] - .065, T.redText); // level 1: (.665, .70)
+        if (!dark) fixedTag("SEALED · MAIN SHAFT", tr.b[0] - .07, tr.b[1] - .065, T.redText); // level 1: (.665, .70); blackout marks it FLOODED itself
       }
       if (level === 4 && medical.rerouted) fixedTag("DRY BYPASS", .25, .746, T.good);
       if (
@@ -277,23 +335,30 @@ export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasEleme
       for (const sign of signs) tag(ground, sign.box, sign.copy, sign.ink);
       const pods = obs.pods.filter((p) => visible(p, obs.tick)).map((p) => {
         const old = previous.obs.pods.find((o) => o.id === p.id)!;
-        const [x, y] = podPose(p), [px, py] = podPose(old);
+        const [x, y] = podPose(p);
+        const restLeft = restFacing(p);
+        const route = compileRoute(buildRoute(old, p), W, H, restFacing(old)); // once per tick; draw() only samples it
         const fake = rejected.has(p.id), held = p.status === "holding" || p.status === "waiting";
         const ship: Sprite = p.ghost ? "forged" : p.nurse ? "med" : p.cargo ? "freight" : "passenger";
-        const track = tracks.get(p.path[p.at]);
-        const facesLeft = !!track && p.status !== "arrived" && track.b[0] < track.a[0];
+        const signal = inSignal(p, (id) => obs.sectors.find((s) => s.id === id)?.beacon !== false);
+        const heard = obs.log.some((e) => e.kind === "seal-heard" && e.podId === p.id && e.tick >= obs.tick - 3);
         let label = podName(p);
         if (p.ghost && fake) label = "Fake medical pod";
         return {
           id: p.id,
           x: x * W,
           y: y * H,
-          px: px * W,
-          py: py * H,
+          route,
+          restLeft,
+          cx: x * W,
+          cy: y * H,
           ship,
+          signal,
+          heard,
+          arrived: p.status === "arrived",
           held,
           fake,
-          facesLeft,
+          facesLeft: restLeft,
           label,
           ink: color(p, fake),
           box: { x: 0, y: 0, w: 0, h: 0 },
@@ -318,46 +383,33 @@ export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasEleme
           }
         }
       }
-      const pulses = obs.pulses.map((p) => {
-        const tr = tracks.get(p.sectorId)!;
-        const origin = p.kind === "seal"
-          ? previous.obs.pulses.find((q) => q.kind === "seal" && neighbors(tr, tracks.get(q.sectorId)!))
-          : undefined;
-        return {
-          to: lamps.get(p.sectorId)!,
-          from: origin ? lamps.get(origin.sectorId)! : null,
-          ink: p.kind === "seal" ? T.red : T.amberHi,
-        };
-      });
       const messages = obs.log.filter((e) =>
         e.tick === obs.tick - 1 && (e.kind === "announce" || e.kind === "seal-heard")
       );
-      const start = performance.now();
+      const start = started ?? performance.now(); // a re-show of the same tick keeps its clock (motion.ts tweenFor)
       const sealedNow = obs.log.some((e) => e.kind === "seal" && e.tick === obs.tick - 1);
       const liftSection = obs.sectors.find((s) => s.id === "ramp2");
       const liftPod = pods.find((p) => p.id === liftSection?.holder);
+      const spot = { x: 0, y: 0, left: false };
+      const shown = performance.now(); // a frame timestamp can lag the clock read here: never let t step back within one show
       function draw(now: number) {
-        const t = frameProgress(now, start, duration);
+        const t = frameProgress(Math.max(now, shown), start, duration);
         live.clearRect(0, 0, W, H);
+        for (const p of pods) { // pods ride the track polyline; one sample per pod per frame
+          sampleRoute(p.route, t, spot, p.restLeft);
+          p.cx = spot.x;
+          p.cy = spot.y;
+          p.facesLeft = spot.left;
+        }
         // Keep moving leader lines behind every fixed sign even between simulation ticks.
         for (const p of pods) {
           if (!p.box.w) continue;
-          const x = p.px + (p.x - p.px) * t, y = p.py + (p.y - p.py) * t;
+          const x = p.cx, y = p.cy;
           line(live, p.box.x + p.box.w / 2, p.box.y + p.box.h, x, y - 40, p.ink + "90", 1.5);
         }
         for (const box of fixed) live.clearRect(box.x - 2, box.y - 2, box.w + 4, box.h + 4);
-        for (const pulse of pulses) {
-          const [x, y] = pulse.to;
-          if (pulse.from) {
-            const [px, py] = pulse.from;
-            line(live, px, py, x, y, pulse.ink + "65", 2);
-            circle(live, px + (x - px) * t, py + (y - py) * t, 5, pulse.ink);
-          }
-          circle(live, x, y, 6, pulse.ink);
-          circle(live, x, y, 8 + 7 * t, pulse.ink + "cc", true);
-        }
         if (liftPod) {
-          const y = liftPod.py + (liftPod.y - liftPod.py) * t;
+          const y = liftPod.cy;
           const x = .513 * W;
           if (trim) {
             line(live, x-9, .077*H, x-9, y-48, "#140f0a", 4);
@@ -383,9 +435,16 @@ export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasEleme
           }
         }
         for (const p of pods) {
-          const x = p.px + (p.x - p.px) * t, y = p.py + (p.y - p.py) * t;
+          const x = p.cx, y = p.cy;
+          if (dark && !p.signal && !p.arrived) live.globalAlpha = .42; // in the dark: a dim silhouette
           drawSprite(live, p.ship, x, y, 112, 41, p.facesLeft);
           if (p.ship === "med") maraInPod(live, x, y, p.facesLeft); // characters: Mara rides MED-1
+          live.globalAlpha = 1;
+          if (dark && !p.arrived) {
+            if (!p.signal) headlamp(live, x, y, p.facesLeft);
+            if (p.heard) heardFlash(live, x + (p.facesLeft ? 40 : -40), y - 50, t);
+            else hearing(live, x, y, p.facesLeft, p.signal);
+          }
           if (p.fake) {
             const crossX = x + (p.facesLeft ? 34 : -34);
             line(live, crossX - 8, y - 12, crossX + 8, y - 26, T.red, 3);
@@ -405,7 +464,7 @@ export function createScene(canvas: HTMLCanvasElement, backdrop: HTMLCanvasEleme
         for (const p of pods) if (p.box.w) tag(live, p.box, p.label, p.ink);
         if (t < 1) anim = requestAnimationFrame(draw);
       }
-      draw(start);
+      draw(shown);
     }
     redraw = () => render(0);
     render(duration);

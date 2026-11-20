@@ -1,19 +1,18 @@
-import type { Observation } from "../../../echo/types";
-import { frameProgress } from "../motion";
-import { neighbors, podPose, tracks } from "../run";
-import { lamp } from "../scene";
 import * as fx from "./fx";
 import { RAIL_HEIGHT, RAIL_WIDTH } from "./hit";
-import { createLightLayer } from "./light";
+import { createDarkness, type LitPool } from "./darkness";
 
-export function mountEffects(lightCanvas: HTMLCanvasElement, fxCanvas: HTMLCanvasElement) {
-  const lighting = createLightLayer(lightCanvas, { sectorIds: [...tracks.keys()], darknessAlpha: .38 });
+/** The live map's two overlay canvases: the blackout (darkness.ts, below the scene art's marks, repainted only when its pools change)
+ * and the effects canvas above the pods (particles, rings, screen shake), drawn every frame. */
+export function mountEffects(darkCanvas: HTMLCanvasElement, fxCanvas: HTMLCanvasElement) {
+  const darkness = createDarkness(darkCanvas);
   const context = fxCanvas.getContext("2d");
   const motion = matchMedia("(prefers-reduced-motion: reduce)");
   const world = fxCanvas.parentElement!;
+  let pools: readonly LitPool[] = [];
   const reduced = () => {
-    lighting.setReducedMotion(motion.matches);
     fx.setReducedMotion(motion.matches);
+    darkness.set(pools, motion.matches);
   };
   reduced();
   motion.addEventListener("change", reduced);
@@ -26,61 +25,8 @@ export function mountEffects(lightCanvas: HTMLCanvasElement, fxCanvas: HTMLCanva
   });
   resize.observe(fxCanvas);
 
-  function prepare(obs: Observation, previous: Observation, duration: number) {
-    const sectors = obs.sectors.map((s) => {
-      const track = tracks.get(s.id)!;
-      const [midX, midY] = lamp(track);
-      const dx = (track.b[0] - track.a[0]) * RAIL_WIDTH;
-      const dy = (track.b[1] - track.a[1]) * RAIL_HEIGHT;
-      return {
-        id: s.id,
-        beacon: s.beacon !== false,
-        midX,
-        midY,
-        angle: Math.atan2(dy, dx),
-        length: Math.hypot(dx, dy),
-      };
-    });
-    const pulses = obs.pulses.map((p) => {
-      const track = tracks.get(p.sectorId)!;
-      const source = previous.pulses.find((q) =>
-        q.kind === p.kind && q.sectorId !== p.sectorId &&
-        neighbors(track, tracks.get(q.sectorId)!)
-      );
-      return {
-        id: obs.tick + ":" + p.sectorId + ":" + p.kind,
-        kind: p.kind,
-        from: source ? lamp(tracks.get(source.sectorId)!) : null,
-        to: lamp(track),
-      };
-    });
-    const headlamps = obs.pods.filter((p) => p.status === "moving").map((p) => {
-      const [x, y] = podPose(p);
-      const [px, py] = podPose(previous.pods.find((old) => old.id === p.id)!);
-      return { x: x * RAIL_WIDTH, y: y * RAIL_HEIGHT - 12, px: px * RAIL_WIDTH, py: py * RAIL_HEIGHT - 12 };
-    });
-    return {
-      sectors,
-      pulses,
-      headlamps,
-      positions: headlamps.map((h) => ({ x: h.x, y: h.y })),
-      duration,
-      started: performance.now(),
-    };
-  }
-
-  let current: ReturnType<typeof prepare> | undefined;
   let last = performance.now(), animationId = 0;
   function draw(now: number) {
-    if (current) {
-      const t = motion.matches ? 1 : frameProgress(now, current.started, current.duration);
-      for (const [i, pos] of current.positions.entries()) {
-        const h = current.headlamps[i];
-        pos.x = h.px + (h.x - h.px) * t;
-        pos.y = h.py + (h.y - h.py) * t;
-      }
-      lighting.draw({ sectors: current.sectors, pulses: current.pulses, headlamps: current.positions, t, now });
-    }
     if (context) {
       fx.update(now - last);
       context.clearRect(0, 0, RAIL_WIDTH, RAIL_HEIGHT);
@@ -93,12 +39,14 @@ export function mountEffects(lightCanvas: HTMLCanvasElement, fxCanvas: HTMLCanva
   }
   animationId = requestAnimationFrame(draw);
   return {
-    sync(obs: Observation, previous: Observation, duration: number) {
-      current = prepare(obs, previous, duration);
+    /** The pools of light to show: live beacons at full strength, ones on their way and the hover preview fainter. */
+    light(next: readonly LitPool[]) {
+      pools = next;
+      darkness.set(pools, motion.matches);
     },
     dispose() {
       cancelAnimationFrame(animationId);
-      lighting.dispose();
+      darkness.dispose();
       resize.disconnect();
       motion.removeEventListener("change", reduced);
       world.style.translate = "";

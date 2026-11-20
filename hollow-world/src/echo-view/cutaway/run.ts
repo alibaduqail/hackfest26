@@ -61,17 +61,67 @@ const berths: Record<string, Point> = {
   "SUP-1": [.648, .407],
   "SUP-2": [.737, .407],
 };
-export function podPose(pod: Pod): Point {
-  if (pod.status === "arrived") return berths[pod.id] ?? ([.4 + (pod.id.charCodeAt(pod.id.length - 1) % 4) * .07, .944] as Point); // levels 2-3 bring pods with no fixed berth
-  if (pod.at < 0) return dock[pod.id] ?? tracks.get(pod.path[0])!.a;
-  const track = tracks.get(pod.path[pod.at])!;
-  let progress = pod.progress;
+/** Track-progress (onTrack's parameter) of `p` if it lies on `track`'s line, else null. */
+function progressOn(track: Track, p: Point): number | null {
+  const dx = track.b[0] - track.a[0], dy = track.b[1] - track.a[1], len2 = dx * dx + dy * dy;
+  if (!len2) return null;
+  const u = ((p[0] - track.a[0]) * dx + (p[1] - track.a[1]) * dy) / len2;
+  if (u < -1e-6 || u > 1 + 1e-6 || Math.hypot(track.a[0] + dx * u - p[0], track.a[1] + dy * u - p[1]) > 1e-3) return null;
   if (track.shaft === "track" && track.order >= 6) {
-    // The engine tracks a point. Draw the entire pod inside its occupied junction section.
+    const inset = .034 / Math.abs(dx);
+    return Math.max(0, Math.min(1, (u - inset) / (1 - 2 * inset)));
+  }
+  return Math.max(0, Math.min(1, u));
+}
+/** The section index of `path` a point lies on (first match), or -1. */
+function sectionOf(path: string[], p: Point) {
+  return path.findIndex((id) => tracks.has(id) && progressOn(tracks.get(id)!, p) !== null);
+}
+/**
+ * Where a pod waits before it enters its first track section. A painted dock that sits on a later section of the pod's own path (a level-1
+ * dock reused by another layout) would make the pod drive back up its route to depart, so it waits at the head of the track instead.
+ */
+export function podDock(pod: Pod): Point {
+  const d = dock[pod.id], first = tracks.get(pod.path[0])!;
+  return d && sectionOf(pod.path, d) <= 0 ? d : first.a;
+}
+/** Where an arrived pod parks. Levels 2-3 bring pods with no fixed berth, so those line up along the floor. Same rule as the dock. */
+export function podBerth(pod: Pod): Point {
+  const b = berths[pod.id] ?? ([.4 + (pod.id.charCodeAt(pod.id.length - 1) % 4) * .07, .944] as Point);
+  const k = sectionOf(pod.path, b);
+  return k < 0 || k === pod.path.length - 1 ? b : tracks.get(pod.path[pod.path.length - 1])!.b;
+}
+/**
+ * Displayed progress on path[at]. The engine starts every pod at progress 0 of its first section and ends it at 1 of its last, but a dock
+ * (berth) can sit part-way along that section. Squeezing the section's progress into [dock, berth] keeps the pod moving forward: it rolls
+ * out from where it waited instead of sliding back to the section start, and stops at its berth instead of overshooting and reversing.
+ */
+export function shownProgress(pod: Pod, at: number, progress: number): number {
+  const track = tracks.get(pod.path[at])!;
+  const lo = at === 0 ? progressOn(track, podDock(pod)) ?? 0 : 0;
+  const hi = at === pod.path.length - 1 ? Math.max(lo, progressOn(track, podBerth(pod)) ?? 1) : 1;
+  return lo + (hi - lo) * progress;
+}
+/** True when the pod's berth lies on its last section, so arrival needs no connector past the end of the track. */
+export function berthOnTrack(pod: Pod) {
+  return progressOn(tracks.get(pod.path[pod.path.length - 1])!, podBerth(pod)) !== null;
+}
+/** True when the pod's dock lies on its first section, so departure needs no connector to the section start. */
+export function dockOnTrack(pod: Pod) {
+  return progressOn(tracks.get(pod.path[0])!, podDock(pod)) !== null;
+}
+/** A point on a track section. Junction sections (level 1, order >= 6) are drawn inset: the engine tracks a point, the art shows the pod inside its occupied box. */
+export function onTrack(track: Track, progress: number): Point {
+  if (track.shaft === "track" && track.order >= 6) {
     const inset = .034 / Math.abs(track.b[0] - track.a[0]);
     progress = inset + progress * (1 - 2 * inset);
   }
   return along(track, progress);
+}
+export function podPose(pod: Pod): Point {
+  if (pod.status === "arrived") return podBerth(pod);
+  if (pod.at < 0) return podDock(pod);
+  return onTrack(tracks.get(pod.path[pod.at])!, shownProgress(pod, pod.at, pod.progress));
 }
 
 export interface Frame {
