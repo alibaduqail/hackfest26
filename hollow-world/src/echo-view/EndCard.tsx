@@ -42,7 +42,7 @@ export function EndCard({ tower, echo, normal, onReplay, title = "TOWER DOWN", t
         <div className="h">Echo</div>
         {row("Nurses arrived", `${t.nursesArrived}/${t.nursesTotal}`, `${e.nursesArrived}/${e.nursesTotal}`)}
         {row("Water, food, medicine delivered", `${t.suppliesDelivered}/${t.suppliesTotal}`, `${e.suppliesDelivered}/${e.suppliesTotal}`)}
-        {row("Flights moving vs claimed", `${t.realFlights} of ${t.towerClaimed}`, `${e.realFlights}`, true)}
+        {row("Pods moving vs claimed", `${t.realFlights} of ${t.towerClaimed}`, `${e.realFlights}`, true)}
         {row("Passenger delay", ratio(t.passengerDelayMin), ratio(e.passengerDelayMin), true)}
         {row("Network capacity vs normal day", `${t.capacityPct}%`, `${e.capacityPct}%`, true)}
       </div>

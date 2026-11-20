@@ -192,7 +192,7 @@ export function describe(frame: Frame, beat: number): [string, string] {
       return [
         "One pod per track section",
         obs.log.some((e) => e.kind === "yield")
-          ? "PAX-1 yields to MED-1 and waits at the junction boundary. Supply has priority over passengers."
+          ? "Passengers let Mara through and wait at the junction. Medical goes first."
           : "Medical, supply and passenger pods approach the same junction.",
       ];
     case 4:
@@ -211,15 +211,15 @@ export function describe(frame: Frame, beat: number): [string, string] {
       return [
         arrived.has(med.id) ? "Mara reaches the clinic" : "The nurse approaches",
         arrived.has(med.id)
-          ? "The bed lamp is on. The clinic still needs the medicine traveling separately on SUP-3."
+          ? "The bed lamp is on. The clinic still needs the medicine traveling separately."
           : "The clinic attendant is waiting at the end of the line.",
       ];
     default:
       return [
         arrived.has(supply.id) ? "Medicine reaches the deep clinic" : "Medicine approaches the clinic",
         arrived.has(supply.id)
-          ? "Mara is on duty. SUP-3 has arrived, and the clinic shelf now holds medicine."
-          : "SUP-3 is closing the last track section. The medicine shelf is still empty.",
+          ? "Mara is on duty. The medicine pod has arrived, and the clinic shelf now holds medicine."
+          : "The medicine pod is closing the last track section. The medicine shelf is still empty.",
       ];
   }
 }

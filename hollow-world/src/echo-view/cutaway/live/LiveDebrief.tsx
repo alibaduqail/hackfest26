@@ -2,10 +2,11 @@
 // three baseline runs and the explanation come from src/echo (runBaseline, explainRun). Mounted by LiveScreen (see WIRING-INTRO-DEBRIEF.md).
 import { useMemo } from "react";
 import type { RunOutcome } from "../../../echo/baseline";
+import { STANDBY_AFTER } from "../../../echo/tower";
 import { explainRun } from "../../../echo/explain";
 import type { Command, Mission } from "../../../echo/types";
 import { analyzeRun, darkSections } from "./cause";
-import { placeName, plainText } from "./names";
+import { placeName, plainLog } from "./names";
 
 export interface LiveDebriefProps {
   mission: Mission;
@@ -34,11 +35,11 @@ function nextStep(stars: number, mission: Mission, commands: Command[], o: RunOu
 
 export function LiveDebrief({ mission, commands, stars, onRetry, onNext, onWatchSolution, onContinue, retryLabel = "Retry", nextLabel = "Next level", endReason, note, replay = false }: LiveDebriefProps) {
   const { base, verdict } = useMemo(() => analyzeRun(mission, commands, stars), [mission, commands, stars]);
-  const lines = useMemo(() => explainRun(base.you.log, mission).map((l) => plainText(l).replace(/^./, (c) => c.toUpperCase())), [base, mission]);
+  const lines = useMemo(() => explainRun(base.you.log, mission).map((l) => plainLog(l).replace(/^./, (c) => c.toUpperCase())), [base, mission]);
   const why = lines.filter((l) => !isMargin(l));
   const margin = lines.find(isMargin);
   const hint = nextStep(stars, mission, commands, base.you);
-  const cols: [string, RunOutcome, string][] = [["Tower", base.tower, "tower"], ["No beacons", base.none, "none"], ["You", base.you, "you"]];
+  const cols: [string, RunOutcome, string][] = [["Tower", base.tower, "tower"], ["Tower +\u00a0backup", base.standby, "standby"], ["No beacons", base.none, "none"], ["You", base.you, "you"]];
   return (
     <section className="live-debrief live-debrief2" aria-label="Run result">
       <div className="eyebrow">RUN COMPLETE</div>
@@ -51,7 +52,7 @@ export function LiveDebrief({ mission, commands, stars, onRetry, onNext, onWatch
       {margin && !replay && <p className="live-margin">{margin}</p>}
       <h3>What happened</h3>
       <ol className="live-why">{why.map((l) => <li key={l}>{l}</li>)}</ol>
-      <h3>The same run, three ways</h3>
+      <h3>The same run, four ways</h3>
       <table className="live-compare">
         <thead><tr><th scope="col" />{cols.map(([n, , k]) => <th key={k} scope="col" className={k === "you" ? "you" : ""}>{n}</th>)}</tr></thead>
         <tbody>
@@ -64,6 +65,7 @@ export function LiveDebrief({ mission, commands, stars, onRetry, onNext, onWatch
         </tbody>
       </table>
       <p className="live-tower-says">{base.towerSays}</p>
+      <p className="live-tower-says live-backup">tower + backup · back at min {mission.towerDownAt + STANDBY_AFTER} · no flood news reaches it</p>
       {hint && !replay && <p className="live-next"><strong>Next star:</strong> {hint}</p>}
       {stars >= 3 && !replay && <p className="live-next"><strong>Best possible run.</strong></p>}
       {note && <p className="live-next">{note}</p>}

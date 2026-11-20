@@ -11,9 +11,9 @@
 .descent-live .live-debrief2 h3 { margin-top: 8px; }
 .descent-live .live-margin { color: var(--head); font-weight: 600; }
 .descent-live .live-why { padding-left: 1.2em; display: grid; gap: 6px; color: var(--text2); font-size: 13px; line-height: 1.45; }
-.descent-live .live-compare { width: 100%; border-collapse: collapse; font-size: 13px; }
-.descent-live .live-compare th, .descent-live .live-compare td { padding: 6px 6px; border-top: 1px solid var(--line); text-align: left; font-weight: 500; color: var(--text2); }
-.descent-live .live-compare thead th { color: var(--text2); font: 650 11px var(--mono); text-transform: uppercase; border-top: 0; }
+.descent-live .live-compare { width: 100%; border-collapse: collapse; font-size: 12px; }
+.descent-live .live-compare th, .descent-live .live-compare td { padding: 6px 3px; border-top: 1px solid var(--line); text-align: left; font-weight: 500; color: var(--text2); }
+.descent-live .live-compare thead th { color: var(--text2); font: 650 10px var(--mono); letter-spacing: -.02em; text-transform: uppercase; border-top: 0; }
 .descent-live .live-compare .you { color: var(--head); background: #d2a76a1a; font-weight: 650; }
 .descent-live .live-compare td.never { color: var(--redText); }
 .descent-live .live-compare td.you.never { color: var(--redText); }

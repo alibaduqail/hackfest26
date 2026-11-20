@@ -11,10 +11,11 @@ import type { LogEntry } from "./props";
 export interface GhostPath { id: string; label: string; reached: number; minute: number | null; stuckAt: number | null; you?: boolean }
 export interface GhostData { paths: GhostPath[]; claimed: number; actual: number }
 
-/** The counterfactuals. A 4th entry (e.g. { id: "standby", label: "tower + backup", mode: "tower-standby" }) is all it takes to add a path. */
+/** The counterfactuals. Adding an entry adds a column. */
 export const GHOST_MODES: { id: string; label: string; mode: Mode }[] = [
   { id: "tower", label: "tower only", mode: "tower" },
   { id: "none", label: "no beacons", mode: "echo" },
+  { id: "standby", label: "tower + backup", mode: "standby" },
 ];
 
 export function ghostData(seed: number, log: LogEntry[]): GhostData {
@@ -37,9 +38,9 @@ export function ghostData(seed: number, log: LogEntry[]): GhostData {
   return { paths: [...paths, you], claimed, actual };
 }
 
-/** The column header: the label split over two short mono lines at its last space ("no beacons" -> no / beacons) so four columns fit side by side. */
+/** The column header: the label split over two short mono lines at its first space ("no beacons" -> no / beacons, "tower + backup" -> tower / + backup) so four columns fit side by side. */
 export function ghostHead(g: GhostPath): string[] {
-  const i = g.label.lastIndexOf(" ");
+  const i = g.label.indexOf(" ");
   return i < 0 ? [g.label] : [g.label.slice(0, i), g.label.slice(i + 1)];
 }
 

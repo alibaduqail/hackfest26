@@ -1,6 +1,7 @@
 // Echo side panels. Props in, JSX out: reads only Observation (no engine, timers or fetch).
 import { useEffect, useRef, useState } from "react";
 import { RelayBar } from "./relay/Relay";
+import { plainLog } from "./cutaway/live/names";
 import type { LogEvent, Observation } from "../echo/types";
 
 const mm = (t: number) => `t+${String(t).padStart(2, "0")}`;
@@ -9,9 +10,9 @@ export function TowerBanner({ obs }: { obs: Observation }) {
   const s = obs.score;
   return (
     <section className={`echo-card echo-tower ${obs.towerUp ? "echo-tower-up" : "echo-tower-down"}`}>
-      <h3 className="echo-title"><i className="echo-dot" />Directorate tower is {obs.towerUp ? "online" : "offline"}</h3>
+      <h3 className="echo-title"><i className="echo-dot" />Directorate tower is {obs.towerUp ? "on" : "off"}</h3>
       {obs.towerUp ? (
-        <div className="echo-tower-online">clearing every flight</div>
+        <div className="echo-tower-online">clears every pod</div>
       ) : (
         <div className="echo-tower-lie">
           <div className="echo-claimed">{s.towerClaimed} pod runs authorized</div>
@@ -29,7 +30,7 @@ export function EchoBanner({ obs }: { obs: Observation }) {
     <section className="echo-card echo-echo">
       <h3 className="echo-title"><i className="echo-dot" />Echo network is {obs.towerUp ? "idle" : "carrying the load"}</h3>
       <div className="echo-tower-lie">
-        <div className="echo-real echo-good">{obs.score.realFlights} flights moving</div>
+        <div className="echo-real echo-good">{obs.score.realFlights} pods moving</div>
         <div className="echo-sub">{beacons} beacons relaying, no tower needed</div>
       </div>
     </section>
@@ -57,12 +58,12 @@ export function EchoLog({ obs, log }: { obs: Observation; log?: LogEvent[] }) {
           { key: "all", label: "All events", onSelect: () => setAll(true) },
         ]} />
       </h3>
-      {events.length === 0 && <p className="echo-empty">Nothing yet. Press Run and key moments appear here: tower loss, seals, yields, reroutes.</p>}
+      {events.length === 0 && <p className="echo-empty">Nothing yet. Press Run and key moments appear here: tower loss, floods, who goes first, new routes.</p>}
       <ul className="echo-log" ref={ref}>
         {events.map((e, i) => (
           <li key={`${e.tick}-${i}`} className={`echo-line log-${e.kind}`}>
             <span className="echo-time">{mm(e.tick)}</span>
-            <span>{e.text}</span>
+            <span>{plainLog(e.text)}</span>
           </li>
         ))}
       </ul>

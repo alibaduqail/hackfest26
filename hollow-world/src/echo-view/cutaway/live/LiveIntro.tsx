@@ -2,6 +2,9 @@
 import { DESCENT_LIVE_GOALS } from "../../../echo/descent";
 import type { Mission } from "../../../echo/types";
 import { LEVEL_HINTS } from "./hints";
+import { MaraBubble } from "../../characters/Bubble";
+import { legLine } from "../../characters/bubbles";
+import { podName } from "./names";
 
 export interface LiveIntroProps {
   mission: Mission;
@@ -13,13 +16,14 @@ export interface LiveIntroProps {
 export function LiveIntro({ mission, hint = LEVEL_HINTS[1], goal: goalText, onStart }: LiveIntroProps) {
   const mara = mission.pods.find((p) => p.nurse);
   const city = (id: string) => mission.world.cities.find((c) => c.id === id)?.name ?? id;
-  const name = (mara?.label.split("· ")[1] ?? "The nurse").replace(/^Nurse /, "");
+  const name = mara ? podName(mara) : "the nurse";
   const goal = { text: goalText ?? DESCENT_LIVE_GOALS[0].text };
   return (
     <div className="live-intro-backdrop">
+      <MaraBubble text={legLine(mission)} />
       <section className="live-intro" role="dialog" aria-modal="true" aria-labelledby="live-intro-title">
         <div className="eyebrow">YOU ARE THE RELAY</div>
-        <h2 id="live-intro-title">Get Nurse {name} to the clinic</h2>
+        <h2 id="live-intro-title">Get {name} to the clinic</h2>
         <p>
           {mara ? `${name} leaves ${city(mara.origin)} for ${city(mara.dest)}. ` : ""}
           The tower goes dark at minute {mission.towerDownAt}. {mission.floodReveal ? (mission.floodReveal.lead === 0 ? "The Directorate will flood a shaft, and nothing warns you before it seals." : "The Directorate will flood a shaft; you see which one only moments before it seals.") : mission.sealAt !== null && `The Directorate floods a shaft at minute ${mission.sealAt}.`}

@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { ghostHead, ghostOutcome, type GhostPath } from "./ghosts";
-import { LEG_NAMES, LEG_IDS, starsFromLog, trailModel, trailRows } from "./helpers";
+import { LEG_NAMES, LEG_IDS, starsFromLog, stoppedAt, trailModel, trailRows } from "./helpers";
 import { TentIcon } from "./icons";
 import type { TrailMapProps } from "./props";
 
@@ -144,8 +144,7 @@ export function TrailRecord({ log, choiceNames, ghosts }: TrailRecordProps) {
   const wrap = useRef<HTMLDivElement>(null);
   const won = starsFromLog(log).findIndex((s) => s === null);
   const reached = won === -1 ? LEG_IDS.length : won;
-  const { nodes, hereLevel } = trailModel(reached, log);
-  const stopped = nodes.find((n) => n.level === hereLevel)?.name ?? "Surface ramp";
+  const stopped = stoppedAt(log) ?? "the Deep clinic";
   const items = log.map((l, i) => ({ l, r: rows[i] })).filter(({ l }) => !(l.kind === "choice" && l.choiceId === "retry"));
   const full = reached === LEG_IDS.length;
   return (

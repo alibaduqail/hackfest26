@@ -49,6 +49,15 @@ export function starsFromLog(log: LogEntry[]): (Stars | null)[] {
   });
 }
 
+/** The level where Mara's run ended in each leg, for the ending's "stopped at": Descent I stalls at the Relay level, II at the Flooded shaft, III at the Junction. */
+const STOP_LEVEL = [2, 4, 3];
+
+/** Where Mara really stopped: in the first leg that was never won (reached = legs won, in order), not at the last level of the last leg she did finish. Null when every leg was won. */
+export function stoppedAt(log: LogEntry[]): string | null {
+  const first = starsFromLog(log).findIndex((s) => s === null);
+  return first === -1 ? null : LEVEL_NAMES[STOP_LEVEL[first] - 1];
+}
+
 export type LevelState = "done" | "current" | "ahead";
 export interface TrailNode { level: number; name: string; state: LevelState; leg: number; legEnd: boolean; here: boolean }
 export interface TrailModel { nodes: TrailNode[]; stars: (Stars | null)[]; hereLevel: number /* 0 = still at the surface ramp */ }

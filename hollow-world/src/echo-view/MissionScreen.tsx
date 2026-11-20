@@ -5,7 +5,7 @@ import { createEngine } from "../echo/engine";
 import { towerDown } from "../echo/missions";
 import type { EchoEngineApi, LogEvent, LogKind, Mission, Observation } from "../echo/types";
 import { drawMap, makeProjection, PULSE_MS, shakeOffset, type Fx, type Variant } from "./map";
-import { play, type Sound } from "./game/audio";
+import { ambience, play, type Sound } from "./game/audio";
 
 const STRATA_URL = "/strata.html"; // the Strata city sim, home of Sector 07
 import { EchoBanner, EchoLog, Scoreboard, TowerBanner } from "./panels";
@@ -78,7 +78,7 @@ const HINTS: Record<string, string> = {
   start: "Run the clock. Watch the tower on the left.",
   down: "The tower is dark. On the right, Echo takes over.",
   seal: "The Directorate sealed the tunnel. Watch Mara re-plan.",
-  "yield-med": "A passenger yields. Medicine goes first.",
+  "yield-med": "A passenger pod steps aside. Medicine goes first.",
 };
 const HINT_MS = 5000, HINT_MIN_MS = 2500;
 const hintsSeen = new Set<string>();
@@ -286,6 +286,7 @@ export function MissionScreen({ mission: missionProp, allowDispatch = true, spee
   const endRef = useRef(onEnd);
   endRef.current = onEnd;
   const ended = useRef(false);
+  useEffect(() => { ambience(running && !echo.over); return () => ambience(false); }, [running, echo.over]); // quiet cave bed while a run goes
   useEffect(() => {
     if (!echo.over || ended.current) return;
     ended.current = true; // a Replay builds a new world but onEnd still fires once per mount
@@ -303,13 +304,13 @@ export function MissionScreen({ mission: missionProp, allowDispatch = true, spee
     <div className="echo-screen">
       <style>{css}</style>
       <div className="echo-main">
-        <MapPane obsRef={towerRef} fxRef={fxRef} variant="tower" kicker="Centralized" title="Tower" sub="One tower clears every flight. Lose it and the network is blind." down={!tower.towerUp}>
+        <MapPane obsRef={towerRef} fxRef={fxRef} variant="tower" kicker="Centralized" title="Tower" sub="One tower clears every pod. Lose it and nothing can hear." down={!tower.towerUp}>
           <div className="echo-overlay">
             {story && (() => { const [beat, line] = tickerLine(story, tower, world.current.mission); return <div className="echo-ticker" key={beat} role="status"><b>BROADCAST</b>{line}</div>; })()}
             <TowerBanner obs={tower} />
           </div>
         </MapPane>
-        <MapPane obsRef={echoRef} fxRef={fxRef} variant="echo" kicker="Decentralized" title="Echo" sub="Every pod navigates. Beacons relay seals and yields. No tower." down={!tower.towerUp}>
+        <MapPane obsRef={echoRef} fxRef={fxRef} variant="echo" kicker="Decentralized" title="Echo" sub="Every pod navigates. Beacons pass on floods and who goes first. No tower." down={!tower.towerUp}>
           <div className="echo-overlay"><EchoBanner obs={echo} /></div>
           {hint && <button className="echo-hint" key={hint.id} onClick={nextHint}>{hint.text}<small>click to dismiss</small></button>}
         </MapPane>
@@ -334,7 +335,7 @@ export function MissionScreen({ mission: missionProp, allowDispatch = true, spee
         {onExit && <RelayBar size="sm" label="Leave" items={[{ key: "abort", label: "Abort mission", tone: "danger", hold: true, onSelect: onExit }]} />}
       </div>
       {story && fxRef.current.flashAt > 0 && performance.now() - fxRef.current.flashAt < FLASH_MS && (
-        <div className="echo-flash" key={fxRef.current.flashAt} aria-hidden><b>TOWER OFFLINE</b><span>the Directorate's tower has gone dark</span></div>
+        <div className="echo-flash" key={fxRef.current.flashAt} aria-hidden><b>Tower: off</b><span>the Directorate's tower has gone dark</span></div>
       )}
       {echo.over && !onEnd && <EndCard tower={tower} echo={echo} normal={world.current.normal} onReplay={reset} />}
     </div>
