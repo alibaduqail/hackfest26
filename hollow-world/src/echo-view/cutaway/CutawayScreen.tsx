@@ -1,5 +1,6 @@
 import { type MouseEventHandler, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { DESCENT_LAYOUT } from "../../echo/descent";
+import { themeLabel } from "../../echo/theme-labels";
 import {
   beatAt,
   beatLevels,
@@ -264,7 +265,7 @@ export function CutawayScreen({ onExit }: { onExit?: MouseEventHandler<HTMLAncho
               const place = p.status === "arrived" || p.at < 0
                 ? obs.cities.find((c) => c.id === city)!.name
                 : displayLocations(p.path[p.at]);
-              return p.label + ", " + p.status + " at " + place;
+              return themeLabel(p) + ", " + p.status + " at " + place;
             }).join(". ")}
           </p>
         </aside>

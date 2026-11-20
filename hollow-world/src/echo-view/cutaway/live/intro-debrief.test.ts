@@ -30,8 +30,8 @@ test("debrief, no beacons: 0 stars, readable cause, tower / none / you all never
   assert.match(html, /0 of 3 stars/);
   assert.match(html, /No warning reached Mara Vale/);
   assert.match(html, /had no beacon/);
-  assert.match(html, /Tower<\/th><th[^>]*>No beacons<\/th><th[^>]*>You/);
-  assert.equal((html.match(/<td class="[^"]*never"/g) ?? []).length, 6); // 3 columns x (Mara, medicine)
+  assert.match(html, /Tower<\/th><th[^>]*>Tower \+\u00a0backup<\/th><th[^>]*>No beacons<\/th><th[^>]*>You/);
+  assert.equal((html.match(/<td class="[^"]*never"/g) ?? []).length, 8); // 4 columns x (Mara, medicine)
   assert.match(html, /Tower says: \d+ pod runs authorized; actual: \d+ ran\. Mara never arrives\./);
   assert.match(html, /Next star:<\/strong> Light the middle main shaft, the upper relay track/);
   assert.doesNotMatch(html, /main[01]\b/); // sector ids are shown by name
