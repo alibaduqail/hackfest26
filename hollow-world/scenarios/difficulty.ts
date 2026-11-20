@@ -136,12 +136,12 @@ export function latestReaction() {
 if (process.argv[1]?.endsWith("difficulty.ts")) {
   const rows = measure();
   const pct = (x: number) => `${Math.round(100 * x)}%`.padStart(4);
-  console.log(`Per leg, win = at least 1 star, over every flood candidate of the level (reveal lead ${DEFAULT_REVEAL_LEAD}, build delay 2 ticks). 3* = the top tier.`);
+  console.log(`Per leg, win = at least 1 star, over every flood candidate of the level (telegraph lead per level: ${DESCENT_LEVELS.map((l) => `${l.build().floodReveal?.lead ?? DEFAULT_REVEAL_LEAD}`).join(" / ")} ticks, build delay 2 ticks). 3* = the top tier.`);
   for (const lv of DESCENT_LEVELS) {
     console.log(`\n${lv.id}  (${lv.candidates.length} flood candidates; budget ${lv.build().beaconBudget})`);
     for (const r of rows.filter((x) => x.level === lv.id)) console.log(`  win ${pct(r.p)}  3* ${pct(r.three)}  per-flood [${r.candidates.map((c) => pct(c.win / c.n)).join(" ")}]  ${r.model}`);
   }
-  console.log(`\nHow long the player has (ticks after the telegraph the full warning chain can still be placed and the leg is still won; the telegraph itself shows ${DEFAULT_REVEAL_LEAD} ticks before the seal):`);
+  console.log(`\nHow long the player has (ticks after the telegraph the full warning chain can still be placed and the leg is still won; the telegraph itself shows ${DESCENT_LEVELS.map((l) => l.build().floodReveal?.lead ?? DEFAULT_REVEAL_LEAD).join(" / ")} ticks before the seal on levels I / II / III):`);
   for (const lv of latestReaction()) console.log("  " + lv.map((x) => `${x.level}/${x.flood}: ${x.latest} ticks (= ${(x.latest * 0.6).toFixed(1)} s at 1x, ${(x.latest * 0.3).toFixed(1)} s at 2x)`).join("   "));
   const byModel = (name: string) => DESCENT_LEVELS.map((l) => rows.find((x) => x.level === l.id && x.model === name)!.p);
   console.log("\nJourney Monte Carlo (5000 players, 15+4 beacons after outfitting, start clock 30, limit 390): P(Saved) / P(finishes all 3 legs) / mean clock");

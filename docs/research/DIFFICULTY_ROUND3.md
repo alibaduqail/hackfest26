@@ -2,7 +2,7 @@
 
 _Nov 20, 2026 · `@m_claude` · data from `hollow-world/scenarios/difficulty.ts` (`npx tsx scenarios/difficulty.ts`, seeded, repeatable) · answers judge finding 11 (the death spiral) and "neither gameplay judge won a Begin leg"._
 
-Method: each player model is a function that turns a level into `placeBeacon` commands. The real engine (seeded floods, 8-tick telegraph, 2-tick build delay, early end) plays it out and the level's own star table scores it. **Win = at least 1 star**, which is what the journey counts as a won leg. Results are per flood candidate (each level has 3), then averaged. The models are not humans: they place perfectly on time, so real players will do worse than "GOOD" and a little different from "click anywhere".
+Method: each player model is a function that turns a level into `placeBeacon` commands. The real engine as on `main` after #138/#139 (seeded floods, a 20-tick telegraph on level I and 8 ticks on II and III, 2-tick build delay, early end) plays it out and the level's own star table scores it. **Win = at least 1 star**, which is what the journey counts as a won leg. Results are per flood candidate (each level has 3), then averaged. The models are not humans: they place perfectly on time, so real players will do worse than "GOOD" and a little different from "click anywhere".
 
 ## What the numbers say
 
@@ -20,11 +20,11 @@ The random and route-only wins on I and III come from one flood each (`main0`, t
 
 | Level | flood | ticks | at 1x | at 2x |
 |---|---|---|---|---|
-| I | main1 / main2 / main0 | 19 / 23 / (free) | 11.4 s / 13.8 s | 5.7 s / 6.9 s |
+| I | main1 / main2 / main0 | 31 / 35 / (free) | 18.6 s / 21.0 s | 9.3 s / 10.5 s |
 | II | A1B1 / A2B1 / A1B2 | 9 / 11 / 12 | 5.4 s / 6.6 s / 7.2 s | **2.7 s** / 3.3 s / 3.6 s |
 | III | main1 / main2 / main0 | 10 / **7** / (free) | 6.0 s / **4.2 s** | 3.0 s / **2.1 s** |
 
-Level I is relaxed. Levels II and III leave 2 to 4 seconds at 2x, which is under a first-timer's find-the-sector-and-click time. The screen's auto slow-mo (0.35x inside the telegraph window) stretches this about 2.9x while it is active; it only covers the 10 ticks before the seal, so most of the slack after the seal is real time.
+Level I is relaxed (the 20-tick telegraph added in #138 helps: before it, level I had 19 and 23 ticks). Levels II and III leave 2 to 4 seconds at 2x, which is under a first-timer's find-the-sector-and-click time. The screen's auto slow-mo (0.35x inside the telegraph window) stretches this about 2.9x while it is active; it only covers the 10 ticks before the seal, so most of the slack after the seal is real time.
 
 **3. Retries: a free first retry helps the late-but-informed player; it does nothing for the uninformed one.** Journey Monte Carlo, 5000 players, 15 beacons + 4 from outfitting, clock 30 → limit 390:
 
@@ -51,7 +51,7 @@ Models, not people: no mis-clicks, no hesitation, perfect timing. The conclusion
 ## Raw output
 
 ```
-Per leg, win = at least 1 star, over every flood candidate of the level (reveal lead 8, build delay 2 ticks). 3* = the top tier.
+Per leg, win = at least 1 star, over every flood candidate of the level (telegraph lead per level: 20 / 8 / 8 ticks, build delay 2 ticks). 3* = the top tier.
 
 descent-live  (3 flood candidates; budget 5)
   win   0%  3*   0%  per-flood [  0%   0%   0%]  no beacons
@@ -92,8 +92,8 @@ descent-live-3  (3 flood candidates; budget 6)
   win 100%  3*   0%  per-flood [100% 100% 100%]  GOOD: route first, then the full warning chain 6 ticks after the telegraph
   win  67%  3*   0%  per-flood [100%   0% 100%]  GOOD: route first, then the full warning chain 9 ticks after the telegraph
 
-How long the player has (ticks after the telegraph the full warning chain can still be placed and the leg is still won; the telegraph itself shows 8 ticks before the seal):
-  descent-live/main1: 19 ticks (= 11.4 s at 1x, 5.7 s at 2x)   descent-live/main2: 23 ticks (= 13.8 s at 1x, 6.9 s at 2x)   descent-live/main0: 40 ticks (= 24.0 s at 1x, 12.0 s at 2x)
+How long the player has (ticks after the telegraph the full warning chain can still be placed and the leg is still won; the telegraph itself shows 20 / 8 / 8 ticks before the seal on levels I / II / III):
+  descent-live/main1: 31 ticks (= 18.6 s at 1x, 9.3 s at 2x)   descent-live/main2: 35 ticks (= 21.0 s at 1x, 10.5 s at 2x)   descent-live/main0: 40 ticks (= 24.0 s at 1x, 12.0 s at 2x)
   descent-live-2/A1B1: 9 ticks (= 5.4 s at 1x, 2.7 s at 2x)   descent-live-2/A2B1: 11 ticks (= 6.6 s at 1x, 3.3 s at 2x)   descent-live-2/A1B2: 12 ticks (= 7.2 s at 1x, 3.6 s at 2x)
   descent-live-3/main1: 10 ticks (= 6.0 s at 1x, 3.0 s at 2x)   descent-live-3/main2: 7 ticks (= 4.2 s at 1x, 2.1 s at 2x)   descent-live-3/main0: 40 ticks (= 24.0 s at 1x, 12.0 s at 2x)
 
