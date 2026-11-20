@@ -515,7 +515,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
             )}
             {hintText && !over && <p className="live-hint-caption" role="status">{hintText}</p>}
             {/* characters: Director + Mara dialogue (src/echo-view/characters) */}
-            <Dialogue obs={obs} previous={previous} ended={over} stars={stars} />
+            <Dialogue obs={obs} previous={previous} ended={over} stars={stars} coach={mission.id === "descent-live"} />
           </div>
         </div>
         <aside aria-label="Relay controls and goals">

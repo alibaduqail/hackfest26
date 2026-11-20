@@ -15,7 +15,7 @@ export const campLine = (eventId: string): string => (eventId.startsWith("retry"
 /** Mara's line when a leg's intro opens: says what is different about this leg. */
 export function legLine(m: Mission): string {
   const beacons = m.beaconBudget ?? 0, n = `${beacons} beacon${beacons === 1 ? "" : "s"}`;
-  if (m.pods.some((p) => p.ghost)) return `Fake medical pods ahead. Only ${n}: light the junction first.`;
+  if (m.id === "descent-live-3") return `Fake medical pods ahead. Only ${n}: light the junction first.`;
   if ((m.seals?.length ?? 0) > 0) return `Two floods. I have ${n}: keep one for the second.`;
-  return `Tower's dark. ${n[0].toUpperCase()}${n.slice(1)}, and one flood coming.`;
+  return "Tower's dark. When the flood shows, beacon it and the shaft above.";
 }

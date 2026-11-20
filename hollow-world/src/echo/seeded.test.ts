@@ -127,7 +127,7 @@ for (const [li, name, cands, solutions] of [
     cands.forEach((mine, i) => cands.forEach((_, j) => i !== j && assert.ok(run(j, mine.solution.map((x) => place((x as { sectorId: string }).sectorId, 0))) <= 1, `${mine.id} on ${cands[j].id}`)));
   });
 
-  test(`${name}: revealLead 0 hides every telegraph for every candidate; the default shows each flood ${DEFAULT_REVEAL_LEAD} ticks ahead`, () => {
+  test(`${name}: revealLead 0 hides every telegraph for every candidate; the default shows each flood the level's lead ahead`, () => {
     cands.forEach((c, ci) => {
       const seals = [{ sectorId: c.sectorId, at: c.at }, ...(c.seals ?? [])];
       const hidden = lv.build({ attempt: attemptOf(ci), revealLead: 0 });
@@ -143,10 +143,11 @@ for (const [li, name, cands, solutions] of [
       for (const s of seals) {
         const e = createEngine(shown, "echo");
         for (const t of c.solution) e.act(t);
-        e.step(s.at - DEFAULT_REVEAL_LEAD - 1);
+        const lead = shown.floodReveal!.lead;
+        e.step(s.at - lead - 1);
         assert.ok(!e.observe().floodWarnings!.some((w) => w.sectorId === s.sectorId), `${c.id}: ${s.sectorId} hidden before its window`);
         e.step();
-        assert.ok(e.observe().floodWarnings!.some((w) => w.sectorId === s.sectorId && w.at === s.at), `${c.id}: ${s.sectorId} named at t${s.at - DEFAULT_REVEAL_LEAD}`);
+        assert.ok(e.observe().floodWarnings!.some((w) => w.sectorId === s.sectorId && w.at === s.at), `${c.id}: ${s.sectorId} named at t${s.at - lead}`);
       }
     });
   });

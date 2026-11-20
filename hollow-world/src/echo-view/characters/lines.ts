@@ -5,7 +5,7 @@ import { placeName } from "../cutaway/live/names";
 
 export type Speaker = "director" | "mara";
 export interface Line { id: string; who: Speaker; text: string }
-export interface LineCtx { ended: boolean; stars: number }
+export interface LineCtx { ended: boolean; stars: number; coach?: boolean } // coach: leg 1, where Mara may say where to bolt
 
 /** All the wording lives here. {section} and {n} are filled from the observation. */
 export const LINES = {
@@ -13,6 +13,7 @@ export const LINES = {
   beacon: { who: "mara", text: "Beacon's live. I can hear the next section." },
   blind: { who: "director", text: "Hear that? Silence. Your pods are blind without my tower." },
   flood: { who: "director", text: "{section} floods in {n}. I didn't warn anyone. Did you?" },
+  floodMara: { who: "mara", text: "Bolt a beacon on {place} and the shaft above. The news hops to me." },
   reroute: { who: "mara", text: "Got the flood warning through the beacons. Taking the bypass!" },
   rerouteDirector: { who: "director", text: "…How did she hear that?" },
   forged: { who: "mara", text: "No credential, no priority. Medical goes first." },
@@ -45,6 +46,8 @@ export function newLines(prev: Observation, obs: Observation, fired: ReadonlySet
   const shown = (o: Observation) => o.floodWarnings?.find((w) => w.sectorId !== undefined);
   const telegraph = shown(obs);
   add("flood", !!telegraph && !shown(prev), telegraph && { section: section(telegraph.sectorId!), n: `${Math.max(0, telegraph.at! - obs.tick)} min` });
+  // Only on leg 1's main1 flood: "the shaft above" is the whole answer there, and wrong advice for other floods and legs.
+  add("floodMara", !!ctx.coach && telegraph?.sectorId === "main1" && !shown(prev), telegraph && { place: placeName(telegraph.sectorId!) });
   const rerouted = has((e) => e.kind === "reroute" && e.podId === MARA);
   add("reroute", rerouted);
   add("rerouteDirector", rerouted);
