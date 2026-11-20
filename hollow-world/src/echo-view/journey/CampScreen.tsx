@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { LIMIT } from "../../echo/journey";
 import { RelayButton } from "../relay/Relay";
-import { applyEffect, formatEffect, LEG_IDS, LEG_NAMES, retryCosts, trailModel } from "./helpers";
+import { applyEffect, consequenceOf, formatEffect, LEG_IDS, LEG_NAMES, retryCosts, trailModel } from "./helpers";
 import { useEnterKey } from "./keys";
 import type { CampScreenProps } from "./props";
 import { SupplyLine } from "./ResourceBar";
@@ -22,6 +22,30 @@ function forkGeo(w: number, h: number, n: number, hereLevel: number): Geo {
   // The dots are opaque, so a line ending at a dot's centre is hidden inside it at every scale (hover grows the ring, never the path).
   const route = xs.map((x) => `M${sx} ${maraY} C${sx} ${maraY + k} ${x} ${choiceY - k} ${x} ${choiceY} L${x} ${mergeY} C${x} ${mergeY + k2} ${sx} ${contY - k2} ${sx} ${contY}`);
   return { sx, maraY, choiceY, mergeY, contY, xs, widths: xs.map((x) => Math.max(120, Math.min(gap - 24, w - x - 24))), route };
+}
+
+/** What the pick did, drawn on its branch instead of told: a bad choice sends a short dotted red spur off the branch that dead-ends in a cross (a flood nobody announced);
+ * a good one lights three beacon dots along the branch, the news hopping. Left branches spur outward left, the rest right, so it never crosses a neighbour. */
+function Consequence({ g, i, c }: { g: Geo; i: number; c: ReturnType<typeof consequenceOf> }) {
+  if (!c) return null;
+  const x = g.xs[i], d = x < g.sx - 1 ? -1 : 1, y = g.choiceY + 60;
+  const tag = (tx: number, ty: number) => <text x={tx} y={ty} textAnchor={d < 0 ? "end" : "start"} style={{ "--d": "620ms" } as React.CSSProperties}>{c.tag}</text>;
+  if (c.tone === "good") {
+    return (
+      <g className="j-csq good" role="img" aria-label={c.tag}>
+        {[0, 1, 2].map((k) => <circle key={k} cx={x} cy={y + 2 + k * 17} r={4.5} style={{ "--d": `${120 + k * 140}ms` } as React.CSSProperties} />)}
+        {tag(x + d * 18, y + 40)}
+      </g>
+    );
+  }
+  const ex = x + d * 58, ey = y + 22, n = 6;
+  return (
+    <g className="j-csq bad" role="img" aria-label={c.tag}>
+      {Array.from({ length: n }, (_, k) => <circle key={k} cx={x + (ex - x) * (k / n)} cy={y + (ey - y) * (k / n)} r={1.8} style={{ "--d": `${k * 70}ms` } as React.CSSProperties} />)}
+      <path d={`M${ex - 5} ${ey - 5}l10 10m0 -10l-10 10`} style={{ "--d": "460ms" } as React.CSSProperties} />
+      {tag(ex + d * 14, ey + 4)}
+    </g>
+  );
 }
 
 /** Camp: the situation on the left; on the right the trail line forks at Mara into the choices and rejoins at Continue down. Pick (click, 1-3, arrows), Continue (Enter). */
@@ -102,6 +126,7 @@ export function CampScreen({ event, res, limit = LIMIT, legIndex, attempt, log, 
               </g>
             );
           })}
+          {choice && pickIdx >= 0 && <Consequence key={choice.id} g={g} i={pickIdx} c={consequenceOf(choice)} />}
         </svg>
         <span className="j-mara" style={{ left: g.sx, top: g.maraY }} aria-hidden />
 

@@ -198,3 +198,13 @@ test("Continue anyway: a 0-star leg where Mara arrived moves on at her arrival t
   assert.equal(lost.res.doses, s0.res.doses - 1);
   assert.equal(ending(arrived).lines[0], "Descent I: ☆☆☆ · Mara at minute 88 · 0 retries");
 });
+
+test("replay guard: a 'Watch the solution' result never scores, spends beacons or moves the clock", () => {
+  const s = choose(startJourney(), "leave-now");
+  const ok = play(s, solution(s));
+  assert.equal(ok.stars, 3);
+  assert.equal(completeLeg(s, { ...ok, replay: true }), s); // exactly the same state object: nothing changed
+  const after = completeLeg(s, ok); // the same result without the flag does count
+  assert.notEqual(after, s);
+  assert.equal(after.res.clock, s.res.clock + ok.maraAt!);
+});

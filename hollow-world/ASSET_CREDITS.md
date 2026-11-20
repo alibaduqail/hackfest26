@@ -10,3 +10,7 @@ The presentation uses an isometric sectional model. The Hearth and Strata concep
 - **IBM Plex Mono**, copyright IBM Corp., licensed under the SIL Open Font License 1.1.
 
 The latin-subset woff2 files are self-hosted in `hollow-world/public/fonts/`; no font is loaded from a remote service. Both licenses permit this redistribution.
+
+## Characters
+
+Character portraits and sprites for Mara and the Director are original pixel art drawn for this project.

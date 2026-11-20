@@ -23,6 +23,7 @@ import { LEVEL_HINTS, nextHint } from "./hints";
 import { LiveRail } from "./LiveRail";
 import { RelayBar, RelayButton } from "../../relay/Relay";
 import "../../relay/relay.css";
+import { Dialogue } from "../../characters/Dialogue";
 import "./live.css";
 import "./intro-debrief.css";
 
@@ -207,6 +208,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
       }
     }
     if (!over) return;
+    if (solution) return; // a replay earns no stars, so no star chimes
     const tones = Array.from({ length: stars }, (_, i) => setTimeout(() => sfx.playStarDing(i), i * 180));
     return () => tones.forEach(clearTimeout);
   }, [obs, previous, warning, sealedNow.length, over, stars, solution, live.events, mara, medicine]);
@@ -252,7 +254,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
   }
   /** Journey mode: hand the finished leg to the journey (a win moves on; a loss applies its cost and goes to the retry camp). Once only. */
   function endLeg(continueAnyway = false) {
-    if (finished.current || !onLegEnd || !legId) return;
+    if (finished.current || !onLegEnd || !legId || solution) return; // a solution replay never records a leg
     finished.current = true;
     onLegEnd({ legId, stars, maraAt: mara.arriveTick, medicineAt: medicine.arriveTick, beaconsPlaced: live.commands.length, ticks: obs.tick }, continueAnyway ? { continueAnyway } : undefined);
   }
@@ -413,6 +415,8 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
               </details>
             )}
             {hintText && !over && <p className="live-hint-caption" role="status">{hintText}</p>}
+            {/* characters: Director + Mara dialogue (src/echo-view/characters) */}
+            <Dialogue obs={obs} previous={previous} ended={over} stars={stars} />
           </div>
         </div>
         <p className="sr" id="live-rail-help">Click a rail to place a beacon. Focus the map to use the arrow keys and Enter.</p>
@@ -442,7 +446,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
             ? <LiveDebrief mission={mission} commands={live.commands} stars={stars} endReason={obs.endReason} onNext={() => endLeg()} nextLabel="Continue the journey" />
             : <LiveDebrief mission={mission} commands={live.commands} stars={stars} endReason={obs.endReason} onRetry={() => endLeg()} retryLabel="Retry leg" onContinue={() => endLeg(true)}
                 note={`Retrying costs ${obs.tick + 15} minutes on the clock, 1 dose${live.commands.length ? `, and the ${live.commands.length} beacon${live.commands.length === 1 ? "" : "s"} you placed` : ""}.`} />
-          : <LiveDebrief mission={mission} commands={live.commands} stars={stars} endReason={obs.endReason} onRetry={() => restart(false)} onWatchSolution={() => restart(true)} />
+          : <LiveDebrief mission={mission} commands={live.commands} stars={stars} endReason={obs.endReason} replay={solution} onRetry={() => restart(false)} retryLabel={solution ? "Play yourself" : undefined} onWatchSolution={solution ? undefined : () => restart(true)} />
       )}
       {!introDone && <LiveIntro mission={mission} goal={`Nurse Mara reaches the deep clinic by minute ${goals[0].maraBy}.`} hint={INTRO_HINTS[levelIndex]} onStart={start} />}
     </div>

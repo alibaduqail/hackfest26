@@ -46,6 +46,7 @@ export interface Sim {
   mode: Mode;
   tick: number;
   towerUp: boolean;
+  standbyBack: boolean; // standby mode only: the backup tower has come online (latch: the primary does not fail a second time)
   sectors: Sector[];
   sec: Map<string, Sector>;
   pods: Pod[];
@@ -145,7 +146,7 @@ export function makeSim(m: Mission, mode: Mode): Sim {
     rt.set(p.id, { granted: p.at >= 0, knows: new Set(), stuck: false, claim: null, claimTick: -1 });
   }
   return {
-    m, mode, tick: 0, towerUp: true, sectors, sec: new Map(sectors.map((s) => [s.id, s])), pods, rt,
+    m, mode, tick: 0, towerUp: true, standbyBack: false, sectors, sec: new Map(sectors.map((s) => [s.id, s])), pods, rt,
     topo: buildTopo(sectors, mode === "normal" ? [] : sealsOf(m)),
     log: [], pulses: [], tokens: 0, grantsEver: 0, entries: 0, hist: [], released: new Map(),
     flown: new Set(), yielded: new Set(), announced: new Set(), blind: new Map(),
@@ -204,7 +205,7 @@ function movement(s: Sim) {
       p.status = "arrived";
       p.arriveTick = s.tick;
       say(s, "arrive", `${p.label} arrives`, p.id);
-    } else if ((s.mode === "tower" && !s.towerUp) || s.rt.get(p.id)!.stuck) {
+    } else if (((s.mode === "tower" || s.mode === "standby") && !s.towerUp) || s.rt.get(p.id)!.stuck) {
       p.status = "holding";
       say(s, "hold", `${p.label} holds at the boundary`, p.id);
     } else p.status = "waiting";

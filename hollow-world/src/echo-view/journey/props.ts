@@ -3,6 +3,7 @@
 // The journey types come straight from src/echo/journey.ts (type-only imports), so a contract change breaks tsc here instead of drifting.
 import type { CampEvent, ending as endingFn, LegResult, LogEntry, Resources } from "../../echo/journey";
 export type { CampEvent, Choice, Effect, JourneyState, LegId, LegResult, LogEntry, Resources } from "../../echo/journey";
+import type { GhostData } from "./ghosts";
 export type Stars = LegResult["stars"];
 export type Ending = ReturnType<typeof endingFn>;
 
@@ -37,5 +38,6 @@ export interface EndingScreenProps {
   limit?: number; // defaults to LIMIT from journey.ts
   log: LogEntry[];
   choiceNames?: Record<string, string>; // `${eventId}/${choiceId}` -> readable label; falls back to the ids
+  ghosts?: GhostData; // counterfactual paths (ghostData(seed, log)); without it the ending is the plain trail
   onAgain: () => void;
 }
