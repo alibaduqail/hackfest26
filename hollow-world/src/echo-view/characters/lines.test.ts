@@ -34,12 +34,14 @@ test("first blind wait: Director", () => {
   assert.deepEqual([l.who, l.text], ["director", LINES.blind.text]);
 });
 
-test("flood telegraph: Director names the section and minutes, once", () => {
+test("flood telegraph: Director names the section and minutes, then Mara says where to bolt beacons, once", () => {
   const warn = { floodWarnings: [{ risk: "flood", sectorId: "main1", at: 18 }] };
-  const l = only(newLines(obs(9), obs(10, warn), new Set(), ctx));
-  assert.deepEqual([l.who, l.text], ["director", "The middle main shaft floods in 8 min. I didn't warn anyone. Did you?"]);
+  const [d, m, ...rest] = newLines(obs(9), obs(10, warn), new Set(), ctx);
+  assert.deepEqual([d.who, d.text], ["director", "The middle main shaft floods in 8 min. I didn't warn anyone. Did you?"]);
+  assert.deepEqual([m.who, m.text], ["mara", "Bolt a beacon on the middle main shaft and the shaft above. The news hops to me."]);
+  assert.equal(rest.length, 0);
   assert.deepEqual(newLines(obs(10, warn), obs(11, warn), new Set(), ctx), []); // already on screen
-  assert.deepEqual(newLines(obs(9), obs(10, warn), new Set(["flood"]), ctx), []);
+  assert.deepEqual(newLines(obs(9), obs(10, warn), new Set(["flood", "floodMara"]), ctx), []);
 });
 
 test("reroute: Mara, then the Director queued right after; other pods do not trigger", () => {
@@ -104,7 +106,7 @@ test("real run: no beacons fails once; solution replay speaks start, beacon, flo
   assert.equal(new Set(noBeacons).size, noBeacons.length);
   assert.equal(noBeacons.at(-1), "fail");
   const solved = seen(true);
-  for (const id of ["start", "beacon", "flood", "reroute", "rerouteDirector"]) assert.ok(solved.includes(id), id);
+  for (const id of ["start", "beacon", "flood", "floodMara", "reroute", "rerouteDirector"]) assert.ok(solved.includes(id), id);
   assert.equal(solved.at(-1), "win");
   assert.ok(solved.indexOf("flood") < solved.indexOf("reroute"));
 });

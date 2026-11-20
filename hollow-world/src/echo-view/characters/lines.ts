@@ -13,6 +13,7 @@ export const LINES = {
   beacon: { who: "mara", text: "Beacon's live. I can hear the next section." },
   blind: { who: "director", text: "Hear that? Silence. Your pods are blind without my tower." },
   flood: { who: "director", text: "{section} floods in {n}. I didn't warn anyone. Did you?" },
+  floodMara: { who: "mara", text: "Bolt a beacon on {place} and the shaft above. The news hops to me." },
   reroute: { who: "mara", text: "Got the flood warning through the beacons. Taking the bypass!" },
   rerouteDirector: { who: "director", text: "…How did she hear that?" },
   forged: { who: "mara", text: "No credential, no priority. Medical goes first." },
@@ -45,6 +46,7 @@ export function newLines(prev: Observation, obs: Observation, fired: ReadonlySet
   const shown = (o: Observation) => o.floodWarnings?.find((w) => w.sectorId !== undefined);
   const telegraph = shown(obs);
   add("flood", !!telegraph && !shown(prev), telegraph && { section: section(telegraph.sectorId!), n: `${Math.max(0, telegraph.at! - obs.tick)} min` });
+  add("floodMara", !!telegraph && !shown(prev), telegraph && { place: placeName(telegraph.sectorId!) });
   const rerouted = has((e) => e.kind === "reroute" && e.podId === MARA);
   add("reroute", rerouted);
   add("rerouteDirector", rerouted);
