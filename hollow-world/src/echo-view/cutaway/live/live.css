@@ -103,3 +103,9 @@
 
 .descent-live .live-eyebrow, .descent-live .live-goals-title { text-transform: none; letter-spacing: 0; font: 600 12px var(--mono); color: var(--text2); }
 .descent-live .live-eyebrow { color: var(--amberHi); }
+
+/* Planning and the flood hold: Run is the next move. A static ring on the primary control and one short label on the map. */
+.descent-live .live-primary.ready { box-shadow: 0 0 0 3px var(--bg), 0 0 0 4px var(--amberHi); }
+.descent-live .live-ready-chip { position: absolute; left: 4.8%; top: 4%; z-index: 4; padding: 4px 8px; background: var(--stage);
+  border: 1px solid var(--amber); color: var(--amberHi); font: 600 12px/1.2 var(--mono); pointer-events: none; white-space: nowrap; }
+.descent-live .live-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

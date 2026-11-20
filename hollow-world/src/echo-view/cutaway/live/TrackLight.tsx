@@ -68,7 +68,7 @@ function TrackLightBody({ graph, lit, pending, route, flood, chain, pulses, prev
         </defs>
         <g className="tl-dark">
           {all.map((t) => <path key={t.sectorId} className="bed" d={d(t)} />)}
-          {all.filter((t) => !shown.has(t.sectorId)).map((t) => <path key={t.sectorId} className="rail" d={d(t)} />)}
+          {all.filter((t) => !shown.has(t.sectorId)).map((t) => <path key={t.sectorId} className={"rail" + (t.level >= 3 ? " deep" : "")} d={d(t)} />)}
         </g>
         {chain && chain.map((id) => {
           const t = tracks.get(id);

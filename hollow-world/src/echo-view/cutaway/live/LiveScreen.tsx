@@ -131,6 +131,8 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
   const chain = useMemo(() => flood && warning ? warnChain(mission.world.sectors, flood.id, mara.path, mara.at) : null, [flood?.id, warning, mission, mara.path.join(","), mara.at]); // eslint-disable-line react-hooks/exhaustive-deps
   const floodMark = useMemo(() => flood && (warning || sealed) ? { id: flood.id, sealed } : null, [flood?.id, warning, sealed]); // eslint-disable-line react-hooks/exhaustive-deps
   const held = obs.pods.filter((p) => heldAtFlood(p, obs));
+  const holdForFlood = !!live.floodHold && !playing && !over; // the run paused itself at the flood announcement
+  const waiting = !over && !solution && (live.planning || holdForFlood); // planning or held: Run is the next move
   const placementsOpen = !over && !solution && remaining > 0;
   const canPlace = (id: string) =>
     placementsOpen && !queued.has(id) && !building.has(id) && obs.sectors.find((s) => s.id === id)?.beacon === false;
@@ -274,9 +276,8 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
   function toggleRun() {
     if (introDone) live.togglePause();
   }
-  function start() { // the intro's Start: dismiss and run in one click
+  function start() { // the intro's Start: dismiss into planning, the clock still at t+0 (Run or Space starts it)
     setIntroDone(true);
-    live.start();
   }
   /** Journey mode: hand the finished leg to the journey (a win moves on; a loss applies its cost and goes to the retry camp). Once only. */
   function endLeg(continueAnyway = false) {
@@ -339,6 +340,10 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
             <span>
               {over
                 ? "Run ended"
+                : live.planning
+                ? "Planning"
+                : holdForFlood
+                ? "Held for the flood"
                 : !playing
                 ? "Paused"
                 : live.slow
@@ -416,6 +421,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
             </div>
             <canvas ref={canvas} role="img" aria-label="Five tunnel levels with moving pods and trackside beacons" />
             <canvas ref={fxCanvas} className="live-overlay" aria-hidden="true" />
+            {waiting && introDone && <span className="live-ready-chip" role="status">{holdForFlood ? "Held for the flood · Run when ready" : "Place beacons · Run when ready"}</span>}
             {warning && <span className="live-flood-chip">Flood in {Math.max(0, untilFlood)}</span>}
             {hover && !over && introDone && (
               <span
@@ -463,10 +469,7 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
               <>
                 <div className="eyebrow live-eyebrow">Relay control{solution ? " · solution replay" : ""}</div>
                 <h2>Light the track</h2>
-                <p className="live-instructions" id="live-rail-help">
-                  A beacon lights one section of track. Flood news runs only along lit track, one section a minute. Click a
-                  section, or use the arrow keys and Enter.
-                </p>
+                <p className="live-sr" id="live-rail-help">Click a section of track, or use the arrow keys and Enter, to place a beacon.</p>
                 <div className={"live-alert" + (sealed ? " danger" : warning ? " warning" : "")}>
                   <small>{pressure}</small>
                   <strong>
@@ -532,8 +535,8 @@ export function LiveScreen({ onExit, mission: legMission, legId, journeyMode = f
       </main>
       <footer inert={!introDone}>
         <nav aria-label="Descent controls">
-          <button className="live-primary" onClick={toggleRun} disabled={over}>
-            {playing ? "Ⅱ Pause" : obs.tick === 0 ? "▶ Start run" : "▶ Resume"} <kbd>Space</kbd>
+          <button className={"live-primary" + (waiting ? " ready" : "")} onClick={toggleRun} disabled={over}>
+            {playing ? "Ⅱ Pause" : live.planning ? "▶ Run" : "▶ Resume"} <kbd>Space</kbd>
           </button>
           <div className="switch" role="group" aria-label="Run speed">
             {([1, 2, 4] as const).map((speed) => (

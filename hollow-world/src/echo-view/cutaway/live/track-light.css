@@ -7,7 +7,8 @@
 
 /* Every section starts dark: a shadowed bed with a faint rail line, so the track reads as something you can light. */
 .descent-live .tl-dark .bed { stroke: #060b0e; stroke-width: 12px; opacity: .5; }
-.descent-live .tl-dark .rail { stroke: var(--tl-ivory); stroke-width: 2px; stroke-dasharray: 1 7; opacity: .45; }
+.descent-live .tl-dark .rail { stroke: var(--tl-ivory); stroke-width: 2.5px; stroke-dasharray: 1 7; opacity: .6; }
+.descent-live .tl-dark .rail.deep { stroke-width: 3px; opacity: .85; } /* levels 3 to 5: the art is darkest there, a dim projector loses thin dots */
 
 /* Lit: a soft wash and a lamp-coloured core. A lit end that meets a lit neighbour is full; an end that meets nothing fades out. */
 .descent-live .tl-lit .glow { stroke: var(--tl-g); stroke-width: 22px; opacity: .26; }
